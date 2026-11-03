@@ -139,3 +139,31 @@ def fetch_disclosure_snapshot(url, *, source, analysis_date, symbol=None, timeou
             "Endpoint host allowlisting does not authenticate announcement content.",
         ],
     }
+
+
+def save_disclosure_snapshot(directory, snapshot):
+    """Write a bounded JSON snapshot atomically, without secrets or model calls."""
+    import os
+    import tempfile
+    from pathlib import Path
+    directory = Path(directory)
+    if not isinstance(snapshot, dict) or snapshot.get("source_content_verified") is not False:
+        raise ValueError("snapshot must explicitly remain unverified")
+    if snapshot.get("historical_point_in_time_verified") is not False:
+        raise ValueError("snapshot must not claim historical verification")
+    directory.mkdir(parents=True, exist_ok=True)
+    target = directory / "disclosure_api_snapshot.json"
+    encoded = (json.dumps(snapshot, ensure_ascii=False, indent=2) + "\n").encode("utf-8")
+    if len(encoded) > MAX_RESPONSE_BYTES * 2:
+        raise ValueError("snapshot too large")
+    tmp_path = None
+    try:
+        with tempfile.NamedTemporaryFile(mode="wb", dir=directory, prefix=".disclosure-",
+                                         suffix=".tmp", delete=False) as stream:
+            tmp_path = stream.name
+            stream.write(encoded)
+        os.replace(tmp_path, target)
+    finally:
+        if tmp_path is not None and os.path.exists(tmp_path):
+            os.unlink(tmp_path)
+    return target
