@@ -36,7 +36,9 @@ class DisclosureCLIOfficialSourceTests(unittest.TestCase):
             capture_output=True, text=True, check=False,
         )
         self.assertNotIn('ImportError', run.stderr)
-        self.assertIn('reports directory is missing', run.stdout)
+        self.assertNotEqual(run.returncode, 0)
+        self.assertTrue('reports directory is missing' in run.stdout or
+                        'no complete_report.html found' in run.stdout)
 
     def test_valid_official_source_export(self):
         run = self.run_cli()
