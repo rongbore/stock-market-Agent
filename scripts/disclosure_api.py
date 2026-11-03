@@ -80,10 +80,14 @@ def normalize_cninfo_query_response(payload, *, symbol, analysis_date):
         adjunct = notice.get("adjunctUrl")
         if not isinstance(adjunct, str) or not adjunct.startswith("finalpage/"):
             raise ValueError("unexpected CNINFO PDF path")
-        if "?" in adjunct or "#" in adjunct or ".." in adjunct.split("/"):
+        if ("?" in adjunct or "#" in adjunct or "\\" in adjunct or
+                any(part in ("", ".", "..") for part in adjunct.split("/")) or
+                not adjunct.lower().endswith(".pdf")):
             raise ValueError("invalid CNINFO PDF path")
         milliseconds = notice.get("announcementTime")
-        if type(milliseconds) is not int or milliseconds < 0:
+        if isinstance(milliseconds, str) and milliseconds.isascii() and milliseconds.isdecimal():
+            milliseconds = int(milliseconds)
+        if type(milliseconds) is not int or not 0 <= milliseconds <= 253402300799999:
             raise ValueError("CNINFO announcementTime must be milliseconds")
         from datetime import datetime, timezone
         from zoneinfo import ZoneInfo
