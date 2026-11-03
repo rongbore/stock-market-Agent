@@ -45,6 +45,24 @@ class OfficialDisclosureAPITests(unittest.TestCase):
             return fetch_official_disclosure_json(
                 self.endpoint, source="cninfo", analysis_date="2026-10-30")
 
+    def test_fetch_cninfo_wrapped_json(self):
+        from datetime import datetime
+        from zoneinfo import ZoneInfo
+        stamp = int(datetime(2026, 10, 29, 16, 0,
+                             tzinfo=ZoneInfo("Asia/Shanghai")).timestamp() * 1000)
+        payload = json.dumps({"announcements": [{
+            "secCode": "000776", "announcementTitle": "SYNTHETIC NOTICE",
+            "adjunctUrl": "finalpage/2026-10-29/sample.PDF",
+            "announcementTime": stamp,
+        }]}).encode()
+        with patch("scripts.disclosure_api.build_opener",
+                   return_value=FakeOpener(FakeResponse(payload))):
+            result = fetch_official_disclosure_json(
+                self.endpoint, source="cninfo", analysis_date="2026-10-30",
+                symbol="000776.SZ")
+        self.assertEqual(result[0]["symbol"], "000776.SZ")
+        self.assertFalse(result[0]["source_content_verified"])
+
     def test_cninfo_wrapper_mapping(self):
         from datetime import datetime
         from zoneinfo import ZoneInfo
