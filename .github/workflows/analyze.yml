@@ -51,10 +51,10 @@ jobs:
           ANALYSIS_MODEL: ${{ inputs.model }}
         run: python scripts/analyze.py
       - name: Upload reports
-        if: ${{ !cancelled() }}
+        if: ${{ success() }}
         uses: actions/upload-artifact@v4
         with:
           name: tradingagents-reports-${{ github.run_id }}
           path: results/reports/
-          if-no-files-found: warn
+          if-no-files-found: error
           retention-days: 14
