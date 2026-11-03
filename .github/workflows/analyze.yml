@@ -57,7 +57,7 @@ jobs:
           ANALYSIS_MODEL: ${{ inputs.model }}
         run: python scripts/analyze.py
       - name: Validate report artifacts
-        run: python scripts/report_contract.py results/reports
+        run: python scripts/report_contract.py results/reports --require-metadata
       - name: Guard report artifacts against secret exposure
         env:
           DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
@@ -94,7 +94,7 @@ jobs:
           save_manifest(root, build_manifest("SYNTHETIC", "2026-01-01", "offline-test"))
           PY
       - name: Validate synthetic report artifacts
-        run: python scripts/report_contract.py results/reports
+        run: python scripts/report_contract.py results/reports --require-metadata
       - name: Guard synthetic report artifacts
         run: python scripts/artifact_secret_guard.py results/reports
       - name: Upload synthetic smoke artifact
