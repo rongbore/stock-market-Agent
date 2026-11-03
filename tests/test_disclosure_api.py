@@ -219,7 +219,7 @@ class OfficialDisclosureAPITests(unittest.TestCase):
     def test_endpoint_rejects_query_secrets_and_control_characters(self):
         for url in ("https://www.cninfo.com.cn/api?token=secret",
                     "https://www.cninfo.com.cn/api?stock=000776",
-                    "https://www.cninfo.com.cn/api\\nX-Test: injected"):
+                    "https://www.cninfo.com.cn/api\nX-Test: injected"):
             with self.subTest(url=url), self.assertRaises(ValueError):
                 validate_endpoint(url, source="cninfo")
 
