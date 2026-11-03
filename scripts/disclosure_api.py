@@ -57,7 +57,10 @@ def fetch_official_disclosure_json(url, *, source, analysis_date, timeout=10,
         body = response.read(MAX_RESPONSE_BYTES + 1)
         if len(body) > MAX_RESPONSE_BYTES:
             raise ValueError("official endpoint response too large")
-    records = json.loads(body.decode("utf-8"))
+    try:
+        records = json.loads(body.decode("utf-8"))
+    except (UnicodeError, json.JSONDecodeError) as exc:
+        raise ValueError("official endpoint returned invalid JSON") from exc
     if source == "cninfo" and symbol is not None:
         return normalize_cninfo_query_response(records, symbol=symbol,
                                                analysis_date=analysis_date)
