@@ -203,6 +203,19 @@ def main():
     parser.add_argument("--output-dir", required=True)
     parser.add_argument("--timeout", type=float, default=10)
     args = parser.parse_args()
+    from datetime import date
+    import re
+    try:
+        if date.fromisoformat(args.analysis_date).isoformat() != args.analysis_date:
+            raise ValueError("date must be YYYY-MM-DD")
+    except ValueError:
+        parser.error("--analysis-date must be a valid YYYY-MM-DD date")
+    if not re.fullmatch(r"[0-9]{6}\\.(SZ|SS)", args.symbol):
+        parser.error("--symbol must be a six-digit A-share code with .SZ or .SS")
+    try:
+        validate_endpoint(args.endpoint, source=args.source)
+    except ValueError as exc:
+        parser.error(str(exc))
     result = collect_disclosure_candidates(
         args.endpoint, source=args.source, analysis_date=args.analysis_date,
         symbol=args.symbol, output_dir=args.output_dir, timeout=args.timeout)
