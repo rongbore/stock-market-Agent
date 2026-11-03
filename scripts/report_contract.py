@@ -2,6 +2,11 @@
 import json
 from pathlib import Path
 
+if __package__:
+    from .evidence_bundle import validate_evidence_bundle
+else:
+    from evidence_bundle import validate_evidence_bundle
+
 
 def validate_report_directory(directory):
     """Return a list of problems; an empty list means required HTML exists."""
@@ -54,6 +59,19 @@ def validate_report_metadata(directory):
         errors.append("source record fields must be lists")
     elif run["source_records"] != evidence["records"]:
         errors.append("source records differ between manifest and evidence")
+    if isinstance(evidence.get("records"), list) and isinstance(run.get("analysis_date"), str):
+        try:
+            expected = validate_evidence_bundle(
+                evidence["records"],
+                analysis_date=run["analysis_date"],
+                cutoff=evidence.get("analysis_cutoff"),
+            )
+            if evidence.get("analysis_cutoff") != expected["analysis_cutoff"]:
+                errors.append("evidence analysis cutoff is inconsistent")
+            if evidence.get("metadata_validated") is not True:
+                errors.append("evidence metadata validation marker is missing")
+        except (ValueError, TypeError, OverflowError):
+            errors.append("evidence records or cutoff failed validation")
     return errors
 
 
