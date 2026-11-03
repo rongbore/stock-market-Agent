@@ -91,20 +91,22 @@ def validate_report_metadata(directory):
             candidates = candidate_bundle.get("candidates")
             if not isinstance(candidates, list):
                 raise ValueError("candidate records must be a list")
+            original_records = []
             for item in candidates:
                 if not isinstance(item, dict):
                     raise ValueError("candidate item must be an object")
-                source = {key: item.get(key) for key in (
-                    "symbol", "title", "provider", "url", "announcement_date")}
-                if item.get("published_at") is not None:
-                    source["published_at"] = item["published_at"]
-                expected = screen_disclosures(
-                    [source], analysis_date=run["analysis_date"], symbol=run["ticker"]
-                )["candidates"][0]
-                for field in ("status", "eligible_by_announcement_date",
-                              "historical_point_in_time_verified"):
-                    if item.get(field) != expected[field]:
-                        raise ValueError("candidate eligibility was altered")
+                original_records.append({
+                    key: item.get(key) for key in
+                    ("symbol", "title", "provider", "url", "announcement_date")
+                })
+            expected = screen_disclosures(
+                original_records, analysis_date=run["analysis_date"],
+                symbol=run["ticker"]
+            )
+            if candidates != expected["candidates"]:
+                raise ValueError("candidate records differ from canonical screening")
+            if candidate_bundle.get("schema_version") != expected["schema_version"]:
+                raise ValueError("candidate schema version mismatch")
         except (ValueError, TypeError, OSError, UnicodeError, KeyError):
             errors.append("invalid or inconsistent disclosure_candidates.json")
     return errors
