@@ -3,6 +3,7 @@ import unittest
 from pathlib import Path
 
 from scripts.evidence_bundle import save_evidence_bundle, validate_evidence_bundle
+from scripts.disclosure_candidates import screen_disclosures, save_disclosure_candidates
 from scripts.provenance import build_manifest, save_manifest
 from scripts.report_contract import validate_reports_root
 
@@ -31,6 +32,14 @@ class OrphanMetadataTests(unittest.TestCase):
         orphan = self.root / "orphan"
         orphan.mkdir()
         save_evidence_bundle(orphan, validate_evidence_bundle([], analysis_date="2026-01-01"))
+        self.assertTrue(validate_reports_root(self.root, require_metadata=True))
+
+    def test_orphan_disclosure_candidates_rejected(self):
+        orphan = self.root / "orphan"
+        orphan.mkdir()
+        candidates = screen_disclosures([], analysis_date="2026-01-01",
+                                        symbol="000776.SZ")
+        save_disclosure_candidates(orphan, candidates)
         self.assertTrue(validate_reports_root(self.root, require_metadata=True))
 
     def test_non_strict_legacy_behavior_unchanged(self):
