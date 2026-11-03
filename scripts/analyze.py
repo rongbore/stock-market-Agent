@@ -2,6 +2,7 @@
 
 import os
 import re
+import json
 from datetime import date, datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -9,9 +10,11 @@ from zoneinfo import ZoneInfo
 if __package__:
     from .provenance import build_manifest, save_manifest
     from .evidence_bundle import validate_evidence_bundle, save_evidence_bundle
+    from .disclosure_candidates import screen_disclosures, save_disclosure_candidates
 else:
     from provenance import build_manifest, save_manifest
     from evidence_bundle import validate_evidence_bundle, save_evidence_bundle
+    from disclosure_candidates import screen_disclosures, save_disclosure_candidates
 
 
 def read_inputs():
@@ -68,6 +71,12 @@ def main():
     evidence_path = save_evidence_bundle(
         report_dir, validate_evidence_bundle([], analysis_date=trade_date)
     )
+    disclosure_input = os.environ.get("ANALYSIS_DISCLOSURES_JSON", "").strip()
+    if disclosure_input:
+        records = json.loads(Path(disclosure_input).read_text(encoding="utf-8"))
+        candidates = screen_disclosures(records, analysis_date=trade_date, symbol=ticker)
+        candidate_path = save_disclosure_candidates(report_dir, candidates)
+        print(f"未核实公告候选清单已保存：{candidate_path}")
     print(f"中文报告已保存：{report_dir}")
     print(f"运行元数据已保存：{provenance_path}")
     print(f"来源证据清单已保存（尚未接入真实来源）：{evidence_path}")
