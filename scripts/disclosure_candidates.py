@@ -15,11 +15,16 @@ def screen_disclosures(records, *, analysis_date, symbol):
         raise ValueError("symbol required")
     normalized_symbol = symbol.strip().upper()
     candidates = []
+    seen = set()
     for item in records:
         decision = historical_disclosure_eligibility(item, analysis_date=analysis_date)
         item_symbol = item["symbol"].strip().upper()
         if item_symbol != normalized_symbol:
             raise ValueError("disclosure symbol mismatch")
+        identifier = (item_symbol, item["url"], item["announcement_date"])
+        if identifier in seen:
+            raise ValueError("duplicate disclosure candidate")
+        seen.add(identifier)
         candidates.append({
             "symbol": item_symbol,
             "title": item["title"].strip(),

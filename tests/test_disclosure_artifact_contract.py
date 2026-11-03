@@ -55,6 +55,18 @@ class DisclosureArtifactContractTests(unittest.TestCase):
         self.edit(lambda x: x.update(source_content_verified=True))
         self.assertTrue(self.check())
 
+    def test_duplicate_candidates_rejected(self):
+        self.edit(lambda x: x["candidates"].append(dict(x["candidates"][0])))
+        self.assertTrue(self.check())
+
+    def test_tampered_title_rejected(self):
+        self.edit(lambda x: x["candidates"][0].update(title=" "))
+        self.assertTrue(self.check())
+
+    def test_unexpected_verified_field_rejected(self):
+        self.edit(lambda x: x["candidates"][0].update(source_content_verified=True))
+        self.assertTrue(self.check())
+
     def test_absent_optional_candidate_file_passes(self):
         (self.report / "disclosure_candidates.json").unlink()
         self.assertEqual(self.check(), [])

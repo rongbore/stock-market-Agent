@@ -39,6 +39,11 @@ class DisclosureCandidateExportTests(unittest.TestCase):
             screen_disclosures([notice("2026-10-29")],
                                analysis_date="2026-10-30", symbol="600519.SS")
 
+    def test_duplicate_notice_rejected(self):
+        with self.assertRaisesRegex(ValueError, "duplicate"):
+            screen_disclosures([notice("2026-10-29"), notice("2026-10-29")],
+                               analysis_date="2026-10-30", symbol="000776.SZ")
+
     def test_json_export(self):
         with tempfile.TemporaryDirectory() as tmp:
             result = screen_disclosures([], analysis_date="2026-10-30",
