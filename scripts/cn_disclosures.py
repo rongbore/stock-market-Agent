@@ -4,7 +4,7 @@ Provider adapters must supply authentic URLs and announcement dates. A date
 without an official publication time is not sufficient for same-day historical
 point-in-time validation.
 """
-from datetime import date, datetime
+from datetime import date, datetime, timedelta, timezone
 from urllib.parse import urlsplit
 
 
@@ -36,6 +36,7 @@ def normalize_disclosure(record, *, analysis_date=None):
         if published_date > cutoff:
             raise ValueError("disclosure date is after analysis date")
     published_at = record.get("published_at")
+    timestamp = None
     if published_at is not None:
         if not isinstance(published_at, str):
             raise ValueError("published_at must be a timezone-aware ISO timestamp")
@@ -45,8 +46,14 @@ def normalize_disclosure(record, *, analysis_date=None):
             raise ValueError("invalid published_at") from exc
         if timestamp.tzinfo is None or timestamp.utcoffset() is None:
             raise ValueError("published_at requires timezone")
-        if timestamp.date() != published_date:
-            raise ValueError("published_at date and announcement_date disagree")
+        shanghai_date = timestamp.astimezone(timezone(timedelta(hours=8))).date()
+        if shanghai_date != published_date:
+            raise ValueError("published_at Shanghai date and announcement_date disagree")
+        if analysis_date is not None:
+            day_end = datetime.combine(cutoff + timedelta(days=1), datetime.min.time(),
+                                       tzinfo=timezone(timedelta(hours=8)))
+            if timestamp >= day_end:
+                raise ValueError("published_at is after the analysis date in Shanghai")
     return {
         "symbol": symbol,
         "title": record["title"].strip(),
