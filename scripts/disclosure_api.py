@@ -114,3 +114,28 @@ def normalize_cninfo_query_response(payload, *, symbol, analysis_date):
     return [adapt_official_disclosure(record, source="cninfo",
                                       analysis_date=analysis_date)
             for record in records]
+
+
+def fetch_disclosure_snapshot(url, *, source, analysis_date, symbol=None, timeout=10):
+    """Return unverified notices with a UTC retrieval timestamp and endpoint.
+
+    The timestamp documents retrieval only, never historical availability.
+    """
+    from datetime import datetime, timezone
+    notices = fetch_official_disclosure_json(
+        url, source=source, analysis_date=analysis_date,
+        symbol=symbol, timeout=timeout)
+    return {
+        "schema_version": "0.1",
+        "source": source,
+        "endpoint": validate_endpoint(url, source=source),
+        "analysis_date": analysis_date,
+        "retrieved_at": datetime.now(timezone.utc).isoformat(),
+        "records": notices,
+        "source_content_verified": False,
+        "historical_point_in_time_verified": False,
+        "limitations": [
+            "Retrieval time is not publication time or historical availability proof.",
+            "Endpoint host allowlisting does not authenticate announcement content.",
+        ],
+    }
