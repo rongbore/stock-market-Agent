@@ -189,3 +189,27 @@ def collect_disclosure_candidates(url, *, source, analysis_date, symbol,
     candidates_path = save_disclosure_candidates(output_dir, candidates)
     return {"snapshot_path": snapshot_path, "candidates_path": candidates_path,
             "candidate_count": len(candidates["candidates"])}
+
+
+def main():
+    """Opt-in, read-only CLI for a caller-supplied official JSON endpoint."""
+    import argparse
+    parser = argparse.ArgumentParser(
+        description="Fetch and screen unverified official-host disclosure metadata")
+    parser.add_argument("--endpoint", required=True)
+    parser.add_argument("--source", choices=tuple(OFFICIAL_HOSTS), required=True)
+    parser.add_argument("--analysis-date", required=True)
+    parser.add_argument("--symbol", required=True)
+    parser.add_argument("--output-dir", required=True)
+    parser.add_argument("--timeout", type=float, default=10)
+    args = parser.parse_args()
+    result = collect_disclosure_candidates(
+        args.endpoint, source=args.source, analysis_date=args.analysis_date,
+        symbol=args.symbol, output_dir=args.output_dir, timeout=args.timeout)
+    print(f"Unverified candidates: {result['candidate_count']}")
+    print(result["snapshot_path"])
+    print(result["candidates_path"])
+
+
+if __name__ == "__main__":
+    main()
