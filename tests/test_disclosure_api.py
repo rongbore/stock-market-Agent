@@ -216,6 +216,24 @@ class OfficialDisclosureAPITests(unittest.TestCase):
             with self.subTest(url=url), self.assertRaises(ValueError):
                 validate_endpoint(url, source="cninfo")
 
+    def test_cli_invalid_inputs_fail_before_network(self):
+        import subprocess
+        import sys
+        base = [sys.executable, "scripts/disclosure_api.py",
+                "--endpoint", "https://www.cninfo.com.cn/example",
+                "--source", "cninfo", "--analysis-date", "2026-10-30",
+                "--symbol", "000776.SZ", "--output-dir", "unused"]
+        for flag, bad in (("--analysis-date", "2026-02-30"),
+                          ("--symbol", "000776.XY"),
+                          ("--endpoint", "http://www.cninfo.com.cn/example")):
+            with self.subTest(flag=flag):
+                args = base[:]
+                args[args.index(flag) + 1] = bad
+                result = subprocess.run(args, capture_output=True, text=True,
+                                        check=False, timeout=5)
+                self.assertEqual(result.returncode, 2, result.stderr)
+                self.assertIn("error:", result.stderr)
+
     def test_cli_help_does_not_fetch_or_require_api_key(self):
         import subprocess
         import sys
