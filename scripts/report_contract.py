@@ -97,7 +97,8 @@ def validate_report_metadata(directory):
                     raise ValueError("candidate item must be an object")
                 original_records.append({
                     key: item.get(key) for key in
-                    ("symbol", "title", "provider", "url", "announcement_date")
+                    ("symbol", "title", "provider", "url", "announcement_date",
+                     "published_at")
                 })
             expected = screen_disclosures(
                 original_records, analysis_date=run["analysis_date"],
