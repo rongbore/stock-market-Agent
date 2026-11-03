@@ -3,7 +3,7 @@ import json
 import unittest
 from unittest.mock import patch
 
-from scripts.disclosure_api import fetch_official_disclosure_json, validate_endpoint
+from scripts.disclosure_api import NoRedirect, fetch_official_disclosure_json, validate_endpoint
 
 
 class FakeResponse:
@@ -50,6 +50,17 @@ class OfficialDisclosureAPITests(unittest.TestCase):
         self.assertEqual(len(records), 1)
         self.assertFalse(records[0]["source_content_verified"])
         self.assertFalse(records[0]["publication_time_verified"])
+
+    def test_redirects_are_disabled(self):
+        handler = NoRedirect()
+        self.assertIsNone(handler.redirect_request(
+            None, None, 302, 'Found', {}, 'https://evil.example/'))
+
+    def test_credentials_and_fragment_rejected(self):
+        for url in ('https://user:pass@www.cninfo.com.cn/api',
+                    'https://www.cninfo.com.cn/api#fragment'):
+            with self.subTest(url=url), self.assertRaises(ValueError):
+                validate_endpoint(url, source='cninfo')
 
     def test_official_host_required(self):
         for url in ("https://www.cninfo.com.cn.evil.example/api",
