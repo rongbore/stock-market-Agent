@@ -3,7 +3,7 @@ import json
 import unittest
 from unittest.mock import patch
 
-from scripts.disclosure_api import NoRedirect, fetch_disclosure_snapshot, fetch_official_disclosure_json, normalize_cninfo_query_response, validate_endpoint
+from scripts.disclosure_api import NoRedirect, fetch_disclosure_snapshot, fetch_official_disclosure_json, normalize_cninfo_query_response, save_disclosure_snapshot, validate_endpoint
 
 
 class FakeResponse:
@@ -107,6 +107,20 @@ class OfficialDisclosureAPITests(unittest.TestCase):
         with self.assertRaises(ValueError):
             normalize_cninfo_query_response({"announcements": [notice]},
                                             symbol="000776.SZ", analysis_date="2026-10-30")
+
+    def test_save_snapshot_and_reject_false_verification(self):
+        import tempfile
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as tmp:
+            snapshot = {"source_content_verified": False,
+                        "historical_point_in_time_verified": False,
+                        "records": [{"symbol": "000776.SZ"}]}
+            path = save_disclosure_snapshot(Path(tmp), snapshot)
+            self.assertEqual(json.loads(path.read_text(encoding="utf-8")), snapshot)
+            self.assertFalse(list(Path(tmp).glob("*.tmp")))
+            snapshot["source_content_verified"] = True
+            with self.assertRaises(ValueError):
+                save_disclosure_snapshot(Path(tmp), snapshot)
 
     def test_snapshot_records_retrieval_provenance_not_verification(self):
         with patch("scripts.disclosure_api.fetch_official_disclosure_json",
