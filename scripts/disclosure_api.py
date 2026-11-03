@@ -167,3 +167,22 @@ def save_disclosure_snapshot(directory, snapshot):
         if tmp_path is not None and os.path.exists(tmp_path):
             os.unlink(tmp_path)
     return target
+
+
+def collect_disclosure_candidates(url, *, source, analysis_date, symbol,
+                                  output_dir, timeout=10):
+    """Fetch, screen and persist unverified records without LLM or trading."""
+    if __package__:
+        from .disclosure_candidates import screen_disclosures, save_disclosure_candidates
+    else:
+        from disclosure_candidates import screen_disclosures, save_disclosure_candidates
+    snapshot = fetch_disclosure_snapshot(
+        url, source=source, analysis_date=analysis_date,
+        symbol=symbol, timeout=timeout)
+    candidates = screen_disclosures(
+        snapshot["records"], analysis_date=analysis_date, symbol=symbol)
+    # Validate the complete candidate set before writing either artifact.
+    snapshot_path = save_disclosure_snapshot(output_dir, snapshot)
+    candidates_path = save_disclosure_candidates(output_dir, candidates)
+    return {"snapshot_path": snapshot_path, "candidates_path": candidates_path,
+            "candidate_count": len(candidates["candidates"])}
