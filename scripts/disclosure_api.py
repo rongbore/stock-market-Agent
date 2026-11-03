@@ -33,7 +33,8 @@ def validate_endpoint(url, *, source):
         raise ValueError("invalid endpoint URL") from exc
     if (parsed.scheme != "https" or parsed.hostname not in OFFICIAL_HOSTS[source]
             or parsed.username or parsed.password or port not in (None, 443)
-            or parsed.fragment):
+            or parsed.fragment or parsed.query or not parsed.path.startswith("/")
+            or any(ord(char) < 32 or ord(char) == 127 for char in url)):
         raise ValueError("endpoint must be an approved official HTTPS URL")
     return url
 
