@@ -49,7 +49,7 @@ jobs:
           save_evidence_bundle(directory, validate_evidence_bundle([], analysis_date="2026-01-01"))
           PY
       - name: Validate report structure
-        run: python scripts/report_contract.py results/reports
+        run: python scripts/report_contract.py results/reports --require-metadata
       - name: Scan artifacts for configured secrets
         run: python scripts/artifact_secret_guard.py results/reports
       - name: Verify synthetic metadata
