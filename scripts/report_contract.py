@@ -4,8 +4,10 @@ from pathlib import Path
 
 if __package__:
     from .evidence_bundle import validate_evidence_bundle
+    from .disclosure_candidates import screen_disclosures
 else:
     from evidence_bundle import validate_evidence_bundle
+    from disclosure_candidates import screen_disclosures
 
 
 def validate_report_directory(directory):
@@ -72,6 +74,39 @@ def validate_report_metadata(directory):
                 errors.append("evidence metadata validation marker is missing")
         except (ValueError, TypeError, OverflowError):
             errors.append("evidence records or cutoff failed validation")
+    candidates_path = directory / "disclosure_candidates.json"
+    if candidates_path.is_file():
+        try:
+            candidate_bundle = json.loads(candidates_path.read_text(encoding="utf-8"))
+            if not isinstance(candidate_bundle, dict):
+                raise ValueError("candidate bundle must be an object")
+            if candidate_bundle.get("analysis_date") != run.get("analysis_date"):
+                raise ValueError("candidate analysis date differs from report")
+            if candidate_bundle.get("symbol") != run.get("ticker"):
+                raise ValueError("candidate symbol differs from report")
+            if candidate_bundle.get("source_content_verified") is not False:
+                raise ValueError("candidate content cannot be marked verified")
+            if candidate_bundle.get("historical_point_in_time_verified") is not False:
+                raise ValueError("candidate historical availability cannot be marked verified")
+            candidates = candidate_bundle.get("candidates")
+            if not isinstance(candidates, list):
+                raise ValueError("candidate records must be a list")
+            for item in candidates:
+                if not isinstance(item, dict):
+                    raise ValueError("candidate item must be an object")
+                source = {key: item.get(key) for key in (
+                    "symbol", "title", "provider", "url", "announcement_date")}
+                if item.get("published_at") is not None:
+                    source["published_at"] = item["published_at"]
+                expected = screen_disclosures(
+                    [source], analysis_date=run["analysis_date"], symbol=run["ticker"]
+                )["candidates"][0]
+                for field in ("status", "eligible_by_announcement_date",
+                              "historical_point_in_time_verified"):
+                    if item.get(field) != expected[field]:
+                        raise ValueError("candidate eligibility was altered")
+        except (ValueError, TypeError, OSError, UnicodeError, KeyError):
+            errors.append("invalid or inconsistent disclosure_candidates.json")
     return errors
 
 
