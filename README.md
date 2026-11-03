@@ -29,3 +29,7 @@ Actions 工作流需位于默认分支才能在网页手动触发。仓库或组
 本地运行需 Python 3.11+，安装同一提交的 TradingAgents，并通过环境变量提供 `DEEPSEEK_API_KEY`，然后执行 `python scripts/analyze.py`。可用 `ANALYSIS_TICKER`、`ANALYSIS_DATE`、`ANALYSIS_MODEL` 覆盖默认参数。
 
 本项目用于投研实验；报告需核对数据来源，不能将其视为已验证的盈利策略。
+
+### 可选官方公告来源预校验（离线）
+
+设置 `ANALYSIS_DISCLOSURES_JSON` 为本地公告元数据 JSON 数组文件路径，并设置 `ANALYSIS_DISCLOSURE_SOURCE=cninfo`、`sse` 或 `szse`，可在任何付费模型初始化前对公告 URL 官方域名、代码所属交易所及日期进行校验。该功能不会抓取公告或验证其内容；候选清单及时间信息仍标记为未核实。不设置 `ANALYSIS_DISCLOSURE_SOURCE` 时保留原有通用离线筛选行为。
