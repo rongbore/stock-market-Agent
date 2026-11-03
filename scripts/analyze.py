@@ -6,7 +6,10 @@ from datetime import date, datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
-from provenance import build_manifest, save_manifest
+if __package__:
+    from .provenance import build_manifest, save_manifest
+else:
+    from provenance import build_manifest, save_manifest
 
 
 def read_inputs():
