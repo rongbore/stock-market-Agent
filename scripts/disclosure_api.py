@@ -13,6 +13,7 @@ else:
     from official_disclosures import OFFICIAL_HOSTS, adapt_official_disclosure
 
 MAX_RESPONSE_BYTES = 2_000_000
+MAX_RECORDS = 500
 
 
 class NoRedirect(HTTPRedirectHandler):
@@ -45,6 +46,8 @@ def fetch_official_disclosure_json(url, *, source, analysis_date, timeout=10,
     This function does not verify the publisher's historical availability.
     """
     validate_endpoint(url, source=source)
+    if isinstance(timeout, bool) or not isinstance(timeout, (int, float)) or not 0 < timeout <= 30:
+        raise ValueError('timeout must be between 0 and 30 seconds')
     request = Request(url, headers={"Accept": "application/json",
                                     "User-Agent": "stock-market-Agent/0.2"})
     with build_opener(NoRedirect()).open(request, timeout=timeout) as response:
@@ -60,6 +63,8 @@ def fetch_official_disclosure_json(url, *, source, analysis_date, timeout=10,
                                                analysis_date=analysis_date)
     if not isinstance(records, list):
         raise ValueError("official endpoint must return a JSON list")
+    if len(records) > MAX_RECORDS:
+        raise ValueError("official endpoint returned too many records")
     return [adapt_official_disclosure(record, source=source,
                                       analysis_date=analysis_date)
             for record in records]
@@ -73,6 +78,8 @@ def normalize_cninfo_query_response(payload, *, symbol, analysis_date):
     """
     if not isinstance(payload, dict) or not isinstance(payload.get("announcements"), list):
         raise ValueError("CNINFO response requires announcements list")
+    if len(payload["announcements"]) > MAX_RECORDS:
+        raise ValueError("CNINFO response contains too many announcements")
     if not isinstance(symbol, str) or not symbol.endswith((".SZ", ".SS")):
         raise ValueError("A-share symbol required")
     records = []
