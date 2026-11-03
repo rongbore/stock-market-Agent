@@ -44,6 +44,23 @@ class DisclosureCandidateExportTests(unittest.TestCase):
             screen_disclosures([notice("2026-10-29"), notice("2026-10-29")],
                                analysis_date="2026-10-30", symbol="000776.SZ")
 
+    def test_publication_timestamp_preserved_but_unverified(self):
+        record = notice("2026-10-29")
+        record["published_at"] = "2026-10-29T16:00:00+08:00"
+        result = screen_disclosures([record], analysis_date="2026-10-30",
+                                    symbol="000776.SZ")
+        candidate = result["candidates"][0]
+        self.assertEqual(candidate["published_at"], record["published_at"])
+        self.assertFalse(candidate["publication_time_verified"])
+        self.assertFalse(candidate["historical_point_in_time_verified"])
+
+    def test_timestamp_date_mismatch_rejected(self):
+        record = notice("2026-10-29")
+        record["published_at"] = "2026-10-30T00:30:00+08:00"
+        with self.assertRaisesRegex(ValueError, "disagree"):
+            screen_disclosures([record], analysis_date="2026-10-30",
+                               symbol="000776.SZ")
+
     def test_json_export(self):
         with tempfile.TemporaryDirectory() as tmp:
             result = screen_disclosures([], analysis_date="2026-10-30",
