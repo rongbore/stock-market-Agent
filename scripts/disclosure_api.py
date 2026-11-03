@@ -4,7 +4,7 @@ The endpoint URL is caller supplied. This is a transport adapter, not an
 assertion of data authenticity or a stable exchange API contract.
 """
 import json
-from urllib.parse import urlsplit
+from urllib.parse import urlsplit, urlencode
 from urllib.request import Request, build_opener, HTTPRedirectHandler
 
 if __package__:
@@ -57,5 +57,45 @@ def fetch_official_disclosure_json(url, *, source, analysis_date, timeout=10):
     if not isinstance(records, list):
         raise ValueError("official endpoint must return a JSON list")
     return [adapt_official_disclosure(record, source=source,
+                                      analysis_date=analysis_date)
+            for record in records]
+
+
+def normalize_cninfo_query_response(payload, *, symbol, analysis_date):
+    """Convert a CNINFO-style announcements wrapper into unverified candidates.
+
+    This is an offline schema adapter. The external endpoint contract and
+    historical point-in-time availability are not independently verified.
+    """
+    if not isinstance(payload, dict) or not isinstance(payload.get("announcements"), list):
+        raise ValueError("CNINFO response requires announcements list")
+    if not isinstance(symbol, str) or not symbol.endswith((".SZ", ".SS")):
+        raise ValueError("A-share symbol required")
+    records = []
+    for notice in payload["announcements"]:
+        if not isinstance(notice, dict):
+            raise ValueError("announcement must be an object")
+        if notice.get("secCode") != symbol.split(".")[0]:
+            raise ValueError("CNINFO announcement stock code mismatch")
+        adjunct = notice.get("adjunctUrl")
+        if not isinstance(adjunct, str) or not adjunct.startswith("finalpage/"):
+            raise ValueError("unexpected CNINFO PDF path")
+        if "?" in adjunct or "#" in adjunct or ".." in adjunct.split("/"):
+            raise ValueError("invalid CNINFO PDF path")
+        milliseconds = notice.get("announcementTime")
+        if type(milliseconds) is not int or milliseconds < 0:
+            raise ValueError("CNINFO announcementTime must be milliseconds")
+        from datetime import datetime, timezone
+        from zoneinfo import ZoneInfo
+        timestamp = datetime.fromtimestamp(milliseconds / 1000, tz=timezone.utc)
+        local = timestamp.astimezone(ZoneInfo("Asia/Shanghai"))
+        records.append({
+            "symbol": symbol,
+            "title": notice.get("announcementTitle"),
+            "url": "https://static.cninfo.com.cn/" + adjunct,
+            "announcement_date": local.date().isoformat(),
+            "published_at": local.isoformat(),
+        })
+    return [adapt_official_disclosure(record, source="cninfo",
                                       analysis_date=analysis_date)
             for record in records]
