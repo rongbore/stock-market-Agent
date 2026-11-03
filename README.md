@@ -33,3 +33,5 @@ Actions 工作流需位于默认分支才能在网页手动触发。仓库或组
 ### 可选官方公告来源预校验（离线）
 
 设置 `ANALYSIS_DISCLOSURES_JSON` 为本地公告元数据 JSON 数组文件路径，并设置 `ANALYSIS_DISCLOSURE_SOURCE=cninfo`、`sse` 或 `szse`，可在任何付费模型初始化前对公告 URL 官方域名、代码所属交易所及日期进行校验。该功能不会抓取公告或验证其内容；候选清单及时间信息仍标记为未核实。不设置 `ANALYSIS_DISCLOSURE_SOURCE` 时保留原有通用离线筛选行为。
+
+可单独运行离线筛选命令：`python -m scripts.disclosure_candidates notices.json --analysis-date 2026-10-30 --symbol 000776.SZ --output-dir results/candidates --official-source cninfo`。`--official-source` 也支持 `sse`、`szse`；未指定时仍为通用离线筛选。此命令只检查本地元数据，不抓取公告，不证明内容真实。
