@@ -3,7 +3,7 @@ import json
 import unittest
 from unittest.mock import patch
 
-from scripts.disclosure_api import NoRedirect, fetch_disclosure_snapshot, fetch_official_disclosure_json, normalize_cninfo_query_response, save_disclosure_snapshot, validate_endpoint
+from scripts.disclosure_api import NoRedirect, collect_disclosure_candidates, fetch_disclosure_snapshot, fetch_official_disclosure_json, normalize_cninfo_query_response, save_disclosure_snapshot, validate_endpoint
 
 
 class FakeResponse:
@@ -107,6 +107,31 @@ class OfficialDisclosureAPITests(unittest.TestCase):
         with self.assertRaises(ValueError):
             normalize_cninfo_query_response({"announcements": [notice]},
                                             symbol="000776.SZ", analysis_date="2026-10-30")
+
+    def test_collect_screens_and_saves_both_artifacts(self):
+        import tempfile
+        from pathlib import Path
+        from datetime import datetime, timezone
+        notice = dict(self.record, provider="CNINFO")
+        notice["published_at"] = "2026-10-29T16:00:00+08:00"
+        with tempfile.TemporaryDirectory() as tmp:
+            with patch("scripts.disclosure_api.fetch_disclosure_snapshot",
+                       return_value={
+                           "source": "cninfo", "endpoint": self.endpoint,
+                           "analysis_date": "2026-10-30",
+                           "retrieved_at": datetime.now(timezone.utc).isoformat(),
+                           "records": [notice],
+                           "source_content_verified": False,
+                           "historical_point_in_time_verified": False,
+                       }):
+                result = collect_disclosure_candidates(
+                    self.endpoint, source="cninfo", analysis_date="2026-10-30",
+                    symbol="000776.SZ", output_dir=tmp)
+            self.assertEqual(result["candidate_count"], 1)
+            self.assertTrue(result["snapshot_path"].is_file())
+            self.assertTrue(result["candidates_path"].is_file())
+            candidates = json.loads(result["candidates_path"].read_text())
+            self.assertFalse(candidates["source_content_verified"])
 
     def test_save_snapshot_and_reject_false_verification(self):
         import tempfile
