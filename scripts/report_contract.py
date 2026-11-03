@@ -83,6 +83,12 @@ def validate_reports_root(root, *, require_metadata=False):
     candidates = list(root.rglob("complete_report.html"))
     if not candidates:
         return ["no complete_report.html found in reports directory"]
+    if require_metadata:
+        report_dirs = {path.parent for path in candidates}
+        for metadata_name in ("run_provenance.json", "evidence_bundle.json"):
+            for metadata_path in root.rglob(metadata_name):
+                if metadata_path.parent not in report_dirs:
+                    return [f"{metadata_path}: metadata without complete_report.html"]
     errors = []
     for candidate in candidates:
         errors.extend(f"{candidate}: {error}" for error in
