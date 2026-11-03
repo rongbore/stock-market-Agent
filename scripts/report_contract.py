@@ -1,4 +1,5 @@
 """Validate report artifacts without invoking an LLM or accessing financial data."""
+import json
 from pathlib import Path
 
 
@@ -20,7 +21,43 @@ def validate_report_directory(directory):
     return errors
 
 
-def validate_reports_root(root):
+def validate_report_metadata(directory):
+    """Require internally consistent run metadata and explicit evidence limitations."""
+    directory = Path(directory)
+    errors = []
+    payloads = {}
+    for filename in ("run_provenance.json", "evidence_bundle.json"):
+        path = directory / filename
+        if not path.is_file():
+            errors.append(f"missing {filename}")
+            continue
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+            if not isinstance(payload, dict):
+                raise ValueError("not an object")
+            payloads[filename] = payload
+        except (ValueError, OSError, UnicodeError):
+            errors.append(f"invalid {filename}")
+    if len(payloads) != 2:
+        return errors
+    run = payloads["run_provenance.json"]
+    evidence = payloads["evidence_bundle.json"]
+    if not isinstance(run.get("analysis_date"), str) or run["analysis_date"] != evidence.get("analysis_date"):
+        errors.append("analysis_date mismatch between provenance and evidence")
+    if run.get("market_data_sources_verified") is not False:
+        errors.append("run must not claim verified market data")
+    if evidence.get("source_content_verified") is not False:
+        errors.append("evidence must not claim verified source content")
+    if evidence.get("historical_point_in_time_verified") is not False:
+        errors.append("evidence must not claim verified historical availability")
+    if not isinstance(run.get("source_records"), list) or not isinstance(evidence.get("records"), list):
+        errors.append("source record fields must be lists")
+    elif run["source_records"] != evidence["records"]:
+        errors.append("source records differ between manifest and evidence")
+    return errors
+
+
+def validate_reports_root(root, *, require_metadata=False):
     """Ensure at least one generated report directory has valid HTML."""
     root = Path(root)
     if not root.is_dir():
@@ -32,6 +69,9 @@ def validate_reports_root(root):
     for candidate in candidates:
         errors.extend(f"{candidate}: {error}" for error in
                       validate_report_directory(candidate.parent))
+        if require_metadata:
+            errors.extend(f"{candidate}: {error}" for error in
+                          validate_report_metadata(candidate.parent))
     return errors
 
 
@@ -39,8 +79,10 @@ def main():
     import argparse
     parser = argparse.ArgumentParser(description="Check generated HTML report artifacts")
     parser.add_argument("reports_root", nargs="?", default="results/reports")
+    parser.add_argument("--require-metadata", action="store_true",
+                        help="Require consistent provenance and evidence bundle")
     args = parser.parse_args()
-    errors = validate_reports_root(args.reports_root)
+    errors = validate_reports_root(args.reports_root, require_metadata=args.require_metadata)
     if errors:
         for error in errors:
             print(f"ERROR: {error}")
