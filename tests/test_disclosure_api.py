@@ -60,6 +60,9 @@ class OfficialDisclosureAPITests(unittest.TestCase):
         self.assertEqual(result[0]["announcement_date"], "2026-10-29")
         self.assertFalse(result[0]["source_content_verified"])
         self.assertFalse(result[0]["publication_time_verified"])
+        payload["announcements"][0]["announcementTime"] = str(stamp)
+        self.assertEqual(normalize_cninfo_query_response(
+            payload, symbol="000776.SZ", analysis_date="2026-10-30")[0]["announcement_date"], "2026-10-29")
 
     def test_cninfo_wrapper_rejects_wrong_symbol_and_bad_path(self):
         payload = {"announcements": [{
@@ -74,6 +77,18 @@ class OfficialDisclosureAPITests(unittest.TestCase):
         with self.assertRaises(ValueError):
             normalize_cninfo_query_response(
                 payload, symbol="000776.SZ", analysis_date="2026-10-30")
+
+    def test_cninfo_rejects_invalid_timestamp_and_non_pdf(self):
+        notice = {"secCode": "000776", "announcementTitle": "SYNTHETIC",
+                  "adjunctUrl": "finalpage/sample.PDF", "announcementTime": "not-a-timestamp"}
+        with self.assertRaises(ValueError):
+            normalize_cninfo_query_response({"announcements": [notice]},
+                                            symbol="000776.SZ", analysis_date="2026-10-30")
+        notice["announcementTime"] = 1790000000000
+        notice["adjunctUrl"] = "finalpage/sample.html"
+        with self.assertRaises(ValueError):
+            normalize_cninfo_query_response({"announcements": [notice]},
+                                            symbol="000776.SZ", analysis_date="2026-10-30")
 
     def test_valid_json_metadata_stays_unverified(self):
         records = self.fetch(json.dumps([self.record]).encode())
