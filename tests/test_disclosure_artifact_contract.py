@@ -67,6 +67,15 @@ class DisclosureArtifactContractTests(unittest.TestCase):
         self.edit(lambda x: x["candidates"][0].update(source_content_verified=True))
         self.assertTrue(self.check())
 
+    def test_forged_publication_time_verification_rejected(self):
+        self.edit(lambda x: x["candidates"][0].update(publication_time_verified=True))
+        self.assertTrue(self.check())
+
+    def test_invalid_publication_timestamp_rejected(self):
+        self.edit(lambda x: x["candidates"][0].update(
+            published_at="2026-10-30T01:00:00+08:00"))
+        self.assertTrue(self.check())
+
     def test_absent_optional_candidate_file_passes(self):
         (self.report / "disclosure_candidates.json").unlink()
         self.assertEqual(self.check(), [])
