@@ -108,6 +108,23 @@ class OfficialDisclosureAPITests(unittest.TestCase):
             normalize_cninfo_query_response({"announcements": [notice]},
                                             symbol="000776.SZ", analysis_date="2026-10-30")
 
+    def test_collect_invalid_candidate_leaves_no_artifacts(self):
+        import tempfile
+        from pathlib import Path
+        invalid = dict(self.record, provider="CNINFO", symbol="000777.SZ")
+        with tempfile.TemporaryDirectory() as tmp:
+            with patch("scripts.disclosure_api.fetch_disclosure_snapshot",
+                       return_value={
+                           "source": "cninfo", "analysis_date": "2026-10-30",
+                           "records": [invalid], "source_content_verified": False,
+                           "historical_point_in_time_verified": False,
+                       }):
+                with self.assertRaises(ValueError):
+                    collect_disclosure_candidates(
+                        self.endpoint, source="cninfo", analysis_date="2026-10-30",
+                        symbol="000776.SZ", output_dir=tmp)
+            self.assertEqual(list(Path(tmp).iterdir()), [])
+
     def test_collect_screens_and_saves_both_artifacts(self):
         import tempfile
         from pathlib import Path
