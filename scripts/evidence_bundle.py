@@ -7,7 +7,10 @@ import json
 from datetime import date, datetime, time, timedelta, timezone
 from pathlib import Path
 
-from .source_records import validate_source_record
+if __package__:
+    from .source_records import validate_source_record
+else:
+    from source_records import validate_source_record
 
 
 def validate_evidence_bundle(records, *, analysis_date, cutoff=None):

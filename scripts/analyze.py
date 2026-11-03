@@ -8,8 +8,10 @@ from zoneinfo import ZoneInfo
 
 if __package__:
     from .provenance import build_manifest, save_manifest
+    from .evidence_bundle import validate_evidence_bundle, save_evidence_bundle
 else:
     from provenance import build_manifest, save_manifest
+    from evidence_bundle import validate_evidence_bundle, save_evidence_bundle
 
 
 def read_inputs():
@@ -60,8 +62,12 @@ def main():
         ticker, trade_date, model, run_id=os.environ.get("GITHUB_RUN_ID")
     )
     provenance_path = save_manifest(report_dir, manifest)
+    evidence_path = save_evidence_bundle(
+        report_dir, validate_evidence_bundle([], analysis_date=trade_date)
+    )
     print(f"中文报告已保存：{report_dir}")
     print(f"运行元数据已保存：{provenance_path}")
+    print(f"来源证据清单已保存（尚未接入真实来源）：{evidence_path}")
     if os.environ.get("GITHUB_STEP_SUMMARY"):
         with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as summary:
             summary.write(
