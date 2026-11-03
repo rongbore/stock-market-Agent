@@ -3,9 +3,9 @@ import json
 from pathlib import Path
 
 if __package__:
-    from .cn_disclosures import historical_disclosure_eligibility
+    from .cn_disclosures import historical_disclosure_eligibility, normalize_disclosure
 else:
-    from cn_disclosures import historical_disclosure_eligibility
+    from cn_disclosures import historical_disclosure_eligibility, normalize_disclosure
 
 
 def screen_disclosures(records, *, analysis_date, symbol):
@@ -17,20 +17,23 @@ def screen_disclosures(records, *, analysis_date, symbol):
     candidates = []
     seen = set()
     for item in records:
+        normalized = normalize_disclosure(item, analysis_date=analysis_date)
         decision = historical_disclosure_eligibility(item, analysis_date=analysis_date)
-        item_symbol = item["symbol"].strip().upper()
+        item_symbol = normalized["symbol"]
         if item_symbol != normalized_symbol:
             raise ValueError("disclosure symbol mismatch")
-        identifier = (item_symbol, item["url"], item["announcement_date"])
+        identifier = (item_symbol, normalized["url"], normalized["announcement_date"])
         if identifier in seen:
             raise ValueError("duplicate disclosure candidate")
         seen.add(identifier)
         candidates.append({
             "symbol": item_symbol,
-            "title": item["title"].strip(),
-            "provider": item["provider"].strip(),
-            "url": item["url"],
-            "announcement_date": item["announcement_date"],
+            "title": normalized["title"],
+            "provider": normalized["provider"],
+            "url": normalized["url"],
+            "announcement_date": normalized["announcement_date"],
+            "published_at": normalized["published_at"],
+            "publication_time_verified": False,
             **decision,
         })
     return {
