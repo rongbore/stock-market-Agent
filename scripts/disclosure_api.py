@@ -4,7 +4,7 @@ The endpoint URL is caller supplied. This is a transport adapter, not an
 assertion of data authenticity or a stable exchange API contract.
 """
 import json
-from urllib.parse import urlsplit, urlencode
+from urllib.parse import urlsplit
 from urllib.request import Request, build_opener, HTTPRedirectHandler
 
 if __package__:
