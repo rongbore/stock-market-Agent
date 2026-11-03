@@ -55,7 +55,10 @@ def main():
     )
     state, _ = graph.propagate(ticker, trade_date)
     report_file = graph.save_reports(state, ticker, html=True)
-    report_dir = Path(report_file).parent
+    report_dir = Path(report_file).resolve().parent
+    expected_root = (root / "reports").resolve()
+    if not report_dir.is_relative_to(expected_root):
+        raise RuntimeError("报告路径不在预期的 results/reports 目录内")
     if not (report_dir / "complete_report.html").is_file():
         raise RuntimeError("分析完成但未生成预期 HTML 报告")
     manifest = build_manifest(
