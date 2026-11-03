@@ -22,14 +22,17 @@ def validate_evidence_bundle(records, *, analysis_date, cutoff=None):
     if not isinstance(records, list):
         raise ValueError("evidence records must be a list")
     day = date.fromisoformat(analysis_date)
+    day_end = datetime.combine(day + timedelta(days=1), time.min,
+                               tzinfo=timezone(timedelta(hours=8))) - timedelta(microseconds=1)
     if cutoff is None:
-        cutoff_dt = datetime.combine(day + timedelta(days=1), time.min,
-                                     tzinfo=timezone(timedelta(hours=8))) - timedelta(microseconds=1)
+        cutoff_dt = day_end
         cutoff = cutoff_dt.isoformat()
     else:
         cutoff_dt = datetime.fromisoformat(cutoff.replace("Z", "+00:00"))
         if cutoff_dt.tzinfo is None or cutoff_dt.utcoffset() is None:
             raise ValueError("cutoff requires timezone")
+        if cutoff_dt > day_end:
+            raise ValueError("cutoff cannot exceed the analysis date")
     seen = set()
     for record in records:
         validate_source_record(record, analysis_cutoff=cutoff)
