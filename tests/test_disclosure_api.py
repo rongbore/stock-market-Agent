@@ -216,6 +216,12 @@ class OfficialDisclosureAPITests(unittest.TestCase):
             with self.subTest(url=url), self.assertRaises(ValueError):
                 validate_endpoint(url, source="cninfo")
 
+    def test_invalid_json_and_utf8_rejected(self):
+        for payload in (b'not-json', b'\\xff\\xfe'):
+            with self.subTest(payload=payload), self.assertRaisesRegex(
+                    ValueError, "invalid JSON"):
+                self.fetch(payload)
+
     def test_non_json_response_rejected(self):
         with self.assertRaisesRegex(ValueError, "content type"):
             self.fetch(b"<html>error</html>", "text/html")
