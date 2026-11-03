@@ -3,7 +3,7 @@ import json
 import unittest
 from unittest.mock import patch
 
-from scripts.disclosure_api import NoRedirect, fetch_official_disclosure_json, normalize_cninfo_query_response, validate_endpoint
+from scripts.disclosure_api import NoRedirect, fetch_disclosure_snapshot, fetch_official_disclosure_json, normalize_cninfo_query_response, validate_endpoint
 
 
 class FakeResponse:
@@ -107,6 +107,19 @@ class OfficialDisclosureAPITests(unittest.TestCase):
         with self.assertRaises(ValueError):
             normalize_cninfo_query_response({"announcements": [notice]},
                                             symbol="000776.SZ", analysis_date="2026-10-30")
+
+    def test_snapshot_records_retrieval_provenance_not_verification(self):
+        with patch("scripts.disclosure_api.fetch_official_disclosure_json",
+                   return_value=[{"symbol": "000776.SZ"}]):
+            result = fetch_disclosure_snapshot(
+                self.endpoint, source="cninfo", analysis_date="2026-10-30",
+                symbol="000776.SZ")
+        from datetime import datetime
+        self.assertIsNotNone(datetime.fromisoformat(result["retrieved_at"]).tzinfo)
+        self.assertEqual(result["endpoint"], self.endpoint)
+        self.assertEqual(result["records"][0]["symbol"], "000776.SZ")
+        self.assertFalse(result["source_content_verified"])
+        self.assertFalse(result["historical_point_in_time_verified"])
 
     def test_timeout_validation(self):
         for timeout in (0, -1, 31, True, "10"):
