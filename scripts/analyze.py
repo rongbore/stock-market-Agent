@@ -6,6 +6,8 @@ from datetime import date, datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
+from provenance import build_manifest, save_manifest
+
 
 def read_inputs():
     ticker = os.environ.get("ANALYSIS_TICKER", "NVDA").strip().upper()
@@ -51,7 +53,12 @@ def main():
     report_dir = Path(report_file).parent
     if not (report_dir / "complete_report.html").is_file():
         raise RuntimeError("分析完成但未生成预期 HTML 报告")
+    manifest = build_manifest(
+        ticker, trade_date, model, run_id=os.environ.get("GITHUB_RUN_ID")
+    )
+    provenance_path = save_manifest(report_dir, manifest)
     print(f"中文报告已保存：{report_dir}")
+    print(f"运行元数据已保存：{provenance_path}")
     if os.environ.get("GITHUB_STEP_SUMMARY"):
         with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as summary:
             summary.write(
