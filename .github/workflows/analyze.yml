@@ -10,6 +10,11 @@ on:
       date:
         description: 分析日期 YYYY-MM-DD；留空使用北京时间当天
         required: false
+      dry_run:
+        description: 仅运行离线模拟报告验证，不调用付费模型或真实市场数据
+        type: boolean
+        required: true
+        default: false
       model:
         description: DeepSeek 模型 ID（须在你的账号可用）
         required: true
@@ -24,6 +29,7 @@ concurrency:
 
 jobs:
   analyze:
+    if: ${{ !inputs.dry_run }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:
@@ -64,3 +70,37 @@ jobs:
           path: results/reports/
           if-no-files-found: error
           retention-days: 14
+
+  offline-smoke:
+    if: ${{ inputs.dry_run }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Create synthetic report fixture
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from scripts.provenance import build_manifest, save_manifest
+          root = Path("results/reports/SYNTHETIC/offline")
+          root.mkdir(parents=True, exist_ok=True)
+          (root / "complete_report.html").write_text(
+              "<!doctype html><html><body>OFFLINE SYNTHETIC TEST ONLY</body></html>",
+              encoding="utf-8",
+          )
+          save_manifest(root, build_manifest("SYNTHETIC", "2026-01-01", "offline-test"))
+          PY
+      - name: Validate synthetic report artifacts
+        run: python scripts/report_contract.py results/reports
+      - name: Guard synthetic report artifacts
+        run: python scripts/artifact_secret_guard.py results/reports
+      - name: Upload synthetic smoke artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: offline-synthetic-smoke-${{ github.run_id }}
+          path: results/reports/
+          if-no-files-found: error
+          retention-days: 1
