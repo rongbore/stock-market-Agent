@@ -1,0 +1,60 @@
+name: TradingAgents 中文股票分析
+
+on:
+  workflow_dispatch:
+    inputs:
+      ticker:
+        description: 股票代码，例如 NVDA、600519.SS、0700.HK
+        required: true
+        default: NVDA
+      date:
+        description: 分析日期 YYYY-MM-DD；留空使用北京时间当天
+        required: false
+      model:
+        description: DeepSeek 模型 ID（须在你的账号可用）
+        required: true
+        default: deepseek-flash
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tradingagents-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      TZ: Asia/Shanghai
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Check API configuration
+        env:
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+        run: |
+          if [ -z "$DEEPSEEK_API_KEY" ]; then
+            echo '::error::请先在仓库 Actions secrets 中配置 DEEPSEEK_API_KEY'
+            exit 1
+          fi
+      - name: Install pinned TradingAgents
+        run: python -m pip install 'tradingagents @ git+https://github.com/TauricResearch/TradingAgents.git@c4544913a14ed3df5f1ed7b9e8483270ce20682a'
+      - name: Analyze stock
+        env:
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+          ANALYSIS_TICKER: ${{ inputs.ticker }}
+          ANALYSIS_DATE: ${{ inputs.date }}
+          ANALYSIS_MODEL: ${{ inputs.model }}
+        run: python scripts/analyze.py
+      - name: Upload reports
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: tradingagents-reports-${{ github.run_id }}
+          path: results/reports/
+          if-no-files-found: warn
+          retention-days: 14
