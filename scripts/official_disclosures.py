@@ -5,7 +5,10 @@ only limits candidate metadata to recognized exchange/disclosure domains.
 """
 from urllib.parse import urlsplit
 
-from .cn_disclosures import normalize_disclosure
+if __package__:
+    from .cn_disclosures import normalize_disclosure
+else:
+    from cn_disclosures import normalize_disclosure
 
 OFFICIAL_HOSTS = {
     "cninfo": frozenset({"www.cninfo.com.cn", "static.cninfo.com.cn"}),
