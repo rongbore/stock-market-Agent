@@ -37,7 +37,8 @@ def validate_endpoint(url, *, source):
     return url
 
 
-def fetch_official_disclosure_json(url, *, source, analysis_date, timeout=10):
+def fetch_official_disclosure_json(url, *, source, analysis_date, timeout=10,
+                                   symbol=None):
     """Fetch an official-host JSON array, validate notices, return unverified metadata.
 
     Redirects are disabled, response size is bounded, and no API key is used.
@@ -54,6 +55,9 @@ def fetch_official_disclosure_json(url, *, source, analysis_date, timeout=10):
         if len(body) > MAX_RESPONSE_BYTES:
             raise ValueError("official endpoint response too large")
     records = json.loads(body.decode("utf-8"))
+    if source == "cninfo" and symbol is not None:
+        return normalize_cninfo_query_response(records, symbol=symbol,
+                                               analysis_date=analysis_date)
     if not isinstance(records, list):
         raise ValueError("official endpoint must return a JSON list")
     return [adapt_official_disclosure(record, source=source,
