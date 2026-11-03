@@ -41,3 +41,5 @@ Actions 工作流需位于默认分支才能在网页手动触发。仓库或组
 `scripts.disclosure_api.fetch_official_disclosure_json(url, source=..., analysis_date=...)` 可从调用方提供的官方 HTTPS 主机 JSON 端点获取公告元数据数组，禁用重定向并限制响应体积。**尚未确认交易所实际公开 API 的路径和响应结构**；需要后续对接官方接口并验证字段映射，不可将示例 URL 当作可用接口。所有返回记录仍标记为未核实，不直接作为已验证研究证据。此功能不使用密钥，不调用付费模型。
 
 实验性公告采集流程可通过 Python 调用 `collect_disclosure_candidates(url, source='cninfo', analysis_date='2026-10-30', symbol='000776.SZ', output_dir='results/disclosures')`。该调用只有在提供**已确认的合法官方 JSON API 地址**时才会发起网络请求；目前项目尚未验证真实端点或其使用许可。成功后会生成 `disclosure_api_snapshot.json` 与 `disclosure_candidates.json`，均不构成公告真实性或历史可用性认证。不得在生产分析中将未核实记录升级为已验证证据。
+
+只读 CLI：`python scripts/disclosure_api.py --endpoint 'https://<已验证的官方主机>/<实际接口路径>' --source cninfo --analysis-date 2026-10-30 --symbol 000776.SZ --output-dir results/disclosures`。占位地址不可直接使用；必须先确认实际官方接口及允许的使用方式。命令不会调用 LLM、券商或交易功能。
