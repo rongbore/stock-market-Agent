@@ -1,0 +1,68 @@
+name: Offline report artifact end-to-end
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/offline-artifact-e2e.yml'
+      - '.github/workflows/analyze.yml'
+      - 'scripts/report_contract.py'
+      - 'scripts/artifact_secret_guard.py'
+      - 'scripts/provenance.py'
+      - 'tests/**'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/offline-artifact-e2e.yml'
+      - '.github/workflows/analyze.yml'
+      - 'scripts/report_contract.py'
+      - 'scripts/artifact_secret_guard.py'
+      - 'scripts/provenance.py'
+      - 'tests/**'
+
+permissions:
+  contents: read
+
+jobs:
+  offline-artifact-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Create synthetic report and provenance
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from scripts.provenance import build_manifest, save_manifest
+          directory = Path("results/reports/SYNTHETIC/offline")
+          directory.mkdir(parents=True, exist_ok=True)
+          (directory / "complete_report.html").write_text(
+              "<!doctype html><html><body>OFFLINE SYNTHETIC TEST ONLY</body></html>",
+              encoding="utf-8",
+          )
+          save_manifest(directory, build_manifest("SYNTHETIC", "2026-01-01", "offline-test"))
+          PY
+      - name: Validate report structure
+        run: python scripts/report_contract.py results/reports
+      - name: Scan artifacts for configured secrets
+        run: python scripts/artifact_secret_guard.py results/reports
+      - name: Verify synthetic metadata
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          root = Path("results/reports/SYNTHETIC/offline")
+          manifest = json.loads((root / "run_provenance.json").read_text(encoding="utf-8"))
+          assert manifest["market_data_sources_verified"] is False
+          assert manifest["source_records"] == []
+          assert "OFFLINE SYNTHETIC TEST ONLY" in (root / "complete_report.html").read_text(encoding="utf-8")
+          PY
+      - name: Upload synthetic artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: synthetic-e2e-${{ github.run_id }}
+          path: results/reports/
+          if-no-files-found: error
+          retention-days: 1
