@@ -32,8 +32,18 @@ def read_inputs():
     return ticker, trade_date.isoformat(), model
 
 
+def load_disclosure_candidates(ticker, trade_date):
+    """Validate optional local metadata before any paid model work begins."""
+    disclosure_input = os.environ.get("ANALYSIS_DISCLOSURES_JSON", "").strip()
+    if not disclosure_input:
+        return None
+    records = json.loads(Path(disclosure_input).read_text(encoding="utf-8"))
+    return screen_disclosures(records, analysis_date=trade_date, symbol=ticker)
+
+
 def main():
     ticker, trade_date, model = read_inputs()
+    candidates = load_disclosure_candidates(ticker, trade_date)
     if not os.environ.get("DEEPSEEK_API_KEY"):
         raise RuntimeError("请配置 GitHub Actions secret: DEEPSEEK_API_KEY")
 
@@ -71,10 +81,7 @@ def main():
     evidence_path = save_evidence_bundle(
         report_dir, validate_evidence_bundle([], analysis_date=trade_date)
     )
-    disclosure_input = os.environ.get("ANALYSIS_DISCLOSURES_JSON", "").strip()
-    if disclosure_input:
-        records = json.loads(Path(disclosure_input).read_text(encoding="utf-8"))
-        candidates = screen_disclosures(records, analysis_date=trade_date, symbol=ticker)
+    if candidates is not None:
         candidate_path = save_disclosure_candidates(report_dir, candidates)
         print(f"未核实公告候选清单已保存：{candidate_path}")
     print(f"中文报告已保存：{report_dir}")
