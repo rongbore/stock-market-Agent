@@ -85,6 +85,7 @@ jobs:
           python - <<'PY'
           from pathlib import Path
           from scripts.provenance import build_manifest, save_manifest
+          from scripts.evidence_bundle import validate_evidence_bundle, save_evidence_bundle
           root = Path("results/reports/SYNTHETIC/offline")
           root.mkdir(parents=True, exist_ok=True)
           (root / "complete_report.html").write_text(
@@ -92,6 +93,7 @@ jobs:
               encoding="utf-8",
           )
           save_manifest(root, build_manifest("SYNTHETIC", "2026-01-01", "offline-test"))
+          save_evidence_bundle(root, validate_evidence_bundle([], analysis_date="2026-01-01"))
           PY
       - name: Validate synthetic report artifacts
         run: python scripts/report_contract.py results/reports --require-metadata
