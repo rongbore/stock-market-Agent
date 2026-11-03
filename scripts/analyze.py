@@ -11,10 +11,12 @@ if __package__:
     from .provenance import build_manifest, save_manifest
     from .evidence_bundle import validate_evidence_bundle, save_evidence_bundle
     from .disclosure_candidates import screen_disclosures, save_disclosure_candidates
+    from .official_disclosures import adapt_official_disclosure
 else:
     from provenance import build_manifest, save_manifest
     from evidence_bundle import validate_evidence_bundle, save_evidence_bundle
     from disclosure_candidates import screen_disclosures, save_disclosure_candidates
+    from official_disclosures import adapt_official_disclosure
 
 
 def read_inputs():
@@ -38,6 +40,13 @@ def load_disclosure_candidates(ticker, trade_date):
     if not disclosure_input:
         return None
     records = json.loads(Path(disclosure_input).read_text(encoding="utf-8"))
+    official_source = os.environ.get("ANALYSIS_DISCLOSURE_SOURCE", "").strip().lower()
+    if official_source:
+        if not isinstance(records, list):
+            raise ValueError("disclosures must be a list")
+        records = [adapt_official_disclosure(item, source=official_source,
+                                             analysis_date=trade_date)
+                   for item in records]
     return screen_disclosures(records, analysis_date=trade_date, symbol=ticker)
 
 
