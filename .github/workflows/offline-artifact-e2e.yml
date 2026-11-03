@@ -8,6 +8,7 @@ on:
       - 'scripts/report_contract.py'
       - 'scripts/artifact_secret_guard.py'
       - 'scripts/provenance.py'
+      - 'scripts/evidence_bundle.py'
       - 'tests/**'
   push:
     branches: [main]
@@ -17,6 +18,7 @@ on:
       - 'scripts/report_contract.py'
       - 'scripts/artifact_secret_guard.py'
       - 'scripts/provenance.py'
+      - 'scripts/evidence_bundle.py'
       - 'tests/**'
 
 permissions:
@@ -36,6 +38,7 @@ jobs:
           python - <<'PY'
           from pathlib import Path
           from scripts.provenance import build_manifest, save_manifest
+          from scripts.evidence_bundle import validate_evidence_bundle, save_evidence_bundle
           directory = Path("results/reports/SYNTHETIC/offline")
           directory.mkdir(parents=True, exist_ok=True)
           (directory / "complete_report.html").write_text(
@@ -43,6 +46,7 @@ jobs:
               encoding="utf-8",
           )
           save_manifest(directory, build_manifest("SYNTHETIC", "2026-01-01", "offline-test"))
+          save_evidence_bundle(directory, validate_evidence_bundle([], analysis_date="2026-01-01"))
           PY
       - name: Validate report structure
         run: python scripts/report_contract.py results/reports
@@ -57,6 +61,10 @@ jobs:
           manifest = json.loads((root / "run_provenance.json").read_text(encoding="utf-8"))
           assert manifest["market_data_sources_verified"] is False
           assert manifest["source_records"] == []
+          evidence = json.loads((root / "evidence_bundle.json").read_text(encoding="utf-8"))
+          assert evidence["records"] == []
+          assert evidence["source_content_verified"] is False
+          assert evidence["historical_point_in_time_verified"] is False
           assert "OFFLINE SYNTHETIC TEST ONLY" in (root / "complete_report.html").read_text(encoding="utf-8")
           PY
       - name: Upload synthetic artifact
