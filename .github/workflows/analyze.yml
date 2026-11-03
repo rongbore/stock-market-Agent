@@ -50,6 +50,8 @@ jobs:
           ANALYSIS_DATE: ${{ inputs.date }}
           ANALYSIS_MODEL: ${{ inputs.model }}
         run: python scripts/analyze.py
+      - name: Validate report artifacts
+        run: python scripts/report_contract.py results/reports
       - name: Upload reports
         if: ${{ success() }}
         uses: actions/upload-artifact@v4
