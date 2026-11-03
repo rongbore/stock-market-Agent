@@ -64,3 +64,28 @@ def normalize_disclosure(record, *, analysis_date=None):
         "publication_time_verified": False,
         "same_day_historical_eligibility": "unknown",
     }
+
+
+def historical_disclosure_eligibility(record, *, analysis_date):
+    """Conservative date-only gate; never infer an official publication hour.
+
+    This is an eligibility *screen*, not proof that content was historically
+    available or authentic. Same-day disclosures require independent timing
+    verification before use as historical evidence.
+    """
+    normalized = normalize_disclosure(record, analysis_date=analysis_date)
+    announcement = date.fromisoformat(normalized["announcement_date"])
+    analysis = date.fromisoformat(analysis_date)
+    if announcement < analysis:
+        return {
+            "eligible_by_announcement_date": True,
+            "status": "prior_date_candidate",
+            "historical_point_in_time_verified": False,
+            "reason": "Announcement date precedes analysis date; source availability remains unverified.",
+        }
+    return {
+        "eligible_by_announcement_date": False,
+        "status": "same_day_requires_verification",
+        "historical_point_in_time_verified": False,
+        "reason": "Same-day publication time and historical availability require independent verification.",
+    }
