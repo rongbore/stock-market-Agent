@@ -216,6 +216,16 @@ class OfficialDisclosureAPITests(unittest.TestCase):
             with self.subTest(url=url), self.assertRaises(ValueError):
                 validate_endpoint(url, source="cninfo")
 
+    def test_cli_help_does_not_fetch_or_require_api_key(self):
+        import subprocess
+        import sys
+        result = subprocess.run(
+            [sys.executable, "scripts/disclosure_api.py", "--help"],
+            capture_output=True, text=True, check=False)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("--endpoint", result.stdout)
+        self.assertIn("--output-dir", result.stdout)
+
     def test_invalid_json_and_utf8_rejected(self):
         for payload in (b'not-json', b'\\xff\\xfe'):
             with self.subTest(payload=payload), self.assertRaisesRegex(
