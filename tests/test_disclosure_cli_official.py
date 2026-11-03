@@ -30,6 +30,14 @@ class DisclosureCLIOfficialSourceTests(unittest.TestCase):
             capture_output=True, text=True, check=False,
         )
 
+    def test_report_contract_direct_script_import(self):
+        run = subprocess.run(
+            [sys.executable, 'scripts/report_contract.py', str(self.root)],
+            capture_output=True, text=True, check=False,
+        )
+        self.assertNotIn('ImportError', run.stderr)
+        self.assertIn('reports directory is missing', run.stdout)
+
     def test_valid_official_source_export(self):
         run = self.run_cli()
         self.assertEqual(run.returncode, 0, run.stderr)
