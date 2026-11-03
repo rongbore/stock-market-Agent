@@ -4,8 +4,10 @@ from pathlib import Path
 
 if __package__:
     from .cn_disclosures import historical_disclosure_eligibility, normalize_disclosure
+    from .official_disclosures import adapt_official_disclosure
 else:
     from cn_disclosures import historical_disclosure_eligibility, normalize_disclosure
+    from official_disclosures import adapt_official_disclosure
 
 
 def screen_disclosures(records, *, analysis_date, symbol):
@@ -65,8 +67,16 @@ def main():
     parser.add_argument("--analysis-date", required=True)
     parser.add_argument("--symbol", required=True)
     parser.add_argument("--output-dir", required=True)
+    parser.add_argument("--official-source", choices=("cninfo", "sse", "szse"),
+                        help="Require official HTTPS host and exchange symbol matching")
     args = parser.parse_args()
     records = json.loads(Path(args.input_json).read_text(encoding="utf-8"))
+    if args.official_source:
+        if not isinstance(records, list):
+            raise ValueError("disclosures must be a list")
+        records = [adapt_official_disclosure(item, source=args.official_source,
+                                             analysis_date=args.analysis_date)
+                   for item in records]
     result = screen_disclosures(records, analysis_date=args.analysis_date, symbol=args.symbol)
     print(save_disclosure_candidates(args.output_dir, result))
 
