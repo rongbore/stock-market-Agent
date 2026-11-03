@@ -108,6 +108,21 @@ class OfficialDisclosureAPITests(unittest.TestCase):
             normalize_cninfo_query_response({"announcements": [notice]},
                                             symbol="000776.SZ", analysis_date="2026-10-30")
 
+    def test_timeout_validation(self):
+        for timeout in (0, -1, 31, True, "10"):
+            with self.subTest(timeout=timeout), self.assertRaisesRegex(ValueError, "timeout"):
+                fetch_official_disclosure_json(
+                    self.endpoint, source="cninfo",
+                    analysis_date="2026-10-30", timeout=timeout)
+
+    def test_record_count_limit(self):
+        with self.assertRaisesRegex(ValueError, "too many records"):
+            self.fetch(json.dumps([self.record] * 501).encode())
+        with self.assertRaisesRegex(ValueError, "too many announcements"):
+            normalize_cninfo_query_response(
+                {"announcements": [{}] * 501},
+                symbol="000776.SZ", analysis_date="2026-10-30")
+
     def test_valid_json_metadata_stays_unverified(self):
         records = self.fetch(json.dumps([self.record]).encode())
         self.assertEqual(len(records), 1)
