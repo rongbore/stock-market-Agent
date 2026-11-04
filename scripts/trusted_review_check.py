@@ -2,7 +2,7 @@
 
 This module does not grant merge permissions and does not access the network.
 """
-from scripts.pr_risk_classifier import classify
+from datetime import datetime\n\nfrom scripts.pr_risk_classifier import classify
 
 
 def check(pr, files, reviews, trusted_reviewers):
@@ -31,9 +31,9 @@ def check(pr, files, reviews, trusted_reviewers):
             return False, "malformed review metadata"
         if user not in latest or submitted > latest[user]["submitted_at"]:
             latest[user] = review
-    if any(r["state"] == "CHANGES_REQUESTED" for r in latest.values()):
+    if any(r["state"] == "CHANGES_REQUESTED" for _, r in latest.values()):
         return False, "unresolved change request"
-    for user, review in latest.items():
+    for user, (_, review) in latest.items():
         if (user != author and user in trusted_reviewers
                 and review["state"] == "APPROVED" and review.get("commit_id") == sha):
             return True, "trusted independent approval for current head"
