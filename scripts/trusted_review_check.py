@@ -31,8 +31,14 @@ def check(pr, files, reviews, trusted_reviewers):
         user, state, submitted = review.get("user"), review.get("state"), review.get("submitted_at")
         if not isinstance(user, str) or not isinstance(state, str) or not isinstance(submitted, str):
             return False, "malformed review metadata"
-        if user not in latest or submitted > latest[user]["submitted_at"]:
-            latest[user] = review
+        try:
+            timestamp = datetime.fromisoformat(submitted.replace("Z", "+00:00"))
+            if timestamp.tzinfo is None:
+                return False, "review timestamp missing timezone"
+        except ValueError:
+            return False, "invalid review timestamp"
+        if user not in latest or timestamp >= latest[user][0]:
+            latest[user] = (timestamp, review)
     if any(r["state"] == "CHANGES_REQUESTED" for _, r in latest.values()):
         return False, "unresolved change request"
     for user, (_, review) in latest.items():
