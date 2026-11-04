@@ -31,8 +31,8 @@ def validate_evidence_bundle(records, *, analysis_date, cutoff=None,
         raise ValueError("analysis_date must be YYYY-MM-DD") from exc
     if day.isoformat() != analysis_date:
         raise ValueError("analysis_date must be YYYY-MM-DD")
-    day_end = datetime.combine(day + timedelta(days=1), time.min,
-                               tzinfo=timezone(timedelta(hours=8))) - timedelta(microseconds=1)
+    day_end = datetime.combine(day, time.max,
+                               tzinfo=timezone(timedelta(hours=8)))
     if cutoff is None:
         cutoff_dt = day_end
         cutoff = cutoff_dt.isoformat()
