@@ -13,9 +13,14 @@ METRIC_LABELS = {
 }
 
 
+def _number_token(value):
+    """Avoid treating a positive value as part of a signed or grouped number."""
+    return re.compile(r"(?<![0-9.,+\\-−])" + re.escape(value) + r"(?![0-9.,])")
+
+
 def _label_near_value(text, metric, value):
     """Only same-line label preceding the number within 80 characters."""
-    token = re.compile(r"(?<![0-9.])" + re.escape(value) + r"(?![0-9.])")
+    token = _number_token(value)
     labels = METRIC_LABELS[metric]
     for line in text.splitlines():
         for match in token.finditer(line):
@@ -36,7 +41,7 @@ UNIT_LABELS = {
 
 def _unit_near_value(text, unit, value):
     """A unit marker immediately before or after a number, same line only."""
-    token = re.compile(r"(?<![0-9.])" + re.escape(value) + r"(?![0-9.])")
+    token = _number_token(value)
     for line in text.splitlines():
         for match in token.finditer(line):
             prefix = line[max(0, match.start() - 12):match.start()].rstrip()
@@ -55,7 +60,7 @@ def _period_near_value(text, period_end, value):
         f"{year}年{month}月{day}日",
         f"{year}年{month:02d}月{day:02d}日",
     )
-    token = re.compile(r"(?<![0-9.])" + re.escape(value) + r"(?![0-9.])")
+    token = _number_token(value)
     for line in text.splitlines():
         for match in token.finditer(line):
             prefix = line[max(0, match.start() - 80):match.start()]
@@ -121,8 +126,7 @@ def check_page_text(claims, fingerprints, pages, symbol, research_date):
             status = "page_text_missing"
         else:
             # Standalone decimal tokens only: avoid matching 123 within 1234.
-            value = re.escape(claim["value"])
-            matched = re.search(r"(?<![0-9.])" + value + r"(?![0-9.])", text)
+            matched = _number_token(claim["value"]).search(text)
             status = "literal_value_found_unverified" if matched else "literal_value_not_found"
             if matched:
                 label_near_value = _label_near_value(text, claim["metric"], claim["value"])
