@@ -43,6 +43,8 @@ def validate_source_record(record, *, analysis_cutoff=None, require_retrieved_by
     published = _parse_timestamp(record["published_at"], "published_at")
     if published > retrieved:
         raise ValueError("published_at cannot be after retrieved_at")
+    if require_retrieved_by_cutoff and analysis_cutoff is None:
+        raise ValueError("strict retrieval cutoff requires analysis_cutoff")
     if analysis_cutoff is not None:
         cutoff = _parse_timestamp(analysis_cutoff, "analysis_cutoff")
         if published > cutoff:
