@@ -148,3 +148,5 @@ python -m scripts.akshare_evidence_report --input-dir dual_output --output dual_
 新增 `scripts/financial_pdf_column_hints.py` 的 `column_proximity_hints(numbers, headers)`：对**调用方提供**的数字与中文表头 bbox 做同页 x 轴中心距离比较。仅在出现唯一的已知表头对且距离明显时返回 `nearest_header_hint_unverified`；缺失/重复表头、不同页、过远或等距均返回空候选。**不检测真实表格边界、行关系、表头上下位置，也不认定本期/上期列归属**；只可作为人工审查提示。
 
 新增 `scripts/financial_pdf_table_regions.py` 的 `scoped_column_hints(numbers, headers, regions)`：使用**调用方显式提供**的同页表格矩形范围，要求数字只落在一个区域内，并只使用同区域的表头进行横向距离提示；区域外、区域重叠、表头缺失均不判定。区域用 `{page, text: "", bbox: [x0,y0,x1,y1]}` 表示，最多 100 个。**不自动检测表格边界，不验证区域正确性、表头期间语义或官方来源。**
+
+新增 `scripts/financial_pdf_rectangle_candidates.py` 的 `rectangle_region_candidates(rectangles)`：过滤调用方提供的 PDF 绘制矩形（字段 `page,x0,top,x1,bottom`），输出足够大的候选表格区域；跨页独立处理，重叠候选全部剔除，限制输入 2000 个矩形和输出 100 个候选。**该模块不直接读取 PDF、不识别无边框表格，矩形也可能只是普通图形；所有候选仍为未核验提示。**
