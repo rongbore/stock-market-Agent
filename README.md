@@ -130,3 +130,5 @@ python -m scripts.akshare_evidence_report --input-dir dual_output --output dual_
 ```
 
 报告分别列出人工财务摘录及其页面数字字面核对结果。字面找到相同数字并不验证它属于指定指标、单位或报告期；页面文字与文件来源真实性也未认证。没有 `--pages-json` 时保留原报告行为。
+
+财务页面文字核对还会提供 `metric_label_near_value_unverified`：仅当同一文本行中，预设中文指标名称位于数字前且距离不超过 80 字符时为 `true`。该字段只是一条弱词汇线索，可能误判表格、否定语境或跨栏文字；不能据此认定指标名称、数值、单位、报告期或官方来源已核验。
