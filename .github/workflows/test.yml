@@ -21,8 +21,7 @@ jobs:
           python - <<'PY'
           import unittest
           import pdfplumber
-          from tests.test_offline_pdf_rectangle_integration import RealPdfRectangleIntegrationTests
-          suite = unittest.defaultTestLoader.loadTestsFromTestCase(RealPdfRectangleIntegrationTests)
+          suite = unittest.defaultTestLoader.discover('tests', pattern='test_offline_pdf_rectangle_integration.py')
           result = unittest.TextTestRunner(verbosity=2).run(suite)
           if not result.wasSuccessful() or result.skipped or result.testsRun != 1:
               raise SystemExit("PDF parser integration test failed or was skipped")
