@@ -22,6 +22,13 @@ class RiskApprovalGateTests(unittest.TestCase):
         self.assertFalse(evaluate(self.pr, self.code, [{**approval, "submitted_at": "2026-11-04T06:00:00Z"}])[0])
         self.assertFalse(evaluate(self.pr, self.code, [approval, {**approval, "state": "CHANGES_REQUESTED", "submitted_at": "2026-11-04T07:02:00Z"}])[0])
 
+    def test_other_reviewer_change_request_blocks_approval(self):
+        approval = {"user": "reviewer1", "state": "APPROVED",
+                    "submitted_at": "2026-11-04T07:02:00Z"}
+        request = {"user": "reviewer2", "state": "CHANGES_REQUESTED",
+                   "submitted_at": "2026-11-04T07:03:00Z"}
+        self.assertFalse(evaluate(self.pr, self.code, [approval, request])[0])
+
     def test_invalid_metadata_blocks(self):
         self.assertFalse(evaluate({**self.pr, "changed_files": None}, self.doc, [])[0])
         self.assertFalse(evaluate(self.pr, [], [])[0])
