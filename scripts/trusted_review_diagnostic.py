@@ -24,15 +24,17 @@ def run(repo, number):
     pr = api(f"repos/{repo}/pulls/{number}")
     files = api_paginated(f"repos/{repo}/pulls/{number}/files?per_page=100")
     reviews = api_paginated(f"repos/{repo}/pulls/{number}/reviews?per_page=100")
+    if not isinstance(pr, dict) or not isinstance(files, list) or not isinstance(reviews, list):
+        raise ValueError("invalid API payload")
     trusted = []
-    for login in {r.get("user", {}).get("login") for r in reviews if isinstance(r, dict)}:
+    for login in {(r.get("user") or {}).get("login") for r in reviews if isinstance(r, dict)}:
         if not isinstance(login, str):
             continue
         try:
             permission = api(f"repos/{repo}/collaborators/{login}/permission")
         except subprocess.CalledProcessError:
             continue
-        if permission.get("permission") in ("admin", "maintain", "write"):
+        if isinstance(permission, dict) and permission.get("permission") in ("admin", "maintain", "write"):
             trusted.append(login)
     decision, reason = check(
         {"changed_files": pr.get("changed_files"),
@@ -45,6 +47,9 @@ def run(repo, number):
           "commit_id": r.get("commit_id")} for r in reviews],
         trusted,
     )
+    latest = api(f"repos/{repo}/pulls/{number}")
+    if latest.get("head", {}).get("sha") != pr.get("head", {}).get("sha"):
+        return False, "head changed during review verification"
     return decision, reason
 
 
