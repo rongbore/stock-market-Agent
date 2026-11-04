@@ -6,7 +6,9 @@ This repository intentionally does **not** automatically merge pull requests.
 
 The read-only `merge-policy` job classifies candidate PRs; its PR code is
 untrusted, so its output is informational only. It identifies
-small, documentation-only candidates. Any source, tests, workflow, secret,
+small, documentation-only candidates. The read-only check compares the
+paginated file listing with GitHub's reported changed-file count and fails
+closed on incomplete or inconsistent metadata. Any source, tests, workflow, secret,
 market-data, financial, report, or unrecognized change is **manual review**.
 A classification of `eligible` is informational and **not approval to merge**.
 
