@@ -19,7 +19,7 @@ def number_boxes(spans, max_gap=3.0, max_y_delta=2.0):
     if type(max_y_delta) not in (int, float) or not 0 <= max_y_delta <= 20:
         raise ValueError("invalid max_y_delta")
     # Only single characters: multi-character spans have unknown per-character boxes.
-    chars = [s for s in spans if len(s["text"]) == 1 and s["text"] in NUMERIC_CHARS]
+    chars = [s for s in spans if len(s["text"]) == 1]
     chars.sort(key=lambda s: (s["page"], s["bbox"][1], s["bbox"][0]))
     runs = []
     current = []
@@ -41,6 +41,10 @@ def number_boxes(spans, max_gap=3.0, max_y_delta=2.0):
             })
 
     for char in chars:
+        if char["text"] not in NUMERIC_CHARS:
+            flush()
+            current = []
+            continue
         if current:
             previous = current[-1]
             same_line = (char["page"] == previous["page"] and
