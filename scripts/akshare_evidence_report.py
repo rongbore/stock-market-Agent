@@ -1,10 +1,33 @@
 """Generate a read-only Chinese evidence summary from dual-source JSON artifacts."""
 import argparse
 import json
+from datetime import date
 from pathlib import Path
 
 
-def render(diag, comparison=None):
+def _disclosures(items, symbol, end_date):
+    """Only metadata, never assert that a PDF or financial statement was read."""
+    if not isinstance(items, list) or len(items) > 100:
+        raise ValueError("disclosures must be a list of at most 100 entries")
+    result = []
+    for item in items:
+        if not isinstance(item, dict) or item.get("symbol") != symbol:
+            raise ValueError("disclosure symbol mismatch")
+        day = item.get("announcement_date")
+        title = item.get("title")
+        if not isinstance(day, str) or not isinstance(title, str) or not title.strip():
+            raise ValueError("invalid disclosure metadata")
+        try:
+            parsed = date.fromisoformat(day)
+        except ValueError as exc:
+            raise ValueError("invalid disclosure date") from exc
+        if parsed.isoformat() != day or (end_date and day > end_date):
+            raise ValueError("future disclosure relative to research end date")
+        result.append({"date": day, "title": title})
+    return sorted(result, key=lambda item: (item["date"], item["title"]))
+
+
+def render(diag, comparison=None, disclosures=None):
     if not isinstance(diag, dict):
         raise ValueError("invalid diagnostics")
     comparison = comparison if isinstance(comparison, dict) else None
@@ -15,7 +38,7 @@ def render(diag, comparison=None):
     # Only fixed labels from the pipeline; do not echo arbitrary error strings.
     def safe(value):
         return str(value).replace("|", " ").replace("\n", " ").replace("\r", " ")[:80]
-    return "\n".join([
+    lines = [
         "# A 股双来源行情研究证据（未认证）", "",
         "> 只读数据质量报告；非投资建议、交易信号或交易所权威认证。", "",
         "## 数据范围", "",
@@ -45,21 +68,33 @@ def render(diag, comparison=None):
         "本次仅能证明所请求区间内的双源行情数值符合设定容差。"
         if agreed else "当前缺乏双源行情数值一致性证据。",
         "后续需补充官方交易日历、披露时间与公告原文核验。", "",
-    ])
+    ]
+    lines += ["## 公告索引元数据（可选、未核验正文）", ""]
+    if disclosures is None:
+        lines += ["- 未提供公告索引；不能推断该区间没有公告。", ""]
+    else:
+        items = _disclosures(disclosures, diag.get("symbol"), diag.get("end_date"))
+        lines += [f"- 元数据条目数：{len(items)}；未核验公告原文、披露时刻或完整性。", ""]
+        for item in items:
+            lines.append(f"- {safe(item['date'])}：{safe(item['title'])}")
+        lines.append("")
+    return "\n".join(lines)
 
 
 def main(argv=None):
     parser = argparse.ArgumentParser()
     parser.add_argument("--input-dir", required=True)
     parser.add_argument("--output", required=True)
+    parser.add_argument("--disclosures-json", default=None)
     args = parser.parse_args(argv)
     folder = Path(args.input_dir)
     diag = json.loads((folder / "dual_upstream_diagnostics.json").read_text(encoding="utf-8"))
     report_path = folder / "daily_crosscheck_report.json"
     comparison = json.loads(report_path.read_text(encoding="utf-8")) if report_path.exists() else None
+    disclosures = json.loads(Path(args.disclosures_json).read_text(encoding="utf-8")) if args.disclosures_json else None
     target = Path(args.output)
     target.parent.mkdir(parents=True, exist_ok=True)
-    target.write_text(render(diag, comparison), encoding="utf-8")
+    target.write_text(render(diag, comparison, disclosures), encoding="utf-8")
     return 0
 
 
