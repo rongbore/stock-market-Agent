@@ -46,7 +46,7 @@ def column_candidates(spans, page, value):
     inspect_spans(spans)
     if type(page) is not int or not 1 <= page <= 10000:
         raise ValueError("invalid requested page")
-    if not isinstance(value, str) or not re.fullmatch(r"-?[0-9]+(?:\\.[0-9]+)?", value):
+    if not isinstance(value, str) or not re.fullmatch(r"-?[0-9]+(?:\.[0-9]+)?", value):
         raise ValueError("invalid requested numeric value")
     token = re.compile(r"(?<![0-9.,+−-])" + re.escape(value) + r"(?![0-9.,])")
     matches = [
