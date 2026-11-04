@@ -26,6 +26,12 @@ class TrustedReviewCheckTests(unittest.TestCase):
                                  "commit_id": self.sha, "submitted_at": "2026-11-04T08:01:00Z"}]
         self.assertFalse(check(self.pr, self.code, reviews, ["bob"])[0])
 
+    def test_review_timestamp_timezone_order(self):
+        old_request = {"user": "bob", "state": "CHANGES_REQUESTED",
+                       "commit_id": self.sha, "submitted_at": "2026-11-04T10:00:00+03:00"}
+        self.assertTrue(check(self.pr, self.code, [old_request, self.approval], ["bob"])[0])
+        self.assertFalse(check(self.pr, self.code, [{**self.approval, "submitted_at": "invalid"}], ["bob"])[0])
+
     def test_incomplete_data_blocks(self):
         self.assertFalse(check({**self.pr, "changed_files": 2}, self.docs, [], [])[0])
         self.assertFalse(check({**self.pr, "head_sha": ""}, self.docs, [], [])[0])
