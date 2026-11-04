@@ -65,6 +65,7 @@ jobs:
               lines += [
                   f"- Diagnostic status: {diag.get('status', 'unknown')}",
                   f"- Last stage: {diag.get('stage', 'unknown')}",
+                  f"- Safe error category: {diag.get('error_category') or 'none'}",
                   f"- Eastmoney records: {diag.get('eastmoney_record_count', 0)}",
                   f"- Sina records: {diag.get('sina_record_count', 0)}",
               ]
