@@ -50,3 +50,8 @@ jobs:
             exit 1
           fi
           echo "::notice::Auto-merge remains disabled; administrator verification required"
+      - name: Publish administrator-facing diagnostic summary
+        if: always()
+        shell: bash
+        run: |
+          python -m scripts.merge_diagnostic_summary report.json
