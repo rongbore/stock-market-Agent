@@ -177,6 +177,28 @@ class EvidenceReportTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "differs from fingerprint"):
             render(diag, fingerprints=[fp], claims=[claim])
 
+    def test_page_text_crosscheck_render_unverified(self):
+        diag = {"symbol": "000776.SZ", "start_date": "2026-10-01",
+                "end_date": "2026-10-30"}
+        fp = {"symbol": "000776.SZ", "announcement_date": "2026-10-20",
+              "file_sha256": "a" * 64, "file_size_bytes": 1024,
+              "official_origin_verified": False, "source_content_verified": False}
+        claim = {"symbol": "000776.SZ", "metric": "revenue", "value": "123.45",
+                 "unit": "CNY", "period_end": "2026-09-30",
+                 "announcement_date": "2026-10-20", "file_sha256": "a" * 64,
+                 "page": 4}
+        page = {"file_sha256": "a" * 64, "page": 4, "text": "例子 123.45"}
+        result = render(diag, fingerprints=[fp], claims=[claim], pages=[page])
+        self.assertIn("找到相同数字（未认证）", result)
+        self.assertIn("页面文字提取来源及财务语义均未认证", result)
+        result = render(diag, fingerprints=[fp], claims=[claim], pages=[])
+        self.assertIn("缺少页面文字", result)
+
+    def test_page_text_requires_claims_and_fingerprints(self):
+        diag = {"symbol": "000776.SZ"}
+        with self.assertRaisesRegex(ValueError, "requires claims"):
+            render(diag, pages=[])
+
     def test_report_requires_diagnostic_object(self):
         with self.assertRaises(ValueError):
             render([])

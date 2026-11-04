@@ -120,3 +120,13 @@ python -m scripts.offline_pdf_page_text --pdf local_disclosure.pdf --symbol 0007
 ```
 
 生成的 `pages.json` 可传入 `scripts.financial_page_text_crosscheck.check_page_text`。扫描件可能没有可提取文字；本模块不进行 OCR，不保证提取内容正确，也不验证文件来自官方、财务含义或披露时间。
+
+#### PDF 页面文字核对结果写入中文报告
+
+先用 `scripts.offline_pdf_page_text` 生成 `pages.json`，并提供匹配的 `fingerprints.json` 和 `claims.json`：
+
+```bash
+python -m scripts.akshare_evidence_report --input-dir dual_output --output dual_output/dual_source_evidence_unverified.md --fingerprints-json fingerprints.json --claims-json claims.json --pages-json pages.json
+```
+
+报告分别列出人工财务摘录及其页面数字字面核对结果。字面找到相同数字并不验证它属于指定指标、单位或报告期；页面文字与文件来源真实性也未认证。没有 `--pages-json` 时保留原报告行为。
