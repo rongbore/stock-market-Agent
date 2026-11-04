@@ -14,7 +14,9 @@ class RiskClassifierTests(unittest.TestCase):
     def test_sensitive_or_unknown_paths_require_manual_review(self):
         for path in ("README.md", ".github/workflows/ci.yml", "scripts/source_records.py",
                      "tests/test_source_records.py", "docs/../scripts/attack.md",
-                     "docs/.hidden.md", "docs/guide.yml", "docs\\guide.md"):
+                     "docs/.hidden.md", "docs/guide.yml", "docs\\guide.md",
+                     "docs//guide.md", "docs/./guide.md", "docs/a\nguide.md",
+                     "docs/a\tguide.md"):
             with self.subTest(path=path):
                 self.assertEqual(classify([file(path)])[0], "manual")
 
