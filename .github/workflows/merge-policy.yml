@@ -24,7 +24,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           GH_REPO: ${{ github.repository }}
+        shell: bash
         run: |
+          set -euo pipefail
           gh api --paginate "repos/$GH_REPO/pulls/$PR_NUMBER/files?per_page=100" --jq '.[] | {filename, status, additions, deletions}' | python -c 'import json,sys; from scripts.pr_risk_classifier import classify; items=[json.loads(line) for line in sys.stdin if line.strip()]; decision,reason=classify(items); print(f"Merge policy: {decision}: {reason}")'
       - name: Do not enable automatic merging
         run: echo "Classification is informational. Auto-merge remains disabled until branch protections and permission boundaries are independently configured."
