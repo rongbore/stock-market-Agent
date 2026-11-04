@@ -33,26 +33,11 @@ jobs:
           STOCK_START_DATE: ${{ inputs.start_date }}
           STOCK_END_DATE: ${{ inputs.end_date }}
         run: |
-          python - <<'PY'
-          import json
-          import os
-          from pathlib import Path
-          from scripts.akshare_provider import fetch_a_share_daily
-          result = fetch_a_share_daily(
-              os.environ["STOCK_SYMBOL"],
-              os.environ["STOCK_START_DATE"],
-              os.environ["STOCK_END_DATE"],
-          )
-          if not result["records"]:
-              raise RuntimeError("No daily records returned; upstream not verified")
-          Path("akshare_daily_snapshot.json").write_text(
-              json.dumps(result, ensure_ascii=False, indent=2) + "\n",
-              encoding="utf-8",
-          )
-          print("AKShare records:", len(result["records"]))
-          print("Date range:", result["records"][0]["date"], result["records"][-1]["date"])
-          print("Source content verified:", result["source_content_verified"])
-          PY
+          python -m scripts.akshare_smoke \
+            --symbol "$STOCK_SYMBOL" \
+            --start-date "$STOCK_START_DATE" \
+            --end-date "$STOCK_END_DATE" \
+            --output akshare_daily_snapshot.json
       - name: Upload unverified data snapshot
         if: success()
         uses: actions/upload-artifact@v4
