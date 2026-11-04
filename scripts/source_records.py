@@ -25,7 +25,8 @@ def validate_source_record(record, *, analysis_cutoff=None, require_retrieved_by
     """Validate one record; reject unverified or future-dated evidence."""
     if not isinstance(record, dict):
         raise ValueError("source record must be a mapping")
-    if record.get("kind") not in ALLOWED_KINDS:
+    kind = record.get("kind")
+    if not isinstance(kind, str) or kind not in ALLOWED_KINDS:
         raise ValueError("unsupported source kind")
     for field in ("provider", "symbol", "url", "retrieved_at", "published_at"):
         if not isinstance(record.get(field), str) or not record[field].strip():
