@@ -172,7 +172,8 @@ def render(diag, comparison=None, disclosures=None, fingerprints=None, claims=No
                 f"SHA-256 `{item['file_sha256']}`；"
                 f"字面核对：{labels[item['status']]}；"
                 f"同行指标标签线索：{'有（未认证）' if item['metric_label_near_value_unverified'] else '无'}；"
-                f"同行单位线索：{'有（未认证）' if item['unit_label_near_value_unverified'] else '无'}。"
+                f"同行单位线索：{'有（未认证）' if item['unit_label_near_value_unverified'] else '无'}；"
+                f"同行报告期线索：{'有（未认证）' if item['period_end_near_value_unverified'] else '无'}。"
             )
         lines.append("")
     return "\n".join(lines)

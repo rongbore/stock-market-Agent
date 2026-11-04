@@ -68,6 +68,27 @@ class FinancialPageTextCrosscheckTests(unittest.TestCase):
                               "text": "亿元" + "其他内容" * 8 + "123.45"}])[0]
         self.assertFalse(result["unit_label_near_value_unverified"])
 
+    def test_period_date_before_value_same_line(self):
+        result = self.check([{"file_sha256": "a" * 64, "page": 4,
+                              "text": "2026年9月30日 营业收入 123.45 亿元"}])[0]
+        self.assertTrue(result["period_end_near_value_unverified"])
+        self.assertFalse(result["financial_meaning_verified"])
+
+    def test_wrong_period_is_not_period_evidence(self):
+        result = self.check([{"file_sha256": "a" * 64, "page": 4,
+                              "text": "2025-09-30 营业收入 123.45 亿元"}])[0]
+        self.assertFalse(result["period_end_near_value_unverified"])
+
+    def test_period_after_value_is_not_period_evidence(self):
+        result = self.check([{"file_sha256": "a" * 64, "page": 4,
+                              "text": "营业收入 123.45 亿元 2026-09-30"}])[0]
+        self.assertFalse(result["period_end_near_value_unverified"])
+
+    def test_period_on_other_line_is_not_period_evidence(self):
+        result = self.check([{"file_sha256": "a" * 64, "page": 4,
+                              "text": "2026-09-30\n营业收入 123.45"}])[0]
+        self.assertFalse(result["period_end_near_value_unverified"])
+
     def test_missing_page_is_explicit(self):
         self.assertEqual(self.check([])[0]["status"], "page_text_missing")
 
