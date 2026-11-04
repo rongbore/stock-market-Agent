@@ -47,4 +47,6 @@ def validate_source_record(record, *, analysis_cutoff=None):
         cutoff = _parse_timestamp(analysis_cutoff, "analysis_cutoff")
         if published > cutoff:
             raise ValueError("source was published after the analysis cutoff")
+        if retrieved > cutoff:
+            raise ValueError("source was retrieved after the analysis cutoff")
     return True
