@@ -2,7 +2,9 @@
 
 This module does not grant merge permissions and does not access the network.
 """
-from datetime import datetime\n\nfrom scripts.pr_risk_classifier import classify
+from datetime import datetime
+
+from scripts.pr_risk_classifier import classify
 
 
 def check(pr, files, reviews, trusted_reviewers):
