@@ -70,3 +70,13 @@ python -m scripts.akshare_evidence_report --input-dir dual_output --output dual_
 ```
 
 运行 `python -m scripts.akshare_evidence_report --input-dir dual_output --output dual_output/dual_source_evidence_unverified.md --disclosures-json disclosure_index.json`。程序仅允许相同股票代码、有效日期且不晚于研究截止日期的公告元数据；最多 100 条。**仅列出本地提供的索引元数据，不代表已经联网获取公告、核验公告 PDF 正文、披露时刻或财务数据。** 未提供索引时，报告明确标记“未提供”，而不是“没有公告”。正式公告信息应以巨潮资讯网披露原文核实。
+
+#### 本地公告 PDF 文件指纹（离线、未认证）
+
+已从可信渠道自行取得 PDF 文件后，可执行：
+
+```bash
+python -m scripts.disclosure_pdf_fingerprint --pdf announcement.pdf --symbol 000776.SZ --announcement-date 2026-10-20 --output disclosure_fingerprint.json
+```
+
+输出 SHA-256、文件字节数、股票代码和公告日期；仅检查 PDF 文件头，不解析正文、不下载文件、不访问网络，也**不证明文件确实来自巨潮资讯网、公告日期属实或财务内容正确**。输出中的来源、正文和历史时点验证标志均为 `false`。限制文件大小不超过 20 MiB。原始文件应保留在可信的证据归档中，以便复核摘要。
