@@ -34,7 +34,8 @@ class MergeReadinessTests(unittest.TestCase):
         for checks in ([], CHECKS[:1],
                        [CHECKS[0], {**CHECKS[1], "conclusion": "failure"}],
                        [CHECKS[0], {**CHECKS[1], "head_sha": "b" * 40}],
-                       CHECKS + [CHECKS[0]]):
+                       CHECKS + [CHECKS[0]],
+                       CHECKS + [{"name": ["unit-tests"]}]):
             with self.subTest(checks=checks):
                 self.assertEqual(self.check(checks=checks), "manual")
 
