@@ -17,6 +17,17 @@ class FinancialClaimEvidenceTests(unittest.TestCase):
         self.assertEqual(result[0]["status"], "manually_transcribed_unverified")
         self.assertFalse(result[0]["source_content_verified"])
 
+    def test_reject_conflicting_values_same_evidence_location(self):
+        conflicting = dict(self.claim, value="999.99")
+        with self.assertRaisesRegex(ValueError, "conflicting financial values"):
+            validate_claims([self.claim, conflicting], self.fp, "000776.SZ", "2026-10-30")
+
+    def test_allow_equivalent_decimal_values_same_evidence_location(self):
+        equivalent = dict(self.claim, value="123.450")
+        result = validate_claims([self.claim, equivalent], self.fp, "000776.SZ", "2026-10-30")
+        self.assertEqual(len(result), 2)
+        self.assertTrue(all(item["status"] == "manually_transcribed_unverified" for item in result))
+
     def test_reject_future_disclosure(self):
         claim = dict(self.claim, announcement_date="2026-11-01")
         with self.assertRaisesRegex(ValueError, "cutoff"):

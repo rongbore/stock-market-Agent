@@ -45,6 +45,7 @@ def validate_claims(claims, fingerprints, symbol, research_date):
             raise ValueError("conflicting fingerprint announcement dates")
         available[digest] = pdf_date
     result = []
+    seen_claims = {}
     for claim in claims:
         if not isinstance(claim, dict) or claim.get("symbol") != symbol:
             raise ValueError("claim symbol mismatch")
@@ -82,6 +83,11 @@ def validate_claims(claims, fingerprints, symbol, research_date):
         page = claim.get("page")
         if isinstance(page, bool) or not isinstance(page, int) or not 1 <= page <= 10000:
             raise ValueError("PDF page number required")
+        identity = (metric, unit, period.isoformat(), announcement.isoformat(), digest, page)
+        previous = seen_claims.get(identity)
+        if previous is not None and previous != number:
+            raise ValueError("conflicting financial values for the same evidence location")
+        seen_claims[identity] = number
         result.append({
             "symbol": symbol, "metric": metric, "value": value, "unit": unit,
             "period_end": period.isoformat(), "announcement_date": announcement.isoformat(),
