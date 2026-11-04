@@ -34,7 +34,7 @@ def assess_sample(bundle, review):
     decisions = review.get("review_decisions")
     if not isinstance(candidates, list) or not isinstance(decisions, list):
         raise ValueError("invalid candidate review records")
-    if manifest.get("candidate_count") != len(candidates):
+    if type(manifest.get("candidate_count")) is not int or manifest["candidate_count"] != len(candidates):
         raise ValueError("candidate count mismatch")
     if len(candidates) > 100 or len(decisions) > 100:
         raise ValueError("too many candidates")
@@ -62,7 +62,7 @@ def assess_sample(bundle, review):
             review.get("financial_meaning_verified") is not False):
         raise ValueError("unexpected verified provenance or financial claim")
     blockers = []
-    if not bundle.get("sample_checked_with_real_pdf_parser"):
+    if bundle.get("sample_checked_with_real_pdf_parser") is not True:
         blockers.append("real_pdf_parser_not_confirmed")
     if not candidates:
         blockers.append("no_rectangle_candidates")
