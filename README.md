@@ -80,3 +80,13 @@ python -m scripts.disclosure_pdf_fingerprint --pdf announcement.pdf --symbol 000
 ```
 
 输出 SHA-256、文件字节数、股票代码和公告日期；仅检查 PDF 文件头，不解析正文、不下载文件、不访问网络，也**不证明文件确实来自巨潮资讯网、公告日期属实或财务内容正确**。输出中的来源、正文和历史时点验证标志均为 `false`。限制文件大小不超过 20 MiB。原始文件应保留在可信的证据归档中，以便复核摘要。
+
+#### 将本地 PDF 指纹纳入中文行情证据报告
+
+将 `scripts.disclosure_pdf_fingerprint` 生成的一个或多个 JSON 对象汇总为 JSON 数组文件 `fingerprints.json`，然后执行：
+
+```bash
+python -m scripts.akshare_evidence_report --input-dir dual_output --output dual_output/dual_source_evidence_unverified.md --fingerprints-json fingerprints.json
+```
+
+文件指纹必须与研究股票代码和日期区间一致，SHA-256 为 64 位小写十六进制，文件大小在 8 字节到 20 MiB 范围内，并且 `official_origin_verified`、`source_content_verified` 均须为 `false`。这仅关联离线文件摘要，不证明文件来自官方或财报数字正确。
