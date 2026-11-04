@@ -1,0 +1,34 @@
+name: Merge policy
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  merge-policy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run policy unit tests
+        run: python -m unittest discover -s tests -p 'test_pr_risk_classifier.py' -v
+      - name: Classify pull request with read-only credentials
+        if: github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          GH_REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          EXPECTED_FILES="$(gh api "repos/$GH_REPO/pulls/$PR_NUMBER" --jq '.changed_files')"
+          export EXPECTED_FILES
+          gh api --paginate "repos/$GH_REPO/pulls/$PR_NUMBER/files?per_page=100" --jq '.[] | {filename, status, additions, deletions, previous_filename}' | python -c 'import json,os,sys; from scripts.pr_risk_classifier import classify; items=[json.loads(line) for line in sys.stdin if line.strip()]; expected=int(os.environ["EXPECTED_FILES"]); decision,reason=classify(items, expected_count=expected); print(f"Merge policy: {decision}: {reason}")'
+      - name: Do not enable automatic merging
+        run: echo "Classification is informational. Auto-merge remains disabled until branch protections and permission boundaries are independently configured."
