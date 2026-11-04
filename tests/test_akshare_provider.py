@@ -32,11 +32,25 @@ class AKShareProviderTests(unittest.TestCase):
     def test_disclosures_offline(self):
         client = Mock()
         client.stock_zh_a_disclosure_report_cninfo.return_value = Frame(
-            [{"公告标题": "SYNTHETIC", "公告日期": "2026-10-29"}])
+            [{"代码": "000776", "公告标题": "SYNTHETIC", "公告时间": "2026-10-29"}])
         result = fetch_cninfo_disclosure_index(
             "000776.SZ", "2026-10-01", "2026-10-30", client=client)
         self.assertEqual(result["records"][0]["公告标题"], "SYNTHETIC")
         self.assertFalse(result["source_content_verified"])
+
+    def test_disclosures_reject_missing_or_wrong_data(self):
+        client = Mock()
+        for rows in (
+            [],
+            [{"代码": "000777", "公告标题": "SYNTHETIC", "公告时间": "2026-10-29"}],
+            [{"代码": "000776", "公告标题": "SYNTHETIC", "公告时间": "2026-11-01"}],
+            [{"代码": "000776", "公告标题": "", "公告时间": "2026-10-29"}],
+            [{"公告标题": "SYNTHETIC", "公告时间": "2026-10-29"}],
+        ):
+            with self.subTest(rows=rows), self.assertRaises(ValueError):
+                client.stock_zh_a_disclosure_report_cninfo.return_value = Frame(rows)
+                fetch_cninfo_disclosure_index(
+                    "000776.SZ", "2026-10-01", "2026-10-30", client=client)
 
     def test_reject_bad_symbols_and_dates(self):
         for symbol in ("000776", "000776.SZ;evil", "000776.SH", "ABCDEF.SZ"):
