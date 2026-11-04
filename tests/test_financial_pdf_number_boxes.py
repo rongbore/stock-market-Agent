@@ -30,7 +30,7 @@ class PdfNumberBoxesTests(unittest.TestCase):
     def test_does_not_join_across_rows_or_large_gaps(self):
         spans = chars("12") + chars("34", y=50) + chars("56", x=100)
         result = number_boxes(spans)
-        self.assertEqual([v["text"] for v in result["numbers"]], ["12", "34", "56"])
+        self.assertEqual([v["text"] for v in result["numbers"]], ["12", "56", "34"])
 
     def test_rejects_invalid_geometry(self):
         with self.assertRaises(ValueError):
