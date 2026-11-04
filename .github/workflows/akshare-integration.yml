@@ -1,0 +1,47 @@
+name: AKShare read-only integration
+on:
+  workflow_dispatch:
+    inputs:
+      symbol:
+        description: "A-share ticker, e.g. 000776.SZ"
+        required: true
+        default: "000776.SZ"
+      start_date:
+        description: "Start date YYYY-MM-DD"
+        required: true
+        default: "2026-10-01"
+      end_date:
+        description: "End date YYYY-MM-DD"
+        required: true
+        default: "2026-10-30"
+permissions:
+  contents: read
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Install AKShare
+        run: python -m pip install "akshare>=1.16,<2"
+      - name: Fetch public read-only A-share daily data
+        env:
+          STOCK_SYMBOL: ${{ inputs.symbol }}
+          STOCK_START_DATE: ${{ inputs.start_date }}
+          STOCK_END_DATE: ${{ inputs.end_date }}
+        run: |
+          python -m scripts.akshare_smoke \
+            --symbol "$STOCK_SYMBOL" \
+            --start-date "$STOCK_START_DATE" \
+            --end-date "$STOCK_END_DATE" \
+            --output akshare_daily_snapshot.json
+      - name: Upload unverified data snapshot
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: akshare-daily-unverified
+          path: akshare_daily_snapshot.json
+          retention-days: 3
