@@ -8,6 +8,7 @@ on:
       - 'scripts/akshare_sina_provider.py'
       - 'scripts/akshare_provider.py'
       - 'scripts/akshare_crosscheck.py'
+      - 'scripts/akshare_evidence_report.py'
       - 'requirements-akshare.txt'
   schedule:
     # Wednesday 02:20 UTC; recent 21 calendar days cover multiple trading weeks.
@@ -56,6 +57,14 @@ jobs:
             --start-date "$STOCK_START_DATE" \
             --end-date "$STOCK_END_DATE" \
             --output-dir dual_output
+      - name: Generate offline Chinese evidence report
+        if: always()
+        run: |
+          if [ -f dual_output/dual_upstream_diagnostics.json ]; then
+            python -m scripts.akshare_evidence_report \
+              --input-dir dual_output \
+              --output dual_output/dual_source_evidence_unverified.md
+          fi
       - name: Publish safe acceptance summary
         if: always()
         shell: bash
@@ -107,6 +116,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: akshare-dual-upstream-unverified
-          path: dual_output/*.json
+          path: |
+            dual_output/*.json
+            dual_output/*.md
           if-no-files-found: warn
           retention-days: 3
