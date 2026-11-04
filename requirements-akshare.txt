@@ -1,0 +1,2 @@
+# Optional public market data reader (no trading APIs)
+akshare>=1.16,<2
