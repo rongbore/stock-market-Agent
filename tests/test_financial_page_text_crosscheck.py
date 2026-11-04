@@ -110,6 +110,32 @@ class FinancialPageTextCrosscheckTests(unittest.TestCase):
                               "text": "期末余额 期初余额\n总资产 123.45 111.00"}])[0]
         self.assertTrue(result["table_column_ambiguous_unverified"])
 
+    def test_positive_value_does_not_match_negative_number(self):
+        result = self.check([{"file_sha256": "a" * 64, "page": 4,
+                              "text": "营业收入 -123.45 亿元"}])[0]
+        self.assertEqual(result["status"], "literal_value_not_found")
+        self.assertFalse(result["metric_label_near_value_unverified"])
+        self.assertFalse(result["unit_label_near_value_unverified"])
+
+    def test_positive_value_does_not_match_explicit_plus_or_unicode_minus(self):
+        for text in ("营业收入 +123.45", "营业收入 −123.45"):
+            with self.subTest(text=text):
+                result = self.check([{"file_sha256": "a" * 64, "page": 4,
+                                      "text": text}])[0]
+                self.assertEqual(result["status"], "literal_value_not_found")
+
+    def test_value_does_not_match_thousands_group_fragment(self):
+        result = self.check([{"file_sha256": "a" * 64, "page": 4,
+                              "text": "营业收入 1,123.45 亿元"}])[0]
+        self.assertEqual(result["status"], "literal_value_not_found")
+
+    def test_negative_claim_matches_exact_negative_number(self):
+        self.claim["value"] = "-123.45"
+        result = self.check([{"file_sha256": "a" * 64, "page": 4,
+                              "text": "营业收入 -123.45 亿元"}])[0]
+        self.assertEqual(result["status"], "literal_value_found_unverified")
+        self.assertTrue(result["metric_label_near_value_unverified"])
+
     def test_missing_page_is_explicit(self):
         self.assertEqual(self.check([])[0]["status"], "page_text_missing")
 
