@@ -2,6 +2,7 @@
 import argparse
 import json
 from datetime import date
+import re
 from pathlib import Path
 
 
@@ -35,7 +36,42 @@ def _disclosures(items, symbol, start_date, end_date):
     return sorted(result, key=lambda item: (item["date"], item["title"]))
 
 
-def render(diag, comparison=None, disclosures=None):
+def _fingerprints(items, symbol, start_date, end_date):
+    if not isinstance(items, list) or len(items) > 100:
+        raise ValueError("fingerprints must be a list of at most 100")
+    if not isinstance(start_date, str) or not isinstance(end_date, str):
+        raise ValueError("research dates required for fingerprints")
+    try:
+        start, end = date.fromisoformat(start_date), date.fromisoformat(end_date)
+    except ValueError as exc:
+        raise ValueError("invalid research dates") from exc
+    if start.isoformat() != start_date or end.isoformat() != end_date or start > end:
+        raise ValueError("invalid research dates")
+    result = []
+    for item in items:
+        if not isinstance(item, dict) or item.get("symbol") != symbol:
+            raise ValueError("fingerprint symbol mismatch")
+        day, digest, size = (item.get("announcement_date"),
+                             item.get("file_sha256"), item.get("file_size_bytes"))
+        if not isinstance(day, str) or not re.fullmatch(r"[0-9]{4}-[0-9]{2}-[0-9]{2}", day):
+            raise ValueError("invalid fingerprint date")
+        try:
+            parsed = date.fromisoformat(day)
+        except ValueError as exc:
+            raise ValueError("invalid fingerprint date") from exc
+        if not start <= parsed <= end:
+            raise ValueError("fingerprint outside research range")
+        if not isinstance(digest, str) or not re.fullmatch(r"[0-9a-f]{64}", digest):
+            raise ValueError("invalid SHA-256")
+        if isinstance(size, bool) or not isinstance(size, int) or not 8 <= size <= 20 * 1024 * 1024:
+            raise ValueError("invalid PDF size")
+        if item.get("official_origin_verified") is not False or item.get("source_content_verified") is not False:
+            raise ValueError("unsupported fingerprint verification claims")
+        result.append((day, digest, size))
+    return sorted(result)
+
+
+def render(diag, comparison=None, disclosures=None, fingerprints=None):
     if not isinstance(diag, dict):
         raise ValueError("invalid diagnostics")
     comparison = comparison if isinstance(comparison, dict) else None
@@ -89,6 +125,16 @@ def render(diag, comparison=None, disclosures=None):
         for item in items:
             lines.append(f"- {safe(item['date'])}：{safe(item['title'])}")
         lines.append("")
+    lines += ["## 公告 PDF 文件指纹（可选、未认证）", ""]
+    if fingerprints is None:
+        lines += ["- 未提供公告 PDF 文件指纹；无法追溯本地原文文件。", ""]
+    else:
+        records = _fingerprints(fingerprints, diag.get("symbol"),
+                                diag.get("start_date"), diag.get("end_date"))
+        lines += [f"- 文件指纹条目数：{len(records)}；仅记录文件摘要，不证明官方来源或正文内容。", ""]
+        for day, digest, size in records:
+            lines.append(f"- {day}：SHA-256 \`{digest}\`；{size} 字节")
+        lines.append("")
     return "\n".join(lines)
 
 
@@ -97,15 +143,17 @@ def main(argv=None):
     parser.add_argument("--input-dir", required=True)
     parser.add_argument("--output", required=True)
     parser.add_argument("--disclosures-json", default=None)
+    parser.add_argument("--fingerprints-json", default=None)
     args = parser.parse_args(argv)
     folder = Path(args.input_dir)
     diag = json.loads((folder / "dual_upstream_diagnostics.json").read_text(encoding="utf-8"))
     report_path = folder / "daily_crosscheck_report.json"
     comparison = json.loads(report_path.read_text(encoding="utf-8")) if report_path.exists() else None
     disclosures = json.loads(Path(args.disclosures_json).read_text(encoding="utf-8")) if args.disclosures_json else None
+    fingerprints = json.loads(Path(args.fingerprints_json).read_text(encoding="utf-8")) if args.fingerprints_json else None
     target = Path(args.output)
     target.parent.mkdir(parents=True, exist_ok=True)
-    target.write_text(render(diag, comparison, disclosures), encoding="utf-8")
+    target.write_text(render(diag, comparison, disclosures, fingerprints), encoding="utf-8")
     return 0
 
 
