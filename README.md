@@ -154,3 +154,5 @@ python -m scripts.akshare_evidence_report --input-dir dual_output --output dual_
 新增 `scripts/offline_pdf_rectangle_extract.py`：使用可选的 `pdfplumber` 从**本地** PDF 的 `page.rects` 提取绘制矩形并调用 `rectangle_region_candidates`。运行示例：`python -m scripts.offline_pdf_rectangle_extract --pdf ./report.pdf --symbol 000776.SZ --announcement-date 2026-10-20 --pages 1 --output ./rectangle_candidates.json`。读取前后校验文件 SHA256，限制页数和矩形数量；**不联网、不验证官方来源，不识别线段拼成的边框或无边框表格**。输出仅供人工核查。
 
 真实 PDF 解析集成测试：`python -m unittest tests.test_offline_pdf_rectangle_integration`。测试在内存中构造包含矩形绘制指令的有效单页 PDF 文件，再由真实 `pdfplumber` 解析并核对 bbox；**若未安装可选依赖 pdfplumber，测试会明确 skip 而不是宣称通过**。这只是合成 PDF 的集成验证，仍不是实际上市公司公告的抽样验收。
+
+本地财报抽样核查清单：`python -m scripts.pdf_rectangle_review_manifest --pdf ./filing.pdf --symbol 000776.SZ --announcement-date 2026-10-20 --pages 1,2 --output ./rectangle_review.json`。清单保留 PDF SHA256、候选坐标、重叠候选数量和逐项 `pending_manual_review` 状态；`announcement_date_claimed` 只是用户提供的信息，**不是已核实的公告日期**。此工具不下载实际公告、不自动确认官方来源或财务表格。
