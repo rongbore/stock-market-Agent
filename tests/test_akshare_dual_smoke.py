@@ -92,6 +92,55 @@ class DualSmokeTests(unittest.TestCase):
             self.assertEqual(diag["eastmoney_error_kind"], "other_os_error")
             self.assertNotIn("secret request url", raw)
 
+    def test_transient_eastmoney_error_recovers_on_second_attempt(self):
+        attempts = []
+        waits = []
+        def flaky(*args):
+            attempts.append(1)
+            if len(attempts) == 1:
+                raise ConnectionError("sensitive upstream URL")
+            return snapshot("eastmoney", "lots_100_shares", 432885)
+        with tempfile.TemporaryDirectory() as tmp:
+            code = run("000776.SZ", "2026-10-01", "2026-10-30", tmp,
+                       eastmoney=flaky,
+                       sina=lambda *a: snapshot("sina", "shares", 43288500),
+                       sleep=waits.append)
+            self.assertEqual(code, 0)
+            self.assertEqual(waits, [1])
+            diag = json.loads((Path(tmp) / "dual_upstream_diagnostics.json").read_text())
+            self.assertEqual(diag["eastmoney_attempts"], 2)
+            self.assertEqual(diag["sina_attempts"], 1)
+            self.assertNotIn("sensitive upstream", json.dumps(diag))
+
+    def test_persistent_transport_error_stops_after_three_attempts(self):
+        attempts = []
+        waits = []
+        def unavailable(*args):
+            attempts.append(1)
+            raise ConnectionError("sensitive upstream URL")
+        with tempfile.TemporaryDirectory() as tmp:
+            code = run("000776.SZ", "2026-10-01", "2026-10-30", tmp,
+                       eastmoney=unavailable,
+                       sina=lambda *a: snapshot("sina", "shares", 43288500),
+                       sleep=waits.append)
+            self.assertEqual(code, 1)
+            self.assertEqual(len(attempts), 3)
+            self.assertEqual(waits, [1, 2])
+            diag = json.loads((Path(tmp) / "dual_upstream_diagnostics.json").read_text())
+            self.assertEqual(diag["eastmoney_attempts"], 3)
+            self.assertEqual(diag["sina_status"], "success")
+            self.assertFalse(diag["cross_source_numerical_agreement"])
+
+    def test_invalid_snapshot_is_not_retried(self):
+        waits = []
+        with tempfile.TemporaryDirectory() as tmp:
+            run("000776.SZ", "2026-10-01", "2026-10-30", tmp,
+                eastmoney=lambda *a: None, sina=lambda *a: None,
+                sleep=waits.append)
+            self.assertEqual(waits, [])
+            diag = json.loads((Path(tmp) / "dual_upstream_diagnostics.json").read_text())
+            self.assertEqual(diag["eastmoney_attempts"], 1)
+
     def test_safe_requests_proxy_error_kind_is_allowlisted(self):
         from scripts.akshare_dual_smoke import _safe_error
         ProxyError = type("ProxyError", (OSError,), {"__module__": "requests.exceptions"})
