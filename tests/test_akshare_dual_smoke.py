@@ -41,5 +41,34 @@ class DualSmokeTests(unittest.TestCase):
             self.assertFalse(diag["independent_source_verified"])
 
 
+    def test_price_mismatch_preserves_report_and_marks_mismatch(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            def changed(*args):
+                data = snapshot("sina", "shares", 43288500)
+                data["records"][0]["close"] = 19.50
+                return data
+            code = run("000776.SZ", "2026-10-01", "2026-10-30", tmp,
+                       eastmoney=lambda *a: snapshot("eastmoney", "lots_100_shares", 432885),
+                       sina=changed)
+            self.assertEqual(code, 1)
+            report = json.loads((Path(tmp) / "daily_crosscheck_report.json").read_text())
+            self.assertGreater(report["difference_count"], 0)
+            self.assertFalse(report["cross_source_numerical_agreement"])
+            diag = json.loads((Path(tmp) / "dual_upstream_diagnostics.json").read_text())
+            self.assertEqual(diag["status"], "mismatch")
+            self.assertEqual(diag["stage"], "complete")
+
+    def test_eastmoney_failure_writes_safe_diagnostic_without_snapshots(self):
+        def failing(*args):
+            raise ConnectionError("private upstream request detail")
+        with tempfile.TemporaryDirectory() as tmp:
+            code = run("000776.SZ", "2026-10-01", "2026-10-30", tmp,
+                       eastmoney=failing, sina=lambda *a: None)
+            self.assertEqual(code, 1)
+            diag_text = (Path(tmp) / "dual_upstream_diagnostics.json").read_text()
+            self.assertEqual(json.loads(diag_text)["stage"], "eastmoney")
+            self.assertNotIn("private upstream", diag_text)
+            self.assertFalse((Path(tmp) / "sina_daily_unverified.json").exists())
+
 if __name__ == "__main__":
     unittest.main()
