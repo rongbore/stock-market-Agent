@@ -60,3 +60,13 @@ python -m scripts.akshare_evidence_report --input-dir dual_output --output dual_
 
 **证据边界：** 两个非交易所数据源的数值一致，不代表交易所权威认证、交易日历完整性、公告发布时间核实或历史时点可用性。当前 `independent_source_verified=false`、`exchange_calendar_checked=false`；不能将其改写为“已认证”。若网络不可达，应查看 Actions 摘要中的安全错误分类与 Artifact，而非认为行情为零。
 
+
+#### 将公告索引元数据纳入离线行情证据报告（实验性）
+
+可选参数 `--disclosures-json disclosure_index.json` 接受本地 JSON 数组，单条格式：
+
+```json
+[{"symbol":"000776.SZ","announcement_date":"2026-10-20","title":"公告标题（示例）"}]
+```
+
+运行 `python -m scripts.akshare_evidence_report --input-dir dual_output --output dual_output/dual_source_evidence_unverified.md --disclosures-json disclosure_index.json`。程序仅允许相同股票代码、有效日期且不晚于研究截止日期的公告元数据；最多 100 条。**仅列出本地提供的索引元数据，不代表已经联网获取公告、核验公告 PDF 正文、披露时刻或财务数据。** 未提供索引时，报告明确标记“未提供”，而不是“没有公告”。正式公告信息应以巨潮资讯网披露原文核实。
