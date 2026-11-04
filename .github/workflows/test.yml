@@ -14,5 +14,18 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.13'
+      - name: Install PDF parser for integration test
+        run: python -m pip install 'pdfplumber>=0.11,<0.13'
+      - name: Require real PDF rectangle parser integration test
+        run: |
+          python - <<'PY'
+          import unittest
+          import pdfplumber
+          from tests.test_offline_pdf_rectangle_integration import RealPdfRectangleIntegrationTests
+          suite = unittest.defaultTestLoader.loadTestsFromTestCase(RealPdfRectangleIntegrationTests)
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          if not result.wasSuccessful() or result.skipped or result.testsRun != 1:
+              raise SystemExit("PDF parser integration test failed or was skipped")
+          PY
       - name: Run tests (no API key required)
         run: python -m unittest discover -s tests -v
