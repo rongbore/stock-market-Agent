@@ -31,6 +31,10 @@ def classify(files):
             return "manual", "deletion, rename or unknown status"
         if not (path.startswith("docs/") and path.endswith(".md") and len(parts) >= 2):
             return "manual", "not allowlisted documentation"
+        if path.lower() != path or any(ord(ch) > 127 for ch in path):
+            return "manual", "non-ASCII or mixed-case documentation path"
+        if item.get("previous_filename") is not None:
+            return "manual", "unexpected rename metadata"
         if any(type(n) is not int or n < 0 for n in (additions, deletions)):
             return "manual", "invalid diff size"
         changed += additions + deletions
