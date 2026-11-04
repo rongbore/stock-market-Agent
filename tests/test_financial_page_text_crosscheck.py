@@ -89,6 +89,27 @@ class FinancialPageTextCrosscheckTests(unittest.TestCase):
                               "text": "2026-09-30\n营业收入 123.45"}])[0]
         self.assertFalse(result["period_end_near_value_unverified"])
 
+    def test_multi_column_table_is_flagged_as_ambiguous(self):
+        result = self.check([{"file_sha256": "a" * 64, "page": 4,
+                              "text": "项目 本期金额 上期金额\n营业收入 123.45 98.76"}])[0]
+        self.assertTrue(result["table_column_ambiguous_unverified"])
+        self.assertFalse(result["financial_meaning_verified"])
+
+    def test_single_column_not_flagged(self):
+        result = self.check([{"file_sha256": "a" * 64, "page": 4,
+                              "text": "营业收入 123.45 亿元"}])[0]
+        self.assertFalse(result["table_column_ambiguous_unverified"])
+
+    def test_table_headings_without_multiple_row_numbers_not_flagged(self):
+        result = self.check([{"file_sha256": "a" * 64, "page": 4,
+                              "text": "本期金额 上期金额\n营业收入 123.45"}])[0]
+        self.assertFalse(result["table_column_ambiguous_unverified"])
+
+    def test_other_column_heading_pair_flagged(self):
+        result = self.check([{"file_sha256": "a" * 64, "page": 4,
+                              "text": "期末余额 期初余额\n总资产 123.45 111.00"}])[0]
+        self.assertTrue(result["table_column_ambiguous_unverified"])
+
     def test_missing_page_is_explicit(self):
         self.assertEqual(self.check([])[0]["status"], "page_text_missing")
 
