@@ -1,5 +1,9 @@
 name: AKShare dual-upstream crosscheck
 on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/akshare-dual-crosscheck.yml'
   workflow_dispatch:
     inputs:
       symbol:
@@ -29,9 +33,9 @@ jobs:
         run: python -m pip install -r requirements-akshare.txt
       - name: Fetch and compare independent upstreams
         env:
-          STOCK_SYMBOL: ${{ inputs.symbol }}
-          STOCK_START_DATE: ${{ inputs.start_date }}
-          STOCK_END_DATE: ${{ inputs.end_date }}
+          STOCK_SYMBOL: ${{ inputs.symbol || '000776.SZ' }}
+          STOCK_START_DATE: ${{ inputs.start_date || '2026-10-01' }}
+          STOCK_END_DATE: ${{ inputs.end_date || '2026-10-30' }}
         run: |
           python -m scripts.akshare_dual_smoke \
             --symbol "$STOCK_SYMBOL" \
