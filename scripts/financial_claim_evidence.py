@@ -40,7 +40,7 @@ def validate_claims(claims, fingerprints, symbol, research_date):
         metric, unit, value = claim.get("metric"), claim.get("unit"), claim.get("value")
         if metric not in METRICS or unit not in UNITS:
             raise ValueError("unsupported financial metric or unit")
-        if not isinstance(value, str) or not re.fullmatch(r"-?[0-9]+(?:\\.[0-9]+)?", value):
+        if not isinstance(value, str) or not re.fullmatch(r"-?[0-9]+(?:\.[0-9]+)?", value):
             raise ValueError("financial value must be a decimal string")
         try:
             number = Decimal(value)
