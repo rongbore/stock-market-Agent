@@ -72,5 +72,32 @@ class DualSmokeTests(unittest.TestCase):
             self.assertNotIn("private upstream", diag_text)
             self.assertFalse((Path(tmp) / "sina_daily_unverified.json").exists())
 
+
+    def test_eastmoney_failure_still_collects_sina_evidence(self):
+        def unavailable(*args):
+            raise OSError("secret request url should never appear")
+        with tempfile.TemporaryDirectory() as tmp:
+            code = run("000776.SZ", "2026-10-01", "2026-10-30", tmp,
+                       eastmoney=unavailable,
+                       sina=lambda *a: snapshot("sina", "shares", 43288500))
+            self.assertEqual(code, 1)
+            self.assertTrue((Path(tmp) / "sina_daily_unverified.json").exists())
+            self.assertFalse((Path(tmp) / "daily_crosscheck_report.json").exists())
+            raw = (Path(tmp) / "dual_upstream_diagnostics.json").read_text()
+            diag = json.loads(raw)
+            self.assertEqual(diag["stage"], "eastmoney")
+            self.assertEqual(diag["eastmoney_status"], "failed")
+            self.assertEqual(diag["sina_status"], "success")
+            self.assertEqual(diag["sina_record_count"], 1)
+            self.assertEqual(diag["eastmoney_error_kind"], "other_os_error")
+            self.assertNotIn("secret request url", raw)
+
+    def test_safe_requests_proxy_error_kind_is_allowlisted(self):
+        from scripts.akshare_dual_smoke import _safe_error
+        ProxyError = type("ProxyError", (OSError,), {"__module__": "requests.exceptions"})
+        category, kind = _safe_error(ProxyError("sensitive proxy address"))
+        self.assertEqual(category, "operating_system_or_network")
+        self.assertEqual(kind, "proxy")
+
 if __name__ == "__main__":
     unittest.main()
