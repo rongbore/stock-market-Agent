@@ -21,14 +21,26 @@ def validate_evidence_bundle(records, *, analysis_date, cutoff=None):
     """
     if not isinstance(records, list):
         raise ValueError("evidence records must be a list")
-    day = date.fromisoformat(analysis_date)
+    if not isinstance(analysis_date, str):
+        raise ValueError("analysis_date must be YYYY-MM-DD")
+    try:
+        day = date.fromisoformat(analysis_date)
+    except ValueError as exc:
+        raise ValueError("analysis_date must be YYYY-MM-DD") from exc
+    if day.isoformat() != analysis_date:
+        raise ValueError("analysis_date must be YYYY-MM-DD")
     day_end = datetime.combine(day + timedelta(days=1), time.min,
                                tzinfo=timezone(timedelta(hours=8))) - timedelta(microseconds=1)
     if cutoff is None:
         cutoff_dt = day_end
         cutoff = cutoff_dt.isoformat()
     else:
-        cutoff_dt = datetime.fromisoformat(cutoff.replace("Z", "+00:00"))
+        if not isinstance(cutoff, str):
+            raise ValueError("cutoff must be an ISO-8601 timestamp")
+        try:
+            cutoff_dt = datetime.fromisoformat(cutoff.replace("Z", "+00:00"))
+        except ValueError as exc:
+            raise ValueError("cutoff must be an ISO-8601 timestamp") from exc
         if cutoff_dt.tzinfo is None or cutoff_dt.utcoffset() is None:
             raise ValueError("cutoff requires timezone")
         if cutoff_dt > day_end:
