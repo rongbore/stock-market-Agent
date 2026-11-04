@@ -24,6 +24,23 @@ class EvidenceBundleTests(unittest.TestCase):
         self.assertFalse(bundle["source_content_verified"])
         self.assertFalse(bundle["historical_point_in_time_verified"])
 
+    def test_rejects_noncanonical_analysis_date(self):
+        for invalid in ("20261031", "2026-W44-6", "2026-02-30", "", None, 20261031):
+            with self.subTest(invalid=invalid):
+                with self.assertRaisesRegex(ValueError, "analysis_date"):
+                    validate_evidence_bundle([example()], analysis_date=invalid)
+
+    def test_rejects_invalid_cutoff_types_and_dates(self):
+        for invalid in (None,):
+            # None intentionally selects the documented default cutoff.
+            self.assertTrue(validate_evidence_bundle(
+                [example()], analysis_date="2026-10-31", cutoff=invalid))
+        for invalid in (42, {}, "", "not-a-date"):
+            with self.subTest(invalid=invalid):
+                with self.assertRaisesRegex(ValueError, "cutoff"):
+                    validate_evidence_bundle(
+                        [example()], analysis_date="2026-10-31", cutoff=invalid)
+
     def test_future_publication_rejected(self):
         record = example()
         record["published_at"] = "2026-11-01T00:00:00+08:00"
