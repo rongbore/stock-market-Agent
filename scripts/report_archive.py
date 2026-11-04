@@ -14,6 +14,8 @@ SAFE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]{0,79}$")
 def archive_report(source, archive_root, ticker, analysis_date):
     if not SAFE.fullmatch(ticker) or not re.fullmatch(r"\d{4}-\d{2}-\d{2}", analysis_date):
         raise ValueError("invalid archive identifier")
+    if Path(source).is_symlink():
+        raise ValueError("symlink source is forbidden")
     source = Path(source).resolve(strict=True)
     root = Path(archive_root).resolve()
     if not source.is_dir() or source.is_symlink():
@@ -26,6 +28,8 @@ def archive_report(source, archive_root, ticker, analysis_date):
             raise ValueError("symlinks are forbidden")
         if path.is_file():
             relative = path.relative_to(source).as_posix()
+            if relative == "_archive_manifest.json":
+                raise ValueError("reserved archive manifest filename")
             if len(files) >= 1000:
                 raise ValueError("too many files")
             if path.stat().st_size > 50_000_000:
