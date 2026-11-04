@@ -22,7 +22,8 @@ class EvidenceBundleTests(unittest.TestCase):
         bundle = validate_evidence_bundle([example()], analysis_date="2026-10-31")
         self.assertTrue(bundle["metadata_validated"])
         self.assertFalse(bundle["source_content_verified"])
-        self.assertFalse(bundle["historical_point_in_time_verified"])\n        self.assertFalse(bundle["retrieval_cutoff_enforced"])
+        self.assertFalse(bundle["historical_point_in_time_verified"])
+        self.assertFalse(bundle["retrieval_cutoff_enforced"])
 
     def test_rejects_noncanonical_analysis_date(self):
         for invalid in ("20261031", "2026-W44-6", "2026-02-30", "", None, 20261031):

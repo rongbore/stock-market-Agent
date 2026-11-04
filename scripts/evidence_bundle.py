@@ -13,11 +13,13 @@ else:
     from source_records import validate_source_record
 
 
-def validate_evidence_bundle(records, *, analysis_date, cutoff=None,\n                             require_retrieved_by_cutoff=False):
+def validate_evidence_bundle(records, *, analysis_date, cutoff=None,
+                             require_retrieved_by_cutoff=False):
     """Validate provenance metadata and reject duplicate evidence identifiers.
 
     Default historical cutoff is end-of-day Asia/Shanghai (UTC+08:00).
-    A stricter intraday cutoff can be supplied as an ISO-8601 timestamp.\n    Set require_retrieved_by_cutoff=True for contemporaneous retrieval checks.
+    A stricter intraday cutoff can be supplied as an ISO-8601 timestamp.
+    Set require_retrieved_by_cutoff=True for contemporaneous retrieval checks.
     """
     if not isinstance(records, list):
         raise ValueError("evidence records must be a list")
@@ -45,9 +47,13 @@ def validate_evidence_bundle(records, *, analysis_date, cutoff=None,\n          
             raise ValueError("cutoff requires timezone")
         if cutoff_dt > day_end:
             raise ValueError("cutoff cannot exceed the analysis date")
-    if type(require_retrieved_by_cutoff) is not bool:\n        raise ValueError("require_retrieved_by_cutoff must be a boolean")\n    seen = set()
+    if type(require_retrieved_by_cutoff) is not bool:
+        raise ValueError("require_retrieved_by_cutoff must be a boolean")
+    seen = set()
     for record in records:
-        validate_source_record(\n            record, analysis_cutoff=cutoff,\n            require_retrieved_by_cutoff=require_retrieved_by_cutoff)
+        validate_source_record(
+            record, analysis_cutoff=cutoff,
+            require_retrieved_by_cutoff=require_retrieved_by_cutoff)
         identifier = (record["kind"], record["symbol"], record["url"], record["published_at"])
         if identifier in seen:
             raise ValueError("duplicate evidence record")
@@ -57,7 +63,8 @@ def validate_evidence_bundle(records, *, analysis_date, cutoff=None,\n          
         "analysis_date": day.isoformat(),
         "analysis_cutoff": cutoff,
         "records": records,
-        "metadata_validated": True,\n        "retrieval_cutoff_enforced": require_retrieved_by_cutoff,
+        "metadata_validated": True,
+        "retrieval_cutoff_enforced": require_retrieved_by_cutoff,
         "source_content_verified": False,
         "historical_point_in_time_verified": False,
         "limitations": [
