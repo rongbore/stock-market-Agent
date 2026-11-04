@@ -66,6 +66,10 @@ jobs:
                   f"- Diagnostic status: {diag.get('status', 'unknown')}",
                   f"- Last stage: {diag.get('stage', 'unknown')}",
                   f"- Safe error category: {diag.get('error_category') or 'none'}",
+                  f"- Eastmoney status: {diag.get('eastmoney_status', 'unknown')}",
+                  f"- Eastmoney error kind: {diag.get('eastmoney_error_kind') or 'none'}",
+                  f"- Sina status: {diag.get('sina_status', 'unknown')}",
+                  f"- Sina error kind: {diag.get('sina_error_kind') or 'none'}",
                   f"- Eastmoney records: {diag.get('eastmoney_record_count', 0)}",
                   f"- Sina records: {diag.get('sina_record_count', 0)}",
               ]
