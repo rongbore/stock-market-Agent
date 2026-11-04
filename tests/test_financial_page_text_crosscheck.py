@@ -39,7 +39,7 @@ class FinancialPageTextCrosscheckTests(unittest.TestCase):
 
     def test_label_on_other_line_is_not_proximity_evidence(self):
         result = self.check([{"file_sha256": "a" * 64, "page": 4,
-                              "text": "营业收入\\n123.45"}])[0]
+                              "text": "营业收入\n123.45"}])[0]
         self.assertFalse(result["metric_label_near_value_unverified"])
 
     def test_wrong_label_is_not_proximity_evidence(self):
