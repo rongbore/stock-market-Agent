@@ -28,6 +28,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          if [ ! -f scripts/trusted_review_diagnostic.py ]; then
+            echo "Trusted default branch does not yet contain diagnostic; skip until merged."
+            exit 0
+          fi
           python -m scripts.trusted_review_diagnostic
       - name: Explain current limitations
         run: echo "Diagnostic only; do not require this check or use it to authorize merges."
