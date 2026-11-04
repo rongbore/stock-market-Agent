@@ -59,7 +59,7 @@ class EvidenceReportTests(unittest.TestCase):
             self.assertIn("未通过或未完成", content)
 
     def test_disclosure_metadata_is_explicitly_unverified(self):
-        diag = {"symbol": "000776.SZ", "end_date": "2026-10-30", "status": "success"}
+        diag = {"symbol": "000776.SZ", "start_date": "2026-10-01", "end_date": "2026-10-30", "status": "success"}
         text = render(diag, disclosures=[
             {"symbol": "000776.SZ", "announcement_date": "2026-10-20",
              "title": "季度报告（索引示例）"}])
