@@ -23,11 +23,12 @@ jobs:
           import pdfplumber
           suite = unittest.TestSuite()
           for pattern in ('test_offline_pdf_rectangle_integration.py',
-                          'test_pdf_review_manifest_integration.py'):
+                          'test_pdf_review_manifest_integration.py',
+                          'test_pdf_bundle_review_end_to_end.py'):
               suite.addTests(unittest.defaultTestLoader.discover('tests', pattern=pattern))
           result = unittest.TextTestRunner(verbosity=2).run(suite)
-          if not result.wasSuccessful() or result.skipped or result.testsRun != 2:
-              raise SystemExit("PDF parser or manifest integration test failed or was skipped")
+          if not result.wasSuccessful() or result.skipped or result.testsRun != 5:
+              raise SystemExit("PDF parser, manifest or bundle-review integration test failed or was skipped")
           PY
       - name: Run tests (no API key required)
         run: python -m unittest discover -s tests -v
