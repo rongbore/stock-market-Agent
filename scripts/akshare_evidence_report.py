@@ -133,7 +133,7 @@ def render(diag, comparison=None, disclosures=None, fingerprints=None):
                                 diag.get("start_date"), diag.get("end_date"))
         lines += [f"- 文件指纹条目数：{len(records)}；仅记录文件摘要，不证明官方来源或正文内容。", ""]
         for day, digest, size in records:
-            lines.append(f"- {day}：SHA-256 \`{digest}\`；{size} 字节")
+            lines.append(f"- {day}：SHA-256 `{digest}`；{size} 字节")
         lines.append("")
     return "\n".join(lines)
 
