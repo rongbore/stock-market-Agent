@@ -1,5 +1,5 @@
 """Fail-closed PR risk/approval decision; never performs a merge."""
-from datetime import datetime, timezone
+from datetime import datetime
 
 from scripts.pr_risk_classifier import classify
 
@@ -42,6 +42,8 @@ def evaluate(pr, files, reviews):
             return False, "invalid review timestamp"
         if user not in latest or when >= latest[user][0]:
             latest[user] = (when, state)
+    if any(state == "CHANGES_REQUESTED" for _, state in latest.values()):
+        return False, "outstanding changes-requested review"
     for user, (when, state) in latest.items():
         if user != author and state == "APPROVED" and when > pushed_time:
             return True, "sensitive change approved by another reviewer after last push"
