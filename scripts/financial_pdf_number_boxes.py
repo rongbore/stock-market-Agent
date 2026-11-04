@@ -8,7 +8,7 @@ from scripts.financial_pdf_geometry import inspect_spans
 
 # Group punctuation with digits so a partial number cannot be mistaken for a claim.
 NUMERIC_CHARS = frozenset("0123456789.,+-−")
-DECIMAL = re.compile(r"-?[0-9]+(?:\\.[0-9]+)?\\Z")
+DECIMAL = re.compile(r"-?[0-9]+(?:\.[0-9]+)?\Z")
 
 
 def number_boxes(spans, max_gap=3.0, max_y_delta=2.0):
