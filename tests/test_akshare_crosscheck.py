@@ -18,6 +18,9 @@ class CrosscheckTests(unittest.TestCase):
         self.assertEqual(result["status"], "passed")
         self.assertTrue(result["cross_source_numerical_agreement"])
         self.assertFalse(result["independent_source_verified"])
+        self.assertEqual(result["date_coverage"]["shared_trading_date_count"], 1)
+        self.assertEqual(result["date_coverage"]["primary_only_date_count"], 0)
+        self.assertFalse(result["date_coverage"]["exchange_calendar_checked"])
 
     def test_same_upstream_does_not_verify(self):
         result = compare(snapshot(), snapshot())
@@ -34,7 +37,11 @@ class CrosscheckTests(unittest.TestCase):
     def test_missing_date_detected(self):
         other = snapshot("other-provider")
         other["records"][0]["date"] = "2026-10-09"
-        self.assertEqual(compare(snapshot(), other)["difference_count"], 2)
+        result = compare(snapshot(), other)
+        self.assertEqual(result["difference_count"], 2)
+        self.assertEqual(result["date_coverage"]["shared_trading_date_count"], 0)
+        self.assertEqual(result["date_coverage"]["primary_only_dates"], ["2026-10-08"])
+        self.assertEqual(result["date_coverage"]["secondary_only_dates"], ["2026-10-09"])
 
     def test_missing_volume_units_rejected(self):
         other = snapshot("other-provider")

@@ -89,6 +89,13 @@ jobs:
               report = json.loads(report_path.read_text(encoding="utf-8"))
               lines += [f"- Numerical agreement: {report.get('cross_source_numerical_agreement', False)}",
                         f"- Difference count: {report.get('difference_count', 'unknown')}"]
+              coverage = report.get("date_coverage", {})
+              lines += [
+                  f"- Shared trading dates: {coverage.get('shared_trading_date_count', 'unknown')}",
+                  f"- Eastmoney-only dates: {coverage.get('primary_only_date_count', 'unknown')}",
+                  f"- Sina-only dates: {coverage.get('secondary_only_date_count', 'unknown')}",
+                  "- Exchange calendar checked: false",
+              ]
           else:
               lines.append("- Comparison report unavailable.")
           lines.append("- Independent source verified: false")

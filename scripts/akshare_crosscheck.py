@@ -85,6 +85,9 @@ def compare(primary, secondary, price_tolerance=0.011, volume_tolerance=0.001):
             if abs(a - b) > tol:
                 diffs.append({"date": day, "field": field, "primary": a, "secondary": b})
     passed = independent and not diffs
+    shared_days = sorted(first.keys() & second.keys())
+    primary_only = sorted(first.keys() - second.keys())
+    secondary_only = sorted(second.keys() - first.keys())
     return {
         "schema_version": "0.1", "symbol": primary["symbol"],
         "primary_upstream": primary.get("upstream"),
@@ -96,6 +99,20 @@ def compare(primary, secondary, price_tolerance=0.011, volume_tolerance=0.001):
         "primary_record_count": len(first),
         "secondary_record_count": len(second),
         "difference_count": len(diffs),
+        "date_coverage": {
+            "requested_start_date": primary["start_date"],
+            "requested_end_date": primary["end_date"],
+            "primary_first_date": min(first),
+            "primary_last_date": max(first),
+            "secondary_first_date": min(second),
+            "secondary_last_date": max(second),
+            "shared_trading_date_count": len(shared_days),
+            "primary_only_date_count": len(primary_only),
+            "secondary_only_date_count": len(secondary_only),
+            "primary_only_dates": primary_only,
+            "secondary_only_dates": secondary_only,
+            "exchange_calendar_checked": False,
+        },
         "differences": diffs,
         "price_tolerance_cny": price_tolerance,
         "volume_relative_tolerance": volume_tolerance,
