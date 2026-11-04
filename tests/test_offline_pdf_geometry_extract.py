@@ -54,7 +54,7 @@ class OfflinePdfGeometryExtractTests(unittest.TestCase):
             self.extract(chars)
 
     def test_rejects_invalid_pdf_header(self):
-        self.file.write_bytes(b"not pdf")
+        self.file.write_bytes(b"not a pdf file")
         with self.assertRaisesRegex(ValueError, "PDF header"):
             self.extract([])
 
