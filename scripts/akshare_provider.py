@@ -96,7 +96,8 @@ def fetch_a_share_daily(symbol, start_date, end_date, *, adjust="", client=None)
     return {"schema_version": "0.1", "symbol": symbol, "source": "akshare",
             "upstream": "eastmoney", "interface": "stock_zh_a_hist",
             "akshare_version": str(getattr(ak, "__version__", "unknown")),
-            "adjust": adjust, "start_date": start_date, "end_date": end_date,
+            "adjust": adjust, "volume_unit": "lots_100_shares",
+            "price_unit": "CNY_per_share", "start_date": start_date, "end_date": end_date,
             "retrieved_at": datetime.now(timezone.utc).isoformat(),
             "source_content_verified": False, "historical_point_in_time_verified": False,
             "records": result}
