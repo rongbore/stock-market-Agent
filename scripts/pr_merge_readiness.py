@@ -22,7 +22,10 @@ def assess(pr, files, checks, *, protected=False):
     head = pr.get("head_sha")
     if not isinstance(head, str) or len(head) != 40 or any(c not in "0123456789abcdef" for c in head):
         return "manual", "invalid head SHA"
-    decision, reason = classify(files, expected_count=pr.get("changed_files"))
+    count = pr.get("changed_files")
+    if type(count) is not int or count < 1:
+        return "manual", "missing or invalid changed-file count"
+    decision, reason = classify(files, expected_count=count)
     if decision != "eligible":
         return "manual", reason
     seen = set()
@@ -32,14 +35,14 @@ def assess(pr, files, checks, *, protected=False):
         name = check.get("name")
         if not isinstance(name, str):
             return "manual", "invalid check name"
+        if (check.get("head_sha") != head or check.get("status") != "completed"
+                or check.get("conclusion") != "success"):
+            return "manual", "CI check not successful on current head"
         if name not in REQUIRED_CHECKS:
             continue
         if name in seen:
             return "manual", "ambiguous duplicate required check"
         seen.add(name)
-        if (check.get("head_sha") != head or check.get("status") != "completed"
-                or check.get("conclusion") != "success"):
-            return "manual", "required check not successful on current head"
     if seen != REQUIRED_CHECKS:
         return "manual", "missing required check"
     return "candidate", "read-only candidate; privileged controller must revalidate"
