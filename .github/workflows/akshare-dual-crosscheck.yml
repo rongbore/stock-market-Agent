@@ -47,6 +47,40 @@ jobs:
             --start-date "$STOCK_START_DATE" \
             --end-date "$STOCK_END_DATE" \
             --output-dir dual_output
+      - name: Publish safe acceptance summary
+        if: always()
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          folder = Path("dual_output")
+          lines = ["## AKShare dual-upstream acceptance", "",
+                   "Scope: numerical comparison only; not exchange-authoritative verification.", ""]
+          diag_path = folder / "dual_upstream_diagnostics.json"
+          if diag_path.is_file():
+              diag = json.loads(diag_path.read_text(encoding="utf-8"))
+              lines += [
+                  f"- Diagnostic status: {diag.get('status', 'unknown')}",
+                  f"- Last stage: {diag.get('stage', 'unknown')}",
+                  f"- Eastmoney records: {diag.get('eastmoney_record_count', 0)}",
+                  f"- Sina records: {diag.get('sina_record_count', 0)}",
+              ]
+          else:
+              lines.append("- Diagnostic file missing (job may have failed before collection).")
+          report_path = folder / "daily_crosscheck_report.json"
+          if report_path.is_file():
+              report = json.loads(report_path.read_text(encoding="utf-8"))
+              lines += [f"- Numerical agreement: {report.get('cross_source_numerical_agreement', False)}",
+                        f"- Difference count: {report.get('difference_count', 'unknown')}"]
+          else:
+              lines.append("- Comparison report unavailable.")
+          lines.append("- Independent source verified: false")
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as handle:
+              handle.write("\n".join(lines) + "\n")
+          PY
       - name: Upload unverified crosscheck evidence
         if: always()
         uses: actions/upload-artifact@v4
