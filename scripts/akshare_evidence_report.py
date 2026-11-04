@@ -5,6 +5,7 @@ from datetime import date
 import re
 from pathlib import Path
 from scripts.financial_claim_evidence import validate_claims
+from scripts.financial_page_text_crosscheck import check_page_text
 
 
 def _disclosures(items, symbol, start_date, end_date):
@@ -72,7 +73,7 @@ def _fingerprints(items, symbol, start_date, end_date):
     return sorted(result)
 
 
-def render(diag, comparison=None, disclosures=None, fingerprints=None, claims=None):
+def render(diag, comparison=None, disclosures=None, fingerprints=None, claims=None, pages=None):
     if not isinstance(diag, dict):
         raise ValueError("invalid diagnostics")
     comparison = comparison if isinstance(comparison, dict) else None
@@ -152,6 +153,26 @@ def render(diag, comparison=None, disclosures=None, fingerprints=None, claims=No
                 "状态：人工摘录、未认证。"
             )
         lines.append("")
+    lines += ["## 财务指标页面文字字面核对（可选、未认证）", ""]
+    if pages is None:
+        lines += ["- 未提供 PDF 页面文字；未执行数字字面核对。", ""]
+    else:
+        if claims is None or fingerprints is None:
+            raise ValueError("page crosscheck requires claims and PDF fingerprints")
+        checks = check_page_text(claims, fingerprints, pages, diag.get("symbol"), diag.get("end_date"))
+        labels = {
+            "literal_value_found_unverified": "找到相同数字（未认证）",
+            "literal_value_not_found": "未找到相同数字",
+            "page_text_missing": "缺少页面文字",
+        }
+        lines += [f"- 核对条目数：{len(checks)}；页面文字提取来源及财务语义均未认证。", ""]
+        for item in checks:
+            lines.append(
+                f"- {safe(item['metric'])}；PDF 第 {item['page']} 页；"
+                f"SHA-256 `{item['file_sha256']}`；"
+                f"字面核对：{labels[item['status']]}。"
+            )
+        lines.append("")
     return "\n".join(lines)
 
 
@@ -162,6 +183,7 @@ def main(argv=None):
     parser.add_argument("--disclosures-json", default=None)
     parser.add_argument("--fingerprints-json", default=None)
     parser.add_argument("--claims-json", default=None)
+    parser.add_argument("--pages-json", default=None)
     args = parser.parse_args(argv)
     folder = Path(args.input_dir)
     diag = json.loads((folder / "dual_upstream_diagnostics.json").read_text(encoding="utf-8"))
@@ -170,9 +192,10 @@ def main(argv=None):
     disclosures = json.loads(Path(args.disclosures_json).read_text(encoding="utf-8")) if args.disclosures_json else None
     fingerprints = json.loads(Path(args.fingerprints_json).read_text(encoding="utf-8")) if args.fingerprints_json else None
     claims = json.loads(Path(args.claims_json).read_text(encoding="utf-8")) if args.claims_json else None
+    pages = json.loads(Path(args.pages_json).read_text(encoding="utf-8")) if args.pages_json else None
     target = Path(args.output)
     target.parent.mkdir(parents=True, exist_ok=True)
-    target.write_text(render(diag, comparison, disclosures, fingerprints, claims), encoding="utf-8")
+    target.write_text(render(diag, comparison, disclosures, fingerprints, claims, pages), encoding="utf-8")
     return 0
 
 
