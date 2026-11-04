@@ -4,11 +4,12 @@ A source record contains `kind`, `provider`, `symbol`, `url`,
 `published_at`, and `retrieved_at`. Both timestamps must have explicit
 timezone offsets; URLs must be HTTPS without embedded credentials.
 
-The validator rejects sources published **or retrieved** after a supplied analysis cutoff.
-This strict mode requires a contemporaneous retrieval record: a document
-retrieved today cannot be presented as evidence actually collected at an
-earlier cutoff, even if its publication date predates that cutoff. It may
-therefore exclude legitimate historical documents collected retrospectively.
+The validator always rejects sources **published** after a supplied analysis cutoff.
+With `require_retrieved_by_cutoff=True`, it also rejects sources retrieved after
+that cutoff. This strict point-in-time mode requires a contemporaneous retrieval
+record and may exclude legitimate historical documents collected retrospectively.
+The default allows retrospective retrieval but does **not** verify historical
+point-in-time availability or authenticity.
 **It does not fetch data, independently verify a publication timestamp,
 authenticate a publisher, or guarantee historical point-in-time integrity.**
 Future provider adapters must supply genuine source metadata and must not
