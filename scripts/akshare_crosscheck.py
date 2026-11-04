@@ -6,6 +6,7 @@ merely because a second file exists. No market requests or trading operations.
 import argparse
 import json
 import math
+from datetime import date
 from pathlib import Path
 
 
@@ -13,14 +14,39 @@ FIELDS = ("open", "high", "low", "close", "volume")
 
 
 def _rows(snapshot):
+    """Validate offline records before accepting any numerical agreement."""
+    try:
+        start = date.fromisoformat(snapshot["start_date"])
+        end = date.fromisoformat(snapshot["end_date"])
+        if start.isoformat() != snapshot["start_date"] or end.isoformat() != snapshot["end_date"] or start > end:
+            raise ValueError("invalid snapshot date window")
+    except (KeyError, TypeError, ValueError) as exc:
+        raise ValueError("invalid snapshot date window") from exc
+    records = snapshot.get("records")
+    if not isinstance(records, list) or not 0 < len(records) <= 100000:
+        raise ValueError("invalid snapshot record count")
     result = {}
-    for row in snapshot.get("records", []):
-        day = row["date"]
+    for row in records:
+        if not isinstance(row, dict):
+            raise ValueError("invalid snapshot row")
+        day = row.get("date")
+        if not isinstance(day, str):
+            raise ValueError("invalid trading date")
+        try:
+            parsed = date.fromisoformat(day)
+        except ValueError as exc:
+            raise ValueError("invalid trading date") from exc
+        if parsed.isoformat() != day or not start <= parsed <= end:
+            raise ValueError("out-of-range trading date")
         if day in result:
             raise ValueError("duplicate trading date")
+        for field in FIELDS:
+            value = row.get(field)
+            if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value) or value < 0:
+                raise ValueError("invalid nonnegative OHLCV value")
+        if row["low"] > min(row["open"], row["close"]) or row["high"] < max(row["open"], row["close"]) or row["high"] < row["low"]:
+            raise ValueError("inconsistent OHLC")
         result[day] = row
-    if not result:
-        raise ValueError("empty snapshot")
     return result
 
 
