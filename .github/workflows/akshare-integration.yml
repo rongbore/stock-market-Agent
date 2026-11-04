@@ -1,5 +1,9 @@
 name: AKShare read-only integration
 on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/akshare-integration.yml'
   workflow_dispatch:
     inputs:
       symbol:
@@ -31,9 +35,9 @@ jobs:
           python -c "import akshare; print('AKShare version:', akshare.__version__)"
       - name: Fetch public read-only A-share daily data
         env:
-          STOCK_SYMBOL: ${{ inputs.symbol }}
-          STOCK_START_DATE: ${{ inputs.start_date }}
-          STOCK_END_DATE: ${{ inputs.end_date }}
+          STOCK_SYMBOL: ${{ inputs.symbol || '000776.SZ' }}
+          STOCK_START_DATE: ${{ inputs.start_date || '2026-10-01' }}
+          STOCK_END_DATE: ${{ inputs.end_date || '2026-10-30' }}
         run: |
           python -m scripts.akshare_integration_check \
             --symbol "$STOCK_SYMBOL" \
