@@ -28,6 +28,21 @@ class FinancialClaimEvidenceTests(unittest.TestCase):
         self.assertEqual(len(result), 2)
         self.assertTrue(all(item["status"] == "manually_transcribed_unverified" for item in result))
 
+    def test_reject_unhashable_claim_fields_with_value_error(self):
+        for changes in (
+            {"metric": ["revenue"]},
+            {"unit": ["CNY"]},
+            {"file_sha256": ["a" * 64]},
+            {"metric": {"name": "revenue"}},
+            {"unit": {"name": "CNY"}},
+            {"file_sha256": {"sha256": "a" * 64}},
+        ):
+            with self.subTest(changes=changes):
+                with self.assertRaises(ValueError):
+                    validate_claims(
+                        [dict(self.claim, **changes)], self.fp,
+                        "000776.SZ", "2026-10-30")
+
     def test_reject_future_disclosure(self):
         claim = dict(self.claim, announcement_date="2026-11-01")
         with self.assertRaisesRegex(ValueError, "cutoff"):

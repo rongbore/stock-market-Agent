@@ -50,7 +50,7 @@ def validate_claims(claims, fingerprints, symbol, research_date):
         if not isinstance(claim, dict) or claim.get("symbol") != symbol:
             raise ValueError("claim symbol mismatch")
         metric, unit, value = claim.get("metric"), claim.get("unit"), claim.get("value")
-        if metric not in METRICS or unit not in UNITS:
+        if not isinstance(metric, str) or not isinstance(unit, str) or metric not in METRICS or unit not in UNITS:
             raise ValueError("unsupported financial metric or unit")
         if not isinstance(value, str) or not re.fullmatch(r"-?[0-9]+(?:\.[0-9]+)?", value):
             raise ValueError("financial value must be a decimal string")
@@ -61,7 +61,7 @@ def validate_claims(claims, fingerprints, symbol, research_date):
         if not number.is_finite() or len(value) > 60:
             raise ValueError("invalid financial value")
         digest = claim.get("file_sha256")
-        if digest not in available:
+        if not isinstance(digest, str) or digest not in available:
             raise ValueError("claim lacks matching local PDF fingerprint")
         dates = []
         for field in ("period_end", "announcement_date"):
