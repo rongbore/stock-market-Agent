@@ -18,6 +18,14 @@ class SourceRecordTests(unittest.TestCase):
     def test_valid(self):
         self.assertTrue(validate_source_record(sample()))
 
+    def test_reject_unhashable_source_kind(self):
+        for kind in (["filing"], {"name": "filing"}, None, 123):
+            with self.subTest(kind=kind):
+                record = sample()
+                record["kind"] = kind
+                with self.assertRaisesRegex(ValueError, "unsupported source kind"):
+                    validate_source_record(record)
+
     def test_missing_published_at(self):
         record = sample()
         del record["published_at"]
