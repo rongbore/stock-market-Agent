@@ -22,7 +22,10 @@ def classify(files):
         if not isinstance(path, str) or not path or "\\" in path:
             return "manual", "invalid path"
         parts = PurePosixPath(path).parts
-        if ".." in parts or any(part.startswith(".") for part in parts):
+        if (path.startswith("/") or "//" in path or any(ord(ch) < 32 or ord(ch) == 127 for ch in path)
+                or ".." in parts or any(part.startswith(".") for part in parts)):
+            return "manual", "unsafe or ambiguous path"
+        if any(part in ("", ".", "..") for part in path.split("/")):
             return "manual", "hidden or traversal path"
         if status not in ("added", "modified"):
             return "manual", "deletion, rename or unknown status"
