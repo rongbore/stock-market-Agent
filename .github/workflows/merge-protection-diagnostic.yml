@@ -1,0 +1,52 @@
+name: Merge protection diagnostic
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  protection-diagnostic:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Fetch repository ruleset summaries read-only
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if gh api "repos/$GH_REPO/rulesets" > rulesets.json; then
+            echo "Repository ruleset API query completed"
+          else
+            echo 'null' > rulesets.json
+            echo "::warning::Ruleset API unavailable; protection remains unverified"
+          fi
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          rulesets = json.loads(Path("rulesets.json").read_text(encoding="utf-8"))
+          Path("audit-input.json").write_text(
+              json.dumps({"rulesets": rulesets}, ensure_ascii=False), encoding="utf-8"
+          )
+          PY
+      - name: Explain blockers without granting merge permission
+        shell: bash
+        run: |
+          set -euo pipefail
+          set +e
+          python -m scripts.merge_safety_report --strict audit-input.json > report.json
+          status=$?
+          set -e
+          cat report.json
+          if [ "$status" -ne 2 ]; then
+            echo "::error::Expected blocked diagnostic exit 2, got $status"
+            exit 1
+          fi
+          echo "::notice::Auto-merge remains disabled; administrator verification required"
