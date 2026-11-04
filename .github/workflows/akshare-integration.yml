@@ -45,6 +45,20 @@ jobs:
             --end-date "$STOCK_END_DATE" \
             --output akshare_daily_snapshot.json \
             --diagnostics akshare_diagnostics.json
+      - name: Check snapshot quality and units
+        if: success()
+        run: |
+          python -m scripts.akshare_snapshot_quality \
+            --input akshare_daily_snapshot.json \
+            --report akshare_quality_report.json
+      - name: Upload quality report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: akshare-snapshot-quality
+          path: akshare_quality_report.json
+          if-no-files-found: ignore
+          retention-days: 3
       - name: Upload safe diagnostics even on failure
         if: always()
         uses: actions/upload-artifact@v4
