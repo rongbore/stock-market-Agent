@@ -39,6 +39,7 @@ class PdfSampleAcceptanceGateTests(unittest.TestCase):
         bundle["review_manifest"]["candidates"] = []
         bundle["review_manifest"]["candidate_count"] = 0
         review["review_decisions"] = []
+        review["review_complete"] = False
         result = assess_sample(bundle, review)
         self.assertIn("no_rectangle_candidates", result["blockers"])
 
