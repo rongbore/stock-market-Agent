@@ -46,6 +46,25 @@ def _unit_near_value(text, unit, value):
                 return True
     return False
 
+
+def _period_near_value(text, period_end, value):
+    """Same-line date before number within 80 characters; weak hint only."""
+    year, month, day = (int(part) for part in period_end.split("-"))
+    date_forms = (
+        period_end,
+        f"{year}年{month}月{day}日",
+        f"{year}年{month:02d}月{day:02d}日",
+    )
+    token = re.compile(r"(?<![0-9.])" + re.escape(value) + r"(?![0-9.])")
+    for line in text.splitlines():
+        for match in token.finditer(line):
+            prefix = line[max(0, match.start() - 80):match.start()]
+            if any(re.search(r"(?<![0-9])" + re.escape(form) + r"(?![0-9])", prefix)
+                   for form in date_forms):
+                return True
+    return False
+
+
 def check_page_text(claims, fingerprints, pages, symbol, research_date):
     """Compare claims with caller-supplied page text, not independently extracted PDF."""
     validated = validate_claims(claims, fingerprints, symbol, research_date)
@@ -71,6 +90,7 @@ def check_page_text(claims, fingerprints, pages, symbol, research_date):
         text = lookup.get((claim["file_sha256"], claim["page"]))
         label_near_value = False
         unit_near_value = False
+        period_near_value = False
         if text is None:
             status = "page_text_missing"
         else:
@@ -81,11 +101,13 @@ def check_page_text(claims, fingerprints, pages, symbol, research_date):
             if matched:
                 label_near_value = _label_near_value(text, claim["metric"], claim["value"])
                 unit_near_value = _unit_near_value(text, claim["unit"], claim["value"])
+                period_near_value = _period_near_value(text, claim["period_end"], claim["value"])
         results.append({
             "metric": claim["metric"], "file_sha256": claim["file_sha256"],
             "page": claim["page"], "status": status,
             "metric_label_near_value_unverified": label_near_value,
             "unit_label_near_value_unverified": unit_near_value,
+            "period_end_near_value_unverified": period_near_value,
             "pdf_text_extraction_verified": False,
             "financial_meaning_verified": False,
             "official_origin_verified": False,
