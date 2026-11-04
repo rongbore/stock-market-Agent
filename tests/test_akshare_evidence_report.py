@@ -106,6 +106,42 @@ class EvidenceReportTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "research date range required"):
             render({"symbol": "000776.SZ"}, disclosures=[])
 
+    def test_pdf_fingerprint_render_is_unverified(self):
+        diag = {"symbol": "000776.SZ", "start_date": "2026-10-01",
+                "end_date": "2026-10-30"}
+        evidence = {"symbol": "000776.SZ", "announcement_date": "2026-10-20",
+                    "file_sha256": "a" * 64, "file_size_bytes": 1024,
+                    "official_origin_verified": False,
+                    "source_content_verified": False}
+        output = render(diag, fingerprints=[evidence])
+        self.assertIn("SHA-256", output)
+        self.assertIn("a" * 64, output)
+        self.assertIn("不证明官方来源", output)
+
+    def test_pdf_fingerprint_rejects_false_claims(self):
+        diag = {"symbol": "000776.SZ", "start_date": "2026-10-01",
+                "end_date": "2026-10-30"}
+        evidence = {"symbol": "000776.SZ", "announcement_date": "2026-10-20",
+                    "file_sha256": "a" * 64, "file_size_bytes": 1024,
+                    "official_origin_verified": True,
+                    "source_content_verified": False}
+        with self.assertRaisesRegex(ValueError, "verification claims"):
+            render(diag, fingerprints=[evidence])
+
+    def test_pdf_fingerprint_rejects_out_of_range_and_bad_hash(self):
+        diag = {"symbol": "000776.SZ", "start_date": "2026-10-01",
+                "end_date": "2026-10-30"}
+        evidence = {"symbol": "000776.SZ", "announcement_date": "2026-09-30",
+                    "file_sha256": "a" * 64, "file_size_bytes": 1024,
+                    "official_origin_verified": False,
+                    "source_content_verified": False}
+        with self.assertRaisesRegex(ValueError, "outside research range"):
+            render(diag, fingerprints=[evidence])
+        evidence["announcement_date"] = "2026-10-20"
+        evidence["file_sha256"] = "bad"
+        with self.assertRaisesRegex(ValueError, "SHA-256"):
+            render(diag, fingerprints=[evidence])
+
     def test_report_requires_diagnostic_object(self):
         with self.assertRaises(ValueError):
             render([])
