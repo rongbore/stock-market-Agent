@@ -9,8 +9,16 @@ SHA = "a" * 64
 def evidence():
     candidate = {"page": 1, "bbox": [20, 120, 240, 220]}
     bundle = {
-        "source_record": {"file_sha256": SHA},
+        "source_record": {"file_sha256": SHA, "symbol": "000776.SZ",
+                          "announcement_date_claimed": "2026-03-31",
+                          "source_file_match_verified": False,
+                          "official_origin_verified": False,
+                          "financial_meaning_verified": False},
         "review_manifest": {"file_sha256": SHA, "candidate_count": 1,
+                            "symbol": "000776.SZ",
+                            "announcement_date_claimed": "2026-03-31",
+                            "official_origin_verified": False,
+                            "financial_meaning_verified": False,
                             "candidates": [candidate]},
         "sample_checked_with_real_pdf_parser": True,
         "official_origin_verified": False,
@@ -27,6 +35,36 @@ def evidence():
 
 
 class PdfSampleAcceptanceGateTests(unittest.TestCase):
+    def test_rejects_mismatched_symbol_even_with_identical_hash(self):
+        bundle, review = evidence()
+        bundle["review_manifest"]["symbol"] = "000001.SZ"
+        with self.assertRaisesRegex(ValueError, "identity"):
+            assess_sample(bundle, review)
+
+    def test_rejects_mismatched_announcement_date(self):
+        bundle, review = evidence()
+        bundle["review_manifest"]["announcement_date_claimed"] = "2026-04-01"
+        with self.assertRaisesRegex(ValueError, "identity"):
+            assess_sample(bundle, review)
+
+    def test_rejects_missing_identity(self):
+        bundle, review = evidence()
+        del bundle["source_record"]["symbol"]
+        with self.assertRaisesRegex(ValueError, "identity"):
+            assess_sample(bundle, review)
+
+    def test_rejects_source_verification_overclaim(self):
+        bundle, review = evidence()
+        bundle["source_record"]["official_origin_verified"] = True
+        with self.assertRaisesRegex(ValueError, "verified"):
+            assess_sample(bundle, review)
+
+    def test_rejects_manifest_verification_overclaim(self):
+        bundle, review = evidence()
+        bundle["review_manifest"]["financial_meaning_verified"] = True
+        with self.assertRaisesRegex(ValueError, "verified"):
+            assess_sample(bundle, review)
+
     def test_completed_geometry_review_does_not_pass_release_gate(self):
         result = assess_sample(*evidence())
         self.assertTrue(result["offline_review_ready"])
