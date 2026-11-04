@@ -18,11 +18,11 @@ def audit_legacy_protection(data):
         return False, "required check contexts unavailable"
     if not REQUIRED_CONTEXTS.issubset(set(contexts)):
         return False, "required checks not configured"
-    if data.get("enforce_admins", {}).get("enabled") is not True:
+    if not isinstance(data.get("enforce_admins"), dict) or data["enforce_admins"].get("enabled") is not True:
         return False, "administrator enforcement not confirmed"
-    if data.get("allow_force_pushes", {}).get("enabled") is not False:
+    if not isinstance(data.get("allow_force_pushes"), dict) or data["allow_force_pushes"].get("enabled") is not False:
         return False, "force pushes not explicitly disabled"
-    if data.get("allow_deletions", {}).get("enabled") is not False:
+    if not isinstance(data.get("allow_deletions"), dict) or data["allow_deletions"].get("enabled") is not False:
         return False, "branch deletion not explicitly disabled"
     if data.get("required_pull_request_reviews") is None:
         return False, "pull request review policy not confirmed"
