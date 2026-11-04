@@ -23,6 +23,7 @@ def run(symbol, start_date, end_date, folder, *, eastmoney=fetch_a_share_daily,
             "start_date": start_date, "end_date": end_date,
             "status": "failed", "stage": "eastmoney",
             "eastmoney_record_count": 0, "sina_record_count": 0,
+            "error_category": None,
             "cross_source_numerical_agreement": False,
             "independent_source_verified": False}
     try:
@@ -44,8 +45,17 @@ def run(symbol, start_date, end_date, folder, *, eastmoney=fetch_a_share_daily,
         diag["status"] = "success" if result["status"] == "passed" else "mismatch"
         diag["stage"] = "complete"
         return 0 if result["status"] == "passed" else 1
-    except (ValueError, TypeError, KeyError, RuntimeError, ConnectionError, TimeoutError, OSError):
-        # No raw exception text, URLs, tokens, or response bodies in diagnostics.
+    except (ValueError, TypeError, KeyError, RuntimeError, ConnectionError, TimeoutError, OSError) as exc:
+        # Only fixed categories; never persist raw exception strings, URLs or response bodies.
+        if isinstance(exc, (ConnectionError, TimeoutError)):
+            category = "connection_or_timeout"
+        elif isinstance(exc, (TypeError, KeyError, ValueError)):
+            category = "response_or_validation"
+        elif isinstance(exc, OSError):
+            category = "operating_system_or_network"
+        else:
+            category = "runtime_or_dependency"
+        diag["error_category"] = category
         return 1
     finally:
         _write(folder, "dual_upstream_diagnostics.json", diag)
