@@ -142,3 +142,5 @@ python -m scripts.akshare_evidence_report --input-dir dual_output --output dual_
 新增 `scripts/financial_pdf_geometry.py`：`inspect_spans(spans)` 校验调用方提供的 `{page,text,bbox:[x0,y0,x1,y1]}` 坐标记录，`column_candidates(spans,page,value)` 返回精确数字候选的坐标。限制记录数、文本长度、坐标范围和非有限数值；目前**不从 PDF 自动提取坐标、不识别列标题归属、不核验来源真实性**，所有候选仍需人工查看 PDF 原页。
 
 新增离线字符坐标提取脚本 `scripts/offline_pdf_geometry_extract.py`，需额外安装 `pdfplumber`。示例：`python -m scripts.offline_pdf_geometry_extract --pdf local.pdf --symbol 000776.SZ --announcement-date 2026-10-20 --pages 1 --output geometry.json`。输出单字符 `bbox`（左、上、右、下），单次最多 2000 个字符，复杂页面可能因上限被拒绝；这些字符坐标**不能直接作为完整数字的 bbox**，需后续字符组合与表格行列对齐。当前测试使用模拟 PDF 读取器，尚未覆盖真实 PDF 文件的端到端坐标提取；不核验官方来源或财务语义。
+
+新增 `scripts/financial_pdf_number_boxes.py` 的 `number_boxes(spans)`：将单字符 PDF 坐标按页码、行高和水平间距保守拼接为数字及其包围框，支持负号与小数；拒绝千分位形式的局部误匹配，遇非数字字符、跨行或较大间距即断开。默认间距阈值 3 坐标单位、纵向差 2 单位。当前仅是启发式几何候选，未处理旋转文字、复杂字体排版或表格列语义；不认证财务数值、官方来源和列归属。
