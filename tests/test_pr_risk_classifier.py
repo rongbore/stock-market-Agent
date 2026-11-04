@@ -20,6 +20,15 @@ class RiskClassifierTests(unittest.TestCase):
             with self.subTest(path=path):
                 self.assertEqual(classify([file(path)])[0], "manual")
 
+    def test_confusable_paths_and_rename_metadata_require_review(self):
+        for path in ("docs/Guide.md", "docs/ｇuide.md", "docs/报告.md",
+                     "docs/a​.md"):
+            with self.subTest(path=path):
+                self.assertEqual(classify([file(path)])[0], "manual")
+        renamed = file()
+        renamed["previous_filename"] = "scripts/source_records.py"
+        self.assertEqual(classify([renamed])[0], "manual")
+
     def test_deletions_renames_and_unknown_status_require_review(self):
         for status in ("removed", "renamed", "copied", None):
             with self.subTest(status=status):
