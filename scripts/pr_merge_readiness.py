@@ -30,6 +30,8 @@ def assess(pr, files, checks, *, protected=False):
         if not isinstance(check, dict):
             return "manual", "invalid check record"
         name = check.get("name")
+        if not isinstance(name, str):
+            return "manual", "invalid check name"
         if name not in REQUIRED_CHECKS:
             continue
         if name in seen:
