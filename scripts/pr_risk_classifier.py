@@ -10,7 +10,9 @@ MAX_FILES = 20
 MAX_CHANGED_LINES = 300
 
 
-def classify(files):
+def classify(files, *, expected_count=None):
+    if expected_count is not None and (type(expected_count) is not int or not isinstance(files, list) or expected_count != len(files)):
+        return "manual", "file count mismatch or invalid metadata"
     if not isinstance(files, list) or not 0 < len(files) <= MAX_FILES:
         return "manual", "invalid or oversized file list"
     changed = 0
