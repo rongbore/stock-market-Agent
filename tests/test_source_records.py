@@ -43,6 +43,10 @@ class SourceRecordTests(unittest.TestCase):
         self.assertTrue(validate_source_record(
             sample(), analysis_cutoff="2026-10-31T23:59:59+08:00"))
 
+    def test_strict_retrieval_requires_explicit_cutoff(self):
+        with self.assertRaisesRegex(ValueError, "requires analysis_cutoff"):
+            validate_source_record(sample(), require_retrieved_by_cutoff=True)
+
     def test_reject_non_https(self):
         record = sample()
         record["url"] = "http://example.org"

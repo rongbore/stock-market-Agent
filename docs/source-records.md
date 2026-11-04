@@ -5,7 +5,7 @@ A source record contains `kind`, `provider`, `symbol`, `url`,
 timezone offsets; URLs must be HTTPS without embedded credentials.
 
 The validator always rejects sources **published** after a supplied analysis cutoff.
-With `require_retrieved_by_cutoff=True`, it also rejects sources retrieved after
+With `require_retrieved_by_cutoff=True`, an explicit `analysis_cutoff` is required;\nit also rejects sources retrieved after
 that cutoff. This strict point-in-time mode requires a contemporaneous retrieval
 record and may exclude legitimate historical documents collected retrospectively.
 The default allows retrospective retrieval but does **not** verify historical
