@@ -22,7 +22,7 @@ class EvidenceBundleTests(unittest.TestCase):
         bundle = validate_evidence_bundle([example()], analysis_date="2026-10-31")
         self.assertTrue(bundle["metadata_validated"])
         self.assertFalse(bundle["source_content_verified"])
-        self.assertFalse(bundle["historical_point_in_time_verified"])
+        self.assertFalse(bundle["historical_point_in_time_verified"])\n        self.assertFalse(bundle["retrieval_cutoff_enforced"])
 
     def test_rejects_noncanonical_analysis_date(self):
         for invalid in ("20261031", "2026-W44-6", "2026-02-30", "", None, 20261031):
@@ -40,6 +40,30 @@ class EvidenceBundleTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, "cutoff"):
                     validate_evidence_bundle(
                         [example()], analysis_date="2026-10-31", cutoff=invalid)
+
+    def test_strict_retrieval_cutoff_rejects_retrospective_collection(self):
+        with self.assertRaisesRegex(ValueError, "retrieved after"):
+            validate_evidence_bundle(
+                [example()], analysis_date="2026-10-31",
+                require_retrieved_by_cutoff=True)
+
+    def test_strict_retrieval_cutoff_accepts_contemporaneous_collection(self):
+        record = example()
+        record["retrieved_at"] = "2026-10-30T18:00:00+08:00"
+        bundle = validate_evidence_bundle(
+            [record], analysis_date="2026-10-31",
+            require_retrieved_by_cutoff=True)
+        self.assertTrue(bundle["retrieval_cutoff_enforced"])
+        self.assertFalse(bundle["historical_point_in_time_verified"])
+        self.assertFalse(bundle["source_content_verified"])
+
+    def test_strict_retrieval_flag_must_be_boolean(self):
+        for flag in ("true", 1, None):
+            with self.subTest(flag=flag):
+                with self.assertRaisesRegex(ValueError, "must be a boolean"):
+                    validate_evidence_bundle(
+                        [example()], analysis_date="2026-10-31",
+                        require_retrieved_by_cutoff=flag)
 
     def test_future_publication_rejected(self):
         record = example()
