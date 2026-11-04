@@ -45,6 +45,11 @@ class ArchiveTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             archive_report(self.source, self.root, "../secret", "2026-11-04")
 
+    def test_reserved_manifest_name_rejected(self):
+        (self.source / "_archive_manifest.json").write_text("not a manifest")
+        with self.assertRaises(ValueError):
+            self.archive()
+
     def test_reject_symlink(self):
         (self.source / "link").symlink_to(self.source / "report.md")
         with self.assertRaises(ValueError):
