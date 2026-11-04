@@ -25,6 +25,27 @@ def _label_near_value(text, metric, value):
     return False
 
 
+
+# Exact, same-line unit markers; no inference from report-wide headings.
+UNIT_LABELS = {
+    "CNY": ("人民币元",),
+    "CNY_10000": ("万元",),
+    "CNY_100000000": ("亿元",),
+}
+
+
+def _unit_near_value(text, unit, value):
+    """A unit marker immediately before or after a number, same line only."""
+    token = re.compile(r"(?<![0-9.])" + re.escape(value) + r"(?![0-9.])")
+    for line in text.splitlines():
+        for match in token.finditer(line):
+            prefix = line[max(0, match.start() - 12):match.start()].rstrip()
+            suffix = line[match.end():match.end() + 12].lstrip()
+            if any(prefix.endswith(label) or suffix.startswith(label)
+                   for label in UNIT_LABELS[unit]):
+                return True
+    return False
+
 def check_page_text(claims, fingerprints, pages, symbol, research_date):
     """Compare claims with caller-supplied page text, not independently extracted PDF."""
     validated = validate_claims(claims, fingerprints, symbol, research_date)
@@ -49,6 +70,7 @@ def check_page_text(claims, fingerprints, pages, symbol, research_date):
     for claim in validated:
         text = lookup.get((claim["file_sha256"], claim["page"]))
         label_near_value = False
+        unit_near_value = False
         if text is None:
             status = "page_text_missing"
         else:
@@ -58,10 +80,12 @@ def check_page_text(claims, fingerprints, pages, symbol, research_date):
             status = "literal_value_found_unverified" if matched else "literal_value_not_found"
             if matched:
                 label_near_value = _label_near_value(text, claim["metric"], claim["value"])
+                unit_near_value = _unit_near_value(text, claim["unit"], claim["value"])
         results.append({
             "metric": claim["metric"], "file_sha256": claim["file_sha256"],
             "page": claim["page"], "status": status,
             "metric_label_near_value_unverified": label_near_value,
+            "unit_label_near_value_unverified": unit_near_value,
             "pdf_text_extraction_verified": False,
             "financial_meaning_verified": False,
             "official_origin_verified": False,
