@@ -66,6 +66,17 @@ class EvidenceBundleTests(unittest.TestCase):
                         [example()], analysis_date="2026-10-31",
                         require_retrieved_by_cutoff=flag)
 
+    def test_maximum_iso_date_does_not_overflow(self):
+        bundle = validate_evidence_bundle([], analysis_date="9999-12-31")
+        self.assertEqual(
+            bundle["analysis_cutoff"], "9999-12-31T23:59:59.999999+08:00")
+
+    def test_maximum_iso_date_rejects_later_utc_cutoff(self):
+        with self.assertRaisesRegex(ValueError, "cannot exceed"):
+            validate_evidence_bundle(
+                [], analysis_date="9999-12-31",
+                cutoff="9999-12-31T16:00:00Z")
+
     def test_future_publication_rejected(self):
         record = example()
         record["published_at"] = "2026-11-01T00:00:00+08:00"
