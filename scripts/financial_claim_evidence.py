@@ -23,7 +23,7 @@ def validate_claims(claims, fingerprints, symbol, research_date):
         raise ValueError("invalid research date") from exc
     if cutoff.isoformat() != research_date:
         raise ValueError("invalid research date")
-    available = set()
+    available = {}
     for fp in fingerprints:
         if not isinstance(fp, dict) or fp.get("symbol") != symbol:
             raise ValueError("fingerprint symbol mismatch")
@@ -32,7 +32,18 @@ def validate_claims(claims, fingerprints, symbol, research_date):
             raise ValueError("invalid fingerprint SHA-256")
         if fp.get("official_origin_verified") is not False or fp.get("source_content_verified") is not False:
             raise ValueError("unsupported fingerprint verification claim")
-        available.add(digest)
+        raw_date = fp.get("announcement_date")
+        if not isinstance(raw_date, str):
+            raise ValueError("fingerprint announcement date required")
+        try:
+            pdf_date = date.fromisoformat(raw_date)
+        except ValueError as exc:
+            raise ValueError("invalid fingerprint announcement date") from exc
+        if pdf_date.isoformat() != raw_date or pdf_date > cutoff:
+            raise ValueError("fingerprint date outside research cutoff")
+        if digest in available and available[digest] != pdf_date:
+            raise ValueError("conflicting fingerprint announcement dates")
+        available[digest] = pdf_date
     result = []
     for claim in claims:
         if not isinstance(claim, dict) or claim.get("symbol") != symbol:
@@ -66,6 +77,8 @@ def validate_claims(claims, fingerprints, symbol, research_date):
         period, announcement = dates
         if period > announcement or announcement > cutoff:
             raise ValueError("claim dates inconsistent with research cutoff")
+        if available[digest] != announcement:
+            raise ValueError("claim announcement date differs from fingerprint")
         page = claim.get("page")
         if isinstance(page, bool) or not isinstance(page, int) or not 1 <= page <= 10000:
             raise ValueError("PDF page number required")

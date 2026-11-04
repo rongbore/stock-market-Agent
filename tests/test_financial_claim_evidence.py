@@ -5,6 +5,7 @@ from scripts.financial_claim_evidence import validate_claims
 class FinancialClaimEvidenceTests(unittest.TestCase):
     def setUp(self):
         self.fp = [{"symbol": "000776.SZ", "file_sha256": "a" * 64,
+                    "announcement_date": "2026-10-20",
                     "official_origin_verified": False, "source_content_verified": False}]
         self.claim = {"symbol": "000776.SZ", "metric": "revenue", "value": "123.45",
                       "unit": "CNY_100000000", "period_end": "2026-09-30",
@@ -31,6 +32,27 @@ class FinancialClaimEvidenceTests(unittest.TestCase):
                       dict(self.claim, value="NaN")):
             with self.subTest(claim=claim), self.assertRaises(ValueError):
                 validate_claims([claim], self.fp, "000776.SZ", "2026-10-30")
+
+    def test_reject_mismatched_pdf_announcement_date(self):
+        claim = dict(self.claim, announcement_date="2026-10-21")
+        with self.assertRaisesRegex(ValueError, "differs from fingerprint"):
+            validate_claims([claim], self.fp, "000776.SZ", "2026-10-30")
+
+    def test_reject_missing_pdf_date(self):
+        fp = [dict(self.fp[0])]
+        del fp[0]["announcement_date"]
+        with self.assertRaisesRegex(ValueError, "date required"):
+            validate_claims([self.claim], fp, "000776.SZ", "2026-10-30")
+
+    def test_reject_future_pdf_date(self):
+        fp = [dict(self.fp[0], announcement_date="2026-11-01")]
+        with self.assertRaisesRegex(ValueError, "cutoff"):
+            validate_claims([self.claim], fp, "000776.SZ", "2026-10-30")
+
+    def test_reject_conflicting_dates_for_same_pdf(self):
+        fp = self.fp + [dict(self.fp[0], announcement_date="2026-10-21")]
+        with self.assertRaisesRegex(ValueError, "conflicting"):
+            validate_claims([self.claim], fp, "000776.SZ", "2026-10-30")
 
     def test_reject_false_verified_fingerprint(self):
         fp = [dict(self.fp[0], official_origin_verified=True)]
