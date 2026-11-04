@@ -90,7 +90,7 @@ def run(symbol, start_date, end_date, folder, *, eastmoney=fetch_a_share_daily,
                 except FETCH_ERRORS as exc:
                     category, kind = _safe_error(exc)
                     transient = (category == "connection_or_timeout" or kind in
-                                 ("request_connection", "proxy", "http", "other_os_error"))
+                                 ("request_connection", "proxy"))
                     if not transient or attempt == 3:
                         _failure(diag, provider, exc)
                         break
