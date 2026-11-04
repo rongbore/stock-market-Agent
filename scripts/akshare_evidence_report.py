@@ -5,10 +5,18 @@ from datetime import date
 from pathlib import Path
 
 
-def _disclosures(items, symbol, end_date):
+def _disclosures(items, symbol, start_date, end_date):
     """Only metadata, never assert that a PDF or financial statement was read."""
     if not isinstance(items, list) or len(items) > 100:
         raise ValueError("disclosures must be a list of at most 100 entries")
+    if not isinstance(start_date, str) or not isinstance(end_date, str):
+        raise ValueError("research date range required for disclosures")
+    try:
+        start, end = date.fromisoformat(start_date), date.fromisoformat(end_date)
+    except ValueError as exc:
+        raise ValueError("invalid research date range") from exc
+    if start.isoformat() != start_date or end.isoformat() != end_date or start > end:
+        raise ValueError("invalid research date range")
     result = []
     for item in items:
         if not isinstance(item, dict) or item.get("symbol") != symbol:
@@ -21,8 +29,8 @@ def _disclosures(items, symbol, end_date):
             parsed = date.fromisoformat(day)
         except ValueError as exc:
             raise ValueError("invalid disclosure date") from exc
-        if parsed.isoformat() != day or (end_date and day > end_date):
-            raise ValueError("future disclosure relative to research end date")
+        if parsed.isoformat() != day or not start <= parsed <= end:
+            raise ValueError("disclosure date outside research range")
         result.append({"date": day, "title": title})
     return sorted(result, key=lambda item: (item["date"], item["title"]))
 
@@ -37,7 +45,10 @@ def render(diag, comparison=None, disclosures=None):
     coverage = comparison.get("date_coverage", {}) if comparison else {}
     # Only fixed labels from the pipeline; do not echo arbitrary error strings.
     def safe(value):
-        return str(value).replace("|", " ").replace("\n", " ").replace("\r", " ")[:80]
+        value = " ".join(str(value).split())[:80]
+        for char in ("\\", "[", "]", "<", ">", "*", "_", "`", "|", "!"):
+            value = value.replace(char, "\\" + char)
+        return value
     lines = [
         "# A 股双来源行情研究证据（未认证）", "",
         "> 只读数据质量报告；非投资建议、交易信号或交易所权威认证。", "",
@@ -73,7 +84,7 @@ def render(diag, comparison=None, disclosures=None):
     if disclosures is None:
         lines += ["- 未提供公告索引；不能推断该区间没有公告。", ""]
     else:
-        items = _disclosures(disclosures, diag.get("symbol"), diag.get("end_date"))
+        items = _disclosures(disclosures, diag.get("symbol"), diag.get("start_date"), diag.get("end_date"))
         lines += [f"- 元数据条目数：{len(items)}；未核验公告原文、披露时刻或完整性。", ""]
         for item in items:
             lines.append(f"- {safe(item['date'])}：{safe(item['title'])}")
