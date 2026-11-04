@@ -41,13 +41,15 @@ def run(repo, number):
          "head_sha": pr.get("head", {}).get("sha"),
          "author": pr.get("user", {}).get("login")},
         files,
-        [{"user": r.get("user", {}).get("login"),
+        [{"user": (r.get("user") or {}).get("login"),
           "state": r.get("state"),
           "submitted_at": r.get("submitted_at"),
           "commit_id": r.get("commit_id")} for r in reviews],
         trusted,
     )
     latest = api(f"repos/{repo}/pulls/{number}")
+    if not isinstance(latest, dict):
+        return False, "invalid latest PR response"
     if latest.get("head", {}).get("sha") != pr.get("head", {}).get("sha"):
         return False, "head changed during review verification"
     return decision, reason
