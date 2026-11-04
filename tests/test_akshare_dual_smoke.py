@@ -27,6 +27,7 @@ class DualSmokeTests(unittest.TestCase):
             self.assertTrue((Path(tmp) / "eastmoney_daily_unverified.json").exists())
             diag = (Path(tmp) / "dual_upstream_diagnostics.json").read_text()
             self.assertEqual(json.loads(diag)["stage"], "sina")
+            self.assertEqual(json.loads(diag)["error_category"], "runtime_or_dependency")
             self.assertNotIn("secret token", diag)
 
     def test_success_writes_comparison_and_diagnostics(self):
@@ -67,6 +68,7 @@ class DualSmokeTests(unittest.TestCase):
             self.assertEqual(code, 1)
             diag_text = (Path(tmp) / "dual_upstream_diagnostics.json").read_text()
             self.assertEqual(json.loads(diag_text)["stage"], "eastmoney")
+            self.assertEqual(json.loads(diag_text)["error_category"], "connection_or_timeout")
             self.assertNotIn("private upstream", diag_text)
             self.assertFalse((Path(tmp) / "sina_daily_unverified.json").exists())
 
