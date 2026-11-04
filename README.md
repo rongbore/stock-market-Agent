@@ -12,7 +12,7 @@
 3. 输入股票代码；日期可留空，默认北京时间当天；模型默认 `deepseek-flash`，需与 DeepSeek 账号实际支持的模型一致。
 4. 等待运行结束，在该次运行底部 **Artifacts** 下载 `tradingagents-reports-运行编号`，解压并打开 `complete_report.html`。
 
-Actions 工作流需位于默认分支才能在网页手动触发。仓库或组织如果禁用了 Actions，需要先启用。当前仅支持手动运行，没有定时任务。
+Actions 工作流需位于默认分支才能在网页手动触发。仓库或组织如果禁用了 Actions，需要先启用。TradingAgents 中文股票分析工作流仍需手动运行；另有独立的 AKShare 双来源行情验收工作流，每周自动执行。
 
 ### 费用与数据
 
@@ -43,3 +43,20 @@ Actions 工作流需位于默认分支才能在网页手动触发。仓库或组
 实验性公告采集流程可通过 Python 调用 `collect_disclosure_candidates(url, source='cninfo', analysis_date='2026-10-30', symbol='000776.SZ', output_dir='results/disclosures')`。该调用只有在提供**已确认的合法官方 JSON API 地址**时才会发起网络请求；目前项目尚未验证真实端点或其使用许可。成功后会生成 `disclosure_api_snapshot.json` 与 `disclosure_candidates.json`，均不构成公告真实性或历史可用性认证。不得在生产分析中将未核实记录升级为已验证证据。
 
 只读 CLI：`python scripts/disclosure_api.py --endpoint 'https://<已验证的官方主机>/<实际接口路径>' --source cninfo --analysis-date 2026-10-30 --symbol 000776.SZ --output-dir results/disclosures`。占位地址不可直接使用；必须先确认实际官方接口及允许的使用方式。命令不会调用 LLM、券商或交易功能。
+
+### AKShare 双来源行情验收与中文证据报告（只读）
+
+仓库的 **Actions → AKShare dual-upstream crosscheck** 可手动运行（`workflow_dispatch`），默认以 `000776.SZ` 为研究样本；也设置了每周三 02:20 UTC 的定时验收。定时运行自动使用最近 21 个自然日至昨日的日期窗口，手动运行可覆盖代码与起止日期。定时触发可能受 GitHub Actions 调度延迟影响，首次实际定时运行仍须核验。
+
+该工作流通过 AKShare 分别尝试东方财富和新浪的历史日线接口，比较 OHLCV（成交量按显式单位归一化）。在双来源均成功时生成 `daily_crosscheck_report.json`；无论采集是否成功，只要诊断文件已生成，就尝试生成 `dual_source_evidence_unverified.md`。Artifacts 同时保存诊断与可用的快照，保留 3 天。
+
+**本地离线复现报告**（不发起网络请求，不调用付费模型）：
+
+```bash
+python -m scripts.akshare_evidence_report --input-dir dual_output --output dual_output/dual_source_evidence_unverified.md
+```
+
+输入目录必须有 `dual_upstream_diagnostics.json`；`daily_crosscheck_report.json` 可选。若双来源比较不可用，报告会标注“未通过或未完成”，而不是推断已验证。该报告是**行情数据质量证据摘要**，尚未覆盖真实财报与公告正文，不提供投资建议。
+
+**证据边界：** 两个非交易所数据源的数值一致，不代表交易所权威认证、交易日历完整性、公告发布时间核实或历史时点可用性。当前 `independent_source_verified=false`、`exchange_calendar_checked=false`；不能将其改写为“已认证”。若网络不可达，应查看 Actions 摘要中的安全错误分类与 Artifact，而非认为行情为零。
+
