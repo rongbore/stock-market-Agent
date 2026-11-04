@@ -39,6 +39,14 @@ class MergeReadinessTests(unittest.TestCase):
             with self.subTest(checks=checks):
                 self.assertEqual(self.check(checks=checks), "manual")
 
+    def test_missing_file_count_and_other_failed_ci_rejected(self):
+        for count in (None, True, "1", 0):
+            with self.subTest(count=count):
+                self.assertEqual(self.check(pr={**PR, "changed_files": count}), "manual")
+        failed_extra = {"name": "security-scan", "head_sha": SHA,
+                        "status": "completed", "conclusion": "failure"}
+        self.assertEqual(self.check(checks=CHECKS + [failed_extra]), "manual")
+
     def test_sensitive_and_incomplete_file_lists_rejected(self):
         self.assertEqual(self.check(files=[{**FILES[0], "filename": "scripts/analysis.py"}]), "manual")
         self.assertEqual(self.check(pr={**PR, "changed_files": 2}), "manual")
