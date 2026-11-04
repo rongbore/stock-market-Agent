@@ -16,7 +16,8 @@ class CrosscheckTests(unittest.TestCase):
     def test_distinct_upstreams_and_normalized_volume_pass(self):
         result = compare(snapshot(), snapshot("other-provider", "shares", 43288500))
         self.assertEqual(result["status"], "passed")
-        self.assertTrue(result["cross_source_numerical_agreement"])\n        self.assertFalse(result["independent_source_verified"])
+        self.assertTrue(result["cross_source_numerical_agreement"])
+        self.assertFalse(result["independent_source_verified"])
 
     def test_same_upstream_does_not_verify(self):
         result = compare(snapshot(), snapshot())
