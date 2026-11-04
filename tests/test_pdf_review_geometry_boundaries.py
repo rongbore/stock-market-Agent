@@ -14,8 +14,15 @@ class PdfReviewGeometryBoundaryTests(unittest.TestCase):
         )
         self.assertFalse(report["review_complete"])
         bundle = {
-            "source_record": {"file_sha256": SHA},
-            "review_manifest": {"file_sha256": SHA, "candidate_count": 0, "candidates": []},
+            "source_record": {"file_sha256": SHA, "symbol": "000776.SZ",
+                              "announcement_date_claimed": "2026-10-20",
+                              "source_file_match_verified": False,
+                              "official_origin_verified": False,
+                              "financial_meaning_verified": False},
+            "review_manifest": {"file_sha256": SHA, "candidate_count": 0,
+                                "symbol": "000776.SZ", "announcement_date_claimed": "2026-10-20",
+                                "official_origin_verified": False, "financial_meaning_verified": False,
+                                "candidates": []},
             "sample_checked_with_real_pdf_parser": True,
             "official_origin_verified": False, "financial_meaning_verified": False,
         }
