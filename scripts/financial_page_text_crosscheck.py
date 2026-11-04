@@ -15,7 +15,7 @@ METRIC_LABELS = {
 
 def _number_token(value):
     """Avoid treating a positive value as part of a signed or grouped number."""
-    return re.compile(r"(?<![0-9.,+\\-−])" + re.escape(value) + r"(?![0-9.,])")
+    return re.compile(r"(?<![0-9.,+−-])" + re.escape(value) + r"(?![0-9.,])")
 
 
 def _label_near_value(text, metric, value):
