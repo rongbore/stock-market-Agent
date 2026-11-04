@@ -34,6 +34,14 @@ class RiskClassifierTests(unittest.TestCase):
             with self.subTest(status=status):
                 self.assertEqual(classify([file(status=status)])[0], "manual")
 
+    def test_changed_file_count_must_match(self):
+        self.assertEqual(classify([file()], expected_count=1)[0], "eligible")
+        for count in (0, 2, "1", None):
+            if count is None:
+                continue
+            with self.subTest(count=count):
+                self.assertEqual(classify([file()], expected_count=count)[0], "manual")
+
     def test_size_and_malformed_inputs_fail_closed(self):
         for items in ([], [file()] * 21, [file(additions=301)],
                       [file(additions="1")], [file(deletions=-1)],
