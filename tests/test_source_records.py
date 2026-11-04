@@ -31,13 +31,17 @@ class SourceRecordTests(unittest.TestCase):
     def test_reject_retrieval_after_historical_cutoff(self):
         record = sample()
         with self.assertRaisesRegex(ValueError, "retrieved after"):
-            validate_source_record(record, analysis_cutoff="2026-10-31T23:59:59+08:00")
+            validate_source_record(record, analysis_cutoff="2026-10-31T23:59:59+08:00", require_retrieved_by_cutoff=True)
 
     def test_accept_retrieval_within_historical_cutoff(self):
         record = sample()
         record["retrieved_at"] = "2026-10-30T17:00:00+08:00"
         self.assertTrue(validate_source_record(
-            record, analysis_cutoff="2026-10-31T23:59:59+08:00"))
+            record, analysis_cutoff="2026-10-31T23:59:59+08:00", require_retrieved_by_cutoff=True))
+
+    def test_retrospective_retrieval_remains_allowed_but_unverified(self):
+        self.assertTrue(validate_source_record(
+            sample(), analysis_cutoff="2026-10-31T23:59:59+08:00"))
 
     def test_reject_non_https(self):
         record = sample()
