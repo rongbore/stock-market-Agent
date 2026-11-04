@@ -109,7 +109,17 @@ def fetch_cninfo_disclosure_index(symbol, start_date, end_date, *, client=None):
     frame = ak.stock_zh_a_disclosure_report_cninfo(
         symbol=code, market="沪深京", keyword="", category="",
         start_date=start.strftime("%Y%m%d"), end_date=end.strftime("%Y%m%d"))
-    rows = _records(frame, ())
+    rows = _records(frame, ("代码", "公告标题", "公告时间"))
+    if not rows:
+        raise ValueError("AKShare returned no disclosures; verify upstream availability")
+    for row in rows:
+        if str(row["代码"]).strip() != code:
+            raise ValueError("AKShare disclosure symbol mismatch")
+        if not str(row["公告标题"]).strip():
+            raise ValueError("AKShare disclosure title missing")
+        day = _iso(row["公告时间"])
+        if not start.isoformat() <= day <= end.isoformat():
+            raise ValueError("AKShare disclosure date outside requested range")
     return {"schema_version": "0.1", "symbol": symbol, "source": "akshare",
             "upstream": "cninfo", "interface": "stock_zh_a_disclosure_report_cninfo",
             "start_date": start_date, "end_date": end_date,
