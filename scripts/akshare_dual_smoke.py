@@ -1,6 +1,7 @@
 """Read-only dual-upstream smoke check with safe, provider-specific diagnostics."""
 import argparse
 import json
+import time
 from pathlib import Path
 
 from scripts.akshare_provider import fetch_a_share_daily
@@ -53,7 +54,7 @@ def _failure(diag, provider, exc):
 
 
 def run(symbol, start_date, end_date, folder, *, eastmoney=fetch_a_share_daily,
-        sina=fetch_sina_daily):
+        sina=fetch_sina_daily, sleep=time.sleep):
     """Attempt both independent read-only upstreams even if one fails."""
     folder = Path(folder)
     folder.mkdir(parents=True, exist_ok=True)
@@ -61,6 +62,7 @@ def run(symbol, start_date, end_date, folder, *, eastmoney=fetch_a_share_daily,
             "start_date": start_date, "end_date": end_date,
             "status": "failed", "stage": "eastmoney",
             "eastmoney_record_count": 0, "sina_record_count": 0,
+            "eastmoney_attempts": 0, "sina_attempts": 0,
             "eastmoney_status": "not_attempted", "sina_status": "not_attempted",
             "eastmoney_error_kind": None, "sina_error_kind": None,
             "error_category": None,
@@ -73,16 +75,26 @@ def run(symbol, start_date, end_date, folder, *, eastmoney=fetch_a_share_daily,
             ("sina", sina, "sina_daily_unverified.json"),
         ):
             diag[f"{provider}_status"] = "running"
-            try:
-                snapshot = fetch(symbol, start_date, end_date)
-                if not isinstance(snapshot, dict) or not snapshot.get("records"):
-                    raise ValueError("empty or invalid snapshot")
-                _write(folder, name, snapshot)
-                diag[f"{provider}_record_count"] = len(snapshot["records"])
-                diag[f"{provider}_status"] = "success"
-                snapshots[provider] = snapshot
-            except FETCH_ERRORS as exc:
-                _failure(diag, provider, exc)
+            # Only retry transient transport failures; never retry invalid data.
+            for attempt in range(1, 4):
+                diag[f"{provider}_attempts"] = attempt
+                try:
+                    snapshot = fetch(symbol, start_date, end_date)
+                    if not isinstance(snapshot, dict) or not snapshot.get("records"):
+                        raise ValueError("empty or invalid snapshot")
+                    _write(folder, name, snapshot)
+                    diag[f"{provider}_record_count"] = len(snapshot["records"])
+                    diag[f"{provider}_status"] = "success"
+                    snapshots[provider] = snapshot
+                    break
+                except FETCH_ERRORS as exc:
+                    category, kind = _safe_error(exc)
+                    transient = (category == "connection_or_timeout" or kind in
+                                 ("request_connection", "proxy", "http", "other_os_error"))
+                    if not transient or attempt == 3:
+                        _failure(diag, provider, exc)
+                        break
+                    sleep(attempt)  # At most 1 + 2 seconds of backoff per provider.
         if len(snapshots) != 2:
             return 1
         diag["stage"] = "compare"
