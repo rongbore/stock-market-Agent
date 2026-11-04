@@ -35,11 +35,20 @@ jobs:
           STOCK_START_DATE: ${{ inputs.start_date }}
           STOCK_END_DATE: ${{ inputs.end_date }}
         run: |
-          python -m scripts.akshare_smoke \
+          python -m scripts.akshare_integration_check \
             --symbol "$STOCK_SYMBOL" \
             --start-date "$STOCK_START_DATE" \
             --end-date "$STOCK_END_DATE" \
-            --output akshare_daily_snapshot.json
+            --output akshare_daily_snapshot.json \
+            --diagnostics akshare_diagnostics.json
+      - name: Upload safe diagnostics even on failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: akshare-integration-diagnostics
+          path: akshare_diagnostics.json
+          if-no-files-found: warn
+          retention-days: 3
       - name: Upload unverified data snapshot
         if: success()
         uses: actions/upload-artifact@v4
