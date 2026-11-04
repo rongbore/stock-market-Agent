@@ -29,6 +29,8 @@ def report(payload):
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("input", nargs="?", default="-", help="JSON input path, or - for stdin")
+    parser.add_argument("--strict", action="store_true",
+                        help="exit nonzero while merge readiness is unverified")
     args = parser.parse_args(argv)
     try:
         if args.input == "-":
@@ -37,11 +39,11 @@ def main(argv=None):
             with open(args.input, encoding="utf-8") as stream:
                 payload = json.load(stream)
         result = report(payload)
-    except (OSError, ValueError, TypeError) as exc:
+    except (OSError, ValueError, TypeError):
         result = {"ready": False, "decision": "manual",
                   "blockers": ["unreadable or invalid JSON input"]}
     print(json.dumps(result, ensure_ascii=False, indent=2))
-    return 0
+    return 2 if args.strict and not result["ready"] else 0
 
 
 if __name__ == "__main__":
