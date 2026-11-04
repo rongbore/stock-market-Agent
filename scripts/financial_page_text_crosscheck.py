@@ -65,6 +65,31 @@ def _period_near_value(text, period_end, value):
     return False
 
 
+
+# Detect only obvious multi-column financial table headings, never resolve a column.
+COLUMN_HEADER_PAIRS = (
+    ("本期金额", "上期金额"),
+    ("本期发生额", "上期发生额"),
+    ("期末余额", "期初余额"),
+    ("本报告期", "上年同期"),
+)
+
+
+def _table_column_ambiguous(text, value):
+    """Conservative page-level warning: headings plus multiple row numbers."""
+    if not any(left in text and right in text
+               for left, right in COLUMN_HEADER_PAIRS):
+        return False
+    token = re.compile(r"(?<![0-9.\-])" + re.escape(value) + r"(?![0-9.])")
+    for line in text.splitlines():
+        if not token.search(line):
+            continue
+        numbers = re.findall(r"(?<![0-9.])\-?[0-9]+(?:\.[0-9]+)?(?![0-9.])", line)
+        if len(numbers) >= 2:
+            return True
+    return False
+
+
 def check_page_text(claims, fingerprints, pages, symbol, research_date):
     """Compare claims with caller-supplied page text, not independently extracted PDF."""
     validated = validate_claims(claims, fingerprints, symbol, research_date)
@@ -91,6 +116,7 @@ def check_page_text(claims, fingerprints, pages, symbol, research_date):
         label_near_value = False
         unit_near_value = False
         period_near_value = False
+        column_ambiguous = False
         if text is None:
             status = "page_text_missing"
         else:
@@ -102,12 +128,14 @@ def check_page_text(claims, fingerprints, pages, symbol, research_date):
                 label_near_value = _label_near_value(text, claim["metric"], claim["value"])
                 unit_near_value = _unit_near_value(text, claim["unit"], claim["value"])
                 period_near_value = _period_near_value(text, claim["period_end"], claim["value"])
+                column_ambiguous = _table_column_ambiguous(text, claim["value"])
         results.append({
             "metric": claim["metric"], "file_sha256": claim["file_sha256"],
             "page": claim["page"], "status": status,
             "metric_label_near_value_unverified": label_near_value,
             "unit_label_near_value_unverified": unit_near_value,
             "period_end_near_value_unverified": period_near_value,
+            "table_column_ambiguous_unverified": column_ambiguous,
             "pdf_text_extraction_verified": False,
             "financial_meaning_verified": False,
             "official_origin_verified": False,
