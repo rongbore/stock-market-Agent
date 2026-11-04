@@ -4,6 +4,27 @@ import re
 from scripts.financial_claim_evidence import validate_claims
 
 
+# Conservative lexical hints only. Not financial statement interpretation.
+METRIC_LABELS = {
+    "revenue": ("营业收入",),
+    "net_profit_attributable": ("归属于上市公司股东的净利润", "归母净利润"),
+    "total_assets": ("资产总计", "总资产"),
+    "operating_cash_flow": ("经营活动产生的现金流量净额",),
+}
+
+
+def _label_near_value(text, metric, value):
+    """Only same-line label preceding the number within 80 characters."""
+    token = re.compile(r"(?<![0-9.])" + re.escape(value) + r"(?![0-9.])")
+    labels = METRIC_LABELS[metric]
+    for line in text.splitlines():
+        for match in token.finditer(line):
+            prefix = line[max(0, match.start() - 80):match.start()]
+            if any(label in prefix for label in labels):
+                return True
+    return False
+
+
 def check_page_text(claims, fingerprints, pages, symbol, research_date):
     """Compare claims with caller-supplied page text, not independently extracted PDF."""
     validated = validate_claims(claims, fingerprints, symbol, research_date)
@@ -27,6 +48,7 @@ def check_page_text(claims, fingerprints, pages, symbol, research_date):
     results = []
     for claim in validated:
         text = lookup.get((claim["file_sha256"], claim["page"]))
+        label_near_value = False
         if text is None:
             status = "page_text_missing"
         else:
@@ -34,9 +56,12 @@ def check_page_text(claims, fingerprints, pages, symbol, research_date):
             value = re.escape(claim["value"])
             matched = re.search(r"(?<![0-9.])" + value + r"(?![0-9.])", text)
             status = "literal_value_found_unverified" if matched else "literal_value_not_found"
+            if matched:
+                label_near_value = _label_near_value(text, claim["metric"], claim["value"])
         results.append({
             "metric": claim["metric"], "file_sha256": claim["file_sha256"],
             "page": claim["page"], "status": status,
+            "metric_label_near_value_unverified": label_near_value,
             "pdf_text_extraction_verified": False,
             "financial_meaning_verified": False,
             "official_origin_verified": False,

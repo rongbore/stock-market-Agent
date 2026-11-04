@@ -26,6 +26,27 @@ class FinancialPageTextCrosscheckTests(unittest.TestCase):
                               "text": "123.456 or 9123.45"}])[0]
         self.assertEqual(result["status"], "literal_value_not_found")
 
+    def test_metric_label_before_value_on_same_line(self):
+        result = self.check([{"file_sha256": "a" * 64, "page": 4,
+                              "text": "营业收入 123.45"}])[0]
+        self.assertTrue(result["metric_label_near_value_unverified"])
+        self.assertFalse(result["financial_meaning_verified"])
+
+    def test_label_after_value_is_not_proximity_evidence(self):
+        result = self.check([{"file_sha256": "a" * 64, "page": 4,
+                              "text": "123.45 营业收入"}])[0]
+        self.assertFalse(result["metric_label_near_value_unverified"])
+
+    def test_label_on_other_line_is_not_proximity_evidence(self):
+        result = self.check([{"file_sha256": "a" * 64, "page": 4,
+                              "text": "营业收入\\n123.45"}])[0]
+        self.assertFalse(result["metric_label_near_value_unverified"])
+
+    def test_wrong_label_is_not_proximity_evidence(self):
+        result = self.check([{"file_sha256": "a" * 64, "page": 4,
+                              "text": "总资产 123.45"}])[0]
+        self.assertFalse(result["metric_label_near_value_unverified"])
+
     def test_missing_page_is_explicit(self):
         self.assertEqual(self.check([])[0]["status"], "page_text_missing")
 
