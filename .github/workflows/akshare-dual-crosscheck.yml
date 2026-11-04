@@ -79,7 +79,7 @@ jobs:
               lines.append("- Comparison report unavailable.")
           lines.append("- Independent source verified: false")
           with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as handle:
-              handle.write("\\n".join(lines) + "\\n")
+              handle.write("\n".join(lines) + "\n")
           PY
       - name: Upload unverified crosscheck evidence
         if: always()
