@@ -41,8 +41,8 @@ class SourceRecordTests(unittest.TestCase):
             validate_source_record(record)
 
     def test_reject_control_characters_in_source_url(self):
-        for url in ("https://example.org/a\\nb", "https://example.org/a\\tb",
-                    "https://example.org/a b", "https://example.org/a\\x7fb"):
+        for url in ("https://example.org/a\nb", "https://example.org/a\tb",
+                    "https://example.org/a b", "https://example.org/a\x7fb"):
             with self.subTest(url=url):
                 record = sample()
                 record["url"] = url
