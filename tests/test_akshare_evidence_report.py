@@ -142,6 +142,41 @@ class EvidenceReportTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "SHA-256"):
             render(diag, fingerprints=[evidence])
 
+    def test_financial_claim_render_is_unverified(self):
+        diag = {"symbol": "000776.SZ", "start_date": "2026-10-01",
+                "end_date": "2026-10-30"}
+        fp = {"symbol": "000776.SZ", "announcement_date": "2026-10-20",
+              "file_sha256": "a" * 64, "file_size_bytes": 1024,
+              "official_origin_verified": False, "source_content_verified": False}
+        claim = {"symbol": "000776.SZ", "metric": "revenue", "value": "123.45",
+                 "unit": "CNY_100000000", "period_end": "2026-09-30",
+                 "announcement_date": "2026-10-20", "file_sha256": "a" * 64,
+                 "page": 4}
+        output = render(diag, fingerprints=[fp], claims=[claim])
+        self.assertIn("财务指标人工摘录", output)
+        self.assertIn("123.45", output)
+        self.assertIn("PDF 第 4 页", output)
+        self.assertIn("人工摘录、未认证", output)
+
+    def test_financial_claims_require_fingerprints(self):
+        diag = {"symbol": "000776.SZ", "start_date": "2026-10-01",
+                "end_date": "2026-10-30"}
+        with self.assertRaisesRegex(ValueError, "require PDF fingerprints"):
+            render(diag, claims=[])
+
+    def test_financial_claim_rejects_mismatched_pdf_date(self):
+        diag = {"symbol": "000776.SZ", "start_date": "2026-10-01",
+                "end_date": "2026-10-30"}
+        fp = {"symbol": "000776.SZ", "announcement_date": "2026-10-21",
+              "file_sha256": "a" * 64, "file_size_bytes": 1024,
+              "official_origin_verified": False, "source_content_verified": False}
+        claim = {"symbol": "000776.SZ", "metric": "revenue", "value": "1",
+                 "unit": "CNY", "period_end": "2026-09-30",
+                 "announcement_date": "2026-10-20", "file_sha256": "a" * 64,
+                 "page": 1}
+        with self.assertRaisesRegex(ValueError, "differs from fingerprint"):
+            render(diag, fingerprints=[fp], claims=[claim])
+
     def test_report_requires_diagnostic_object(self):
         with self.assertRaises(ValueError):
             render([])
