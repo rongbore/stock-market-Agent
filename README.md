@@ -150,3 +150,5 @@ python -m scripts.akshare_evidence_report --input-dir dual_output --output dual_
 新增 `scripts/financial_pdf_table_regions.py` 的 `scoped_column_hints(numbers, headers, regions)`：使用**调用方显式提供**的同页表格矩形范围，要求数字只落在一个区域内，并只使用同区域的表头进行横向距离提示；区域外、区域重叠、表头缺失均不判定。区域用 `{page, text: "", bbox: [x0,y0,x1,y1]}` 表示，最多 100 个。**不自动检测表格边界，不验证区域正确性、表头期间语义或官方来源。**
 
 新增 `scripts/financial_pdf_rectangle_candidates.py` 的 `rectangle_region_candidates(rectangles)`：过滤调用方提供的 PDF 绘制矩形（字段 `page,x0,top,x1,bottom`），输出足够大的候选表格区域；跨页独立处理，重叠候选全部剔除，限制输入 2000 个矩形和输出 100 个候选。**该模块不直接读取 PDF、不识别无边框表格，矩形也可能只是普通图形；所有候选仍为未核验提示。**
+
+新增 `scripts/offline_pdf_rectangle_extract.py`：使用可选的 `pdfplumber` 从**本地** PDF 的 `page.rects` 提取绘制矩形并调用 `rectangle_region_candidates`。运行示例：`python -m scripts.offline_pdf_rectangle_extract --pdf ./report.pdf --symbol 000776.SZ --announcement-date 2026-10-20 --pages 1 --output ./rectangle_candidates.json`。读取前后校验文件 SHA256，限制页数和矩形数量；**不联网、不验证官方来源，不识别线段拼成的边框或无边框表格**。输出仅供人工核查。
