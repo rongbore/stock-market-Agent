@@ -30,7 +30,13 @@ def validate_source_record(record, *, analysis_cutoff=None):
     for field in ("provider", "symbol", "url", "retrieved_at", "published_at"):
         if not isinstance(record.get(field), str) or not record[field].strip():
             raise ValueError(f"missing {field}")
-    parsed_url = urlsplit(record["url"])
+    if any(ord(char) <= 32 or ord(char) == 127 for char in record["url"]):
+        raise ValueError("source URL contains whitespace or control characters")
+    try:
+        parsed_url = urlsplit(record["url"])
+        parsed_url.port  # Reject malformed or out-of-range ports.
+    except ValueError as exc:
+        raise ValueError("invalid source URL") from exc
     if parsed_url.scheme != "https" or not parsed_url.hostname or parsed_url.username or parsed_url.password:
         raise ValueError("source URL must be HTTPS without embedded credentials")
     retrieved = _parse_timestamp(record["retrieved_at"], "retrieved_at")
