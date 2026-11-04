@@ -52,7 +52,7 @@ def assess_sample(bundle, review):
                     "pending_manual_review", "accepted_by_reviewer", "rejected_by_reviewer")):
             raise ValueError("review does not match candidate")
         seen.add(i)
-    computed_complete = len(seen) == len(candidates) and all(
+    computed_complete = bool(candidates) and len(seen) == len(candidates) and all(
         item["review_status"] != "pending_manual_review" for item in decisions)
     if review.get("review_complete") is not computed_complete:
         raise ValueError("review completion flag inconsistent")

@@ -30,6 +30,8 @@ def validate_review_annotations(manifest, annotations):
             raise ValueError("invalid candidate identity")
         if any(type(x) not in (int, float) or not math.isfinite(x) for x in bbox):
             raise ValueError("invalid bbox")
+        if bbox[0] >= bbox[2] or bbox[1] >= bbox[3]:
+            raise ValueError("invalid bbox geometry")
         keys.append((page, tuple(bbox)))
     if len(set(keys)) != len(keys):
         raise ValueError("ambiguous duplicate candidate")
@@ -60,7 +62,7 @@ def validate_review_annotations(manifest, annotations):
         })
     return {
         "file_sha256": sha, "review_decisions": output,
-        "review_complete": len(indexed) == len(candidates)
+        "review_complete": bool(candidates) and len(indexed) == len(candidates)
         and all(item["review_status"] != "pending_manual_review" for item in output),
         "official_origin_verified": False,
         "financial_meaning_verified": False,
