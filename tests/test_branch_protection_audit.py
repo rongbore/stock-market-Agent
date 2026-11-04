@@ -12,7 +12,7 @@ class ProtectionAuditTests(unittest.TestCase):
         self.assertFalse(audit_repository_state([{"name": "main protection"}], {})[0])
 
     def test_unavailable_legacy_protection_fails_closed(self):
-        for data in (None, {}, "403", []):
+        for data in (None, {}, "403", [], {"required_status_checks": {"strict": True, "contexts": ["unit-tests", "merge-policy"]}, "enforce_admins": None}):
             with self.subTest(data=data):
                 self.assertFalse(audit_legacy_protection(data)[0])
 
