@@ -4,6 +4,11 @@ on:
     branches: [main]
     paths:
       - '.github/workflows/akshare-dual-crosscheck.yml'
+      - 'scripts/akshare_dual_smoke.py'
+      - 'scripts/akshare_sina_provider.py'
+      - 'scripts/akshare_provider.py'
+      - 'scripts/akshare_crosscheck.py'
+      - 'requirements-akshare.txt'
   workflow_dispatch:
     inputs:
       symbol:
