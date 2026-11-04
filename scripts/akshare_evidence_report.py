@@ -173,7 +173,8 @@ def render(diag, comparison=None, disclosures=None, fingerprints=None, claims=No
                 f"字面核对：{labels[item['status']]}；"
                 f"同行指标标签线索：{'有（未认证）' if item['metric_label_near_value_unverified'] else '无'}；"
                 f"同行单位线索：{'有（未认证）' if item['unit_label_near_value_unverified'] else '无'}；"
-                f"同行报告期线索：{'有（未认证）' if item['period_end_near_value_unverified'] else '无'}。"
+                f"同行报告期线索：{'有（未认证）' if item['period_end_near_value_unverified'] else '无'}；"
+                f"多列表格歧义提示：{'可能存在（需人工复核）' if item['table_column_ambiguous_unverified'] else '未触发'}。"
             )
         lines.append("")
     return "\n".join(lines)
