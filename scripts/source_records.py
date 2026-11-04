@@ -21,7 +21,7 @@ def _parse_timestamp(value, field):
     return parsed
 
 
-def validate_source_record(record, *, analysis_cutoff=None):
+def validate_source_record(record, *, analysis_cutoff=None, require_retrieved_by_cutoff=False):
     """Validate one record; reject unverified or future-dated evidence."""
     if not isinstance(record, dict):
         raise ValueError("source record must be a mapping")
@@ -47,6 +47,6 @@ def validate_source_record(record, *, analysis_cutoff=None):
         cutoff = _parse_timestamp(analysis_cutoff, "analysis_cutoff")
         if published > cutoff:
             raise ValueError("source was published after the analysis cutoff")
-        if retrieved > cutoff:
+        if require_retrieved_by_cutoff and retrieved > cutoff:
             raise ValueError("source was retrieved after the analysis cutoff")
     return True
