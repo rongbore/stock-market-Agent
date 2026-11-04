@@ -141,6 +141,38 @@ class DualSmokeTests(unittest.TestCase):
             diag = json.loads((Path(tmp) / "dual_upstream_diagnostics.json").read_text())
             self.assertEqual(diag["eastmoney_attempts"], 1)
 
+    def test_permanent_os_error_is_not_retried(self):
+        attempts = []
+        waits = []
+        def permission_error(*args):
+            attempts.append(1)
+            raise PermissionError("sensitive local path")
+        with tempfile.TemporaryDirectory() as tmp:
+            code = run("000776.SZ", "2026-10-01", "2026-10-30", tmp,
+                       eastmoney=permission_error,
+                       sina=lambda *a: snapshot("sina", "shares", 43288500),
+                       sleep=waits.append)
+            self.assertEqual(code, 1)
+            self.assertEqual(len(attempts), 1)
+            self.assertEqual(waits, [])
+            diag = json.loads((Path(tmp) / "dual_upstream_diagnostics.json").read_text())
+            self.assertEqual(diag["eastmoney_attempts"], 1)
+            self.assertEqual(diag["eastmoney_error_kind"], "other_os_error")
+
+    def test_http_error_is_not_retried(self):
+        HttpError = type("HTTPError", (OSError,), {"__module__": "requests.exceptions"})
+        attempts = []
+        with tempfile.TemporaryDirectory() as tmp:
+            def fail(*args):
+                attempts.append(1)
+                raise HttpError("private URL")
+            code = run("000776.SZ", "2026-10-01", "2026-10-30", tmp,
+                       eastmoney=fail,
+                       sina=lambda *a: snapshot("sina", "shares", 43288500),
+                       sleep=lambda _: self.fail("unexpected retry"))
+            self.assertEqual(code, 1)
+            self.assertEqual(len(attempts), 1)
+
     def test_safe_requests_proxy_error_kind_is_allowlisted(self):
         from scripts.akshare_dual_smoke import _safe_error
         ProxyError = type("ProxyError", (OSError,), {"__module__": "requests.exceptions"})
