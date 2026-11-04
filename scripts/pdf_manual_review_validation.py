@@ -1,5 +1,6 @@
 """Validate human PDF candidate review annotations without verifying financial meaning."""
 import re
+import math
 
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
 _STATUSES = frozenset(("pending_manual_review", "accepted_by_reviewer", "rejected_by_reviewer"))
@@ -27,7 +28,7 @@ def validate_review_annotations(manifest, annotations):
         page, bbox = candidate.get("page"), candidate.get("bbox")
         if type(page) is not int or page < 1 or not isinstance(bbox, list) or len(bbox) != 4:
             raise ValueError("invalid candidate identity")
-        if any(type(x) not in (int, float) for x in bbox):
+        if any(type(x) not in (int, float) or not math.isfinite(x) for x in bbox):
             raise ValueError("invalid bbox")
         keys.append((page, tuple(bbox)))
     if len(set(keys)) != len(keys):
