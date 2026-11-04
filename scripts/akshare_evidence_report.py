@@ -4,6 +4,7 @@ import json
 from datetime import date
 import re
 from pathlib import Path
+from scripts.financial_claim_evidence import validate_claims
 
 
 def _disclosures(items, symbol, start_date, end_date):
@@ -71,7 +72,7 @@ def _fingerprints(items, symbol, start_date, end_date):
     return sorted(result)
 
 
-def render(diag, comparison=None, disclosures=None, fingerprints=None):
+def render(diag, comparison=None, disclosures=None, fingerprints=None, claims=None):
     if not isinstance(diag, dict):
         raise ValueError("invalid diagnostics")
     comparison = comparison if isinstance(comparison, dict) else None
@@ -135,6 +136,22 @@ def render(diag, comparison=None, disclosures=None, fingerprints=None):
         for day, digest, size in records:
             lines.append(f"- {day}：SHA-256 `{digest}`；{size} 字节")
         lines.append("")
+    lines += ["## 财务指标人工摘录（可选、未经原文核验）", ""]
+    if claims is None:
+        lines += ["- 未提供财务指标摘录；不能推断指标为零或公告未披露。", ""]
+    else:
+        if fingerprints is None:
+            raise ValueError("financial claims require PDF fingerprints")
+        validated = validate_claims(claims, fingerprints, diag.get("symbol"), diag.get("end_date"))
+        lines += [f"- 人工摘录条目数：{len(validated)}；以下均未核验 PDF 正文、来源真实性及历史时点。", ""]
+        for claim in validated:
+            lines.append(
+                f"- {safe(claim['metric'])}：{safe(claim['value'])} {safe(claim['unit'])}；"
+                f"报告期 {safe(claim['period_end'])}；公告日期 {safe(claim['announcement_date'])}；"
+                f"PDF 第 {claim['page']} 页；SHA-256 `{claim['file_sha256']}`；"
+                "状态：人工摘录、未认证。"
+            )
+        lines.append("")
     return "\n".join(lines)
 
 
@@ -144,6 +161,7 @@ def main(argv=None):
     parser.add_argument("--output", required=True)
     parser.add_argument("--disclosures-json", default=None)
     parser.add_argument("--fingerprints-json", default=None)
+    parser.add_argument("--claims-json", default=None)
     args = parser.parse_args(argv)
     folder = Path(args.input_dir)
     diag = json.loads((folder / "dual_upstream_diagnostics.json").read_text(encoding="utf-8"))
@@ -151,9 +169,10 @@ def main(argv=None):
     comparison = json.loads(report_path.read_text(encoding="utf-8")) if report_path.exists() else None
     disclosures = json.loads(Path(args.disclosures_json).read_text(encoding="utf-8")) if args.disclosures_json else None
     fingerprints = json.loads(Path(args.fingerprints_json).read_text(encoding="utf-8")) if args.fingerprints_json else None
+    claims = json.loads(Path(args.claims_json).read_text(encoding="utf-8")) if args.claims_json else None
     target = Path(args.output)
     target.parent.mkdir(parents=True, exist_ok=True)
-    target.write_text(render(diag, comparison, disclosures, fingerprints), encoding="utf-8")
+    target.write_text(render(diag, comparison, disclosures, fingerprints, claims), encoding="utf-8")
     return 0
 
 
