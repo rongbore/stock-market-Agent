@@ -95,6 +95,7 @@ def fetch_a_share_daily(symbol, start_date, end_date, *, adjust="", client=None)
     result.sort(key=lambda r: r["date"])
     return {"schema_version": "0.1", "symbol": symbol, "source": "akshare",
             "upstream": "eastmoney", "interface": "stock_zh_a_hist",
+            "akshare_version": str(getattr(ak, "__version__", "unknown")),
             "adjust": adjust, "start_date": start_date, "end_date": end_date,
             "retrieved_at": datetime.now(timezone.utc).isoformat(),
             "source_content_verified": False, "historical_point_in_time_verified": False,
@@ -122,6 +123,7 @@ def fetch_cninfo_disclosure_index(symbol, start_date, end_date, *, client=None):
             raise ValueError("AKShare disclosure date outside requested range")
     return {"schema_version": "0.1", "symbol": symbol, "source": "akshare",
             "upstream": "cninfo", "interface": "stock_zh_a_disclosure_report_cninfo",
+            "akshare_version": str(getattr(ak, "__version__", "unknown")),
             "start_date": start_date, "end_date": end_date,
             "retrieved_at": datetime.now(timezone.utc).isoformat(),
             "source_content_verified": False, "historical_point_in_time_verified": False,
