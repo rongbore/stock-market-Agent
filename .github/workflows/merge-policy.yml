@@ -17,8 +17,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Run policy unit tests
-        run: python -m unittest tests.test_pr_risk_classifier -v
-      - name: Classify pull request without executing PR code
+        run: python -m unittest discover -s tests -p 'test_pr_risk_classifier.py' -v
+      - name: Classify pull request with read-only credentials
         if: github.event_name == 'pull_request'
         env:
           GH_TOKEN: ${{ github.token }}
