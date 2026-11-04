@@ -26,7 +26,9 @@ jobs:
         with:
           python-version: '3.13'
       - name: Install AKShare
-        run: python -m pip install "akshare>=1.16,<2"
+        run: |
+          python -m pip install -r requirements-akshare.txt
+          python -c "import akshare; print('AKShare version:', akshare.__version__)"
       - name: Fetch public read-only A-share daily data
         env:
           STOCK_SYMBOL: ${{ inputs.symbol }}
