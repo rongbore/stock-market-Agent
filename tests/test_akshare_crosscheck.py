@@ -43,5 +43,36 @@ class CrosscheckTests(unittest.TestCase):
             compare(snapshot(), other)
 
 
+
+    def test_out_of_window_date_rejected(self):
+        other = snapshot("other-provider", "shares", 43288500)
+        other["records"][0]["date"] = "2026-11-01"
+        with self.assertRaisesRegex(ValueError, "out-of-range"):
+            compare(snapshot(), other)
+
+    def test_duplicate_dates_rejected(self):
+        other = snapshot("other-provider", "shares", 43288500)
+        other["records"].append(dict(other["records"][0]))
+        with self.assertRaisesRegex(ValueError, "duplicate"):
+            compare(snapshot(), other)
+
+    def test_inconsistent_ohlc_rejected(self):
+        other = snapshot("other-provider", "shares", 43288500)
+        other["records"][0]["low"] = 20.0
+        with self.assertRaisesRegex(ValueError, "inconsistent"):
+            compare(snapshot(), other)
+
+    def test_negative_volume_rejected(self):
+        other = snapshot("other-provider", "shares", 43288500)
+        other["records"][0]["volume"] = -1
+        with self.assertRaisesRegex(ValueError, "invalid nonnegative"):
+            compare(snapshot(), other)
+
+    def test_invalid_date_format_rejected(self):
+        other = snapshot("other-provider", "shares", 43288500)
+        other["records"][0]["date"] = "2026-10-8"
+        with self.assertRaisesRegex(ValueError, "invalid trading date"):
+            compare(snapshot(), other)
+
 if __name__ == "__main__":
     unittest.main()
