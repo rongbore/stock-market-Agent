@@ -96,3 +96,13 @@ python -m scripts.akshare_evidence_report --input-dir dual_output --output dual_
 `scripts.financial_claim_evidence.validate_claims(claims, fingerprints, symbol, research_date)` 对**人工录入且尚未验证**的财务指标进行结构检查。单条 claim 包括：`symbol`、`metric`（revenue/net_profit_attributable/total_assets/operating_cash_flow）、`value`（十进制字符串）、`unit`（CNY/CNY_10000/CNY_100000000）、`period_end`、`announcement_date`、`file_sha256`、`page`（从 1 开始）。必须引用现有本地 PDF 指纹，并且公告日期不晚于研究截止日。输出一律标注 `manually_transcribed_unverified`，不进行 PDF 文字识别、来源认证或数值核实；不得将其直接作为已证实的财报数据。
 
 财务指标证据日期约束：所引用 PDF 指纹必须包含 `announcement_date`，且与 claim 的公告日期完全一致，均不得晚于研究截止日。同一 SHA-256 不允许映射到不同公告日期。日期匹配仅是元数据一致性检查，不代表公告时间或正文已获官方核验。
+
+#### 在离线中文证据报告中展示人工财务摘录
+
+将 `validate_claims` 所需格式的人工摘录对象汇总为 `claims.json` 数组，并同时提供同一批本地 PDF 指纹数组：
+
+```bash
+python -m scripts.akshare_evidence_report --input-dir dual_output --output dual_output/dual_source_evidence_unverified.md --fingerprints-json fingerprints.json --claims-json claims.json
+```
+
+输出每条指标的数值、单位、报告期、公告日期、PDF 页码与 SHA-256，强制关联对应的 PDF 指纹。所有数值均标记为**人工摘录、未认证**，不得据此断言 PDF 正文核验通过。缺少 `--claims-json` 时保留原有报告行为。
