@@ -21,7 +21,7 @@ def api_paginated(path):
 
 
 def run(repo, number):
-    pr = api(f"repos/{repo}/pulls/{number}")
+    pr = api(f"repos/{repo}/pulls/{number}")\n    if not isinstance(pr, dict) or pr.get("state") != "open":\n        return False, "pull request is not open"
     files = api_paginated(f"repos/{repo}/pulls/{number}/files?per_page=100")
     reviews = api_paginated(f"repos/{repo}/pulls/{number}/reviews?per_page=100")
     if not isinstance(pr, dict) or not isinstance(files, list) or not isinstance(reviews, list):
@@ -50,6 +50,8 @@ def run(repo, number):
     latest = api(f"repos/{repo}/pulls/{number}")
     if not isinstance(latest, dict):
         return False, "invalid latest PR response"
+    if latest.get("state") != "open":
+        return False, "pull request closed during verification"
     if latest.get("head", {}).get("sha") != pr.get("head", {}).get("sha"):
         return False, "head changed during review verification"
     return decision, reason
