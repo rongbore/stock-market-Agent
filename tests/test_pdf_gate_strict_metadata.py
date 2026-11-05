@@ -10,9 +10,15 @@ def evidence():
     candidate = {"page": 1, "bbox": [1, 2, 3, 4]}
     return (
         {
-            "source_record": {"file_sha256": SHA},
+            "source_record": {"file_sha256": SHA, "symbol": "000776.SZ",
+                              "announcement_date_claimed": "2026-10-20",
+                              "source_file_match_verified": False,
+                              "official_origin_verified": False,
+                              "financial_meaning_verified": False},
             "review_manifest": {
                 "file_sha256": SHA, "candidate_count": 1,
+                "symbol": "000776.SZ", "announcement_date_claimed": "2026-10-20",
+                "official_origin_verified": False, "financial_meaning_verified": False,
                 "candidates": [candidate],
             },
             "sample_checked_with_real_pdf_parser": True,
