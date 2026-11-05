@@ -26,7 +26,7 @@ def read_inputs():
     today = datetime.now(ZoneInfo("Asia/Shanghai")).date()
     raw_date = os.environ.get("ANALYSIS_DATE", "").strip()
     if raw_date:
-        if not re.fullmatch(r"\\d{4}-\\d{2}-\\d{2}", raw_date):
+        if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", raw_date):
             raise ValueError("分析日期必须使用 YYYY-MM-DD，例如 2026-11-04；不要省略月份或日期的前导零")
         try:
             trade_date = date.fromisoformat(raw_date)
