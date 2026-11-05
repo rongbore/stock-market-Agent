@@ -25,7 +25,15 @@ def read_inputs():
         raise ValueError("股票代码格式错误，例如 NVDA、600519.SS、0700.HK")
     today = datetime.now(ZoneInfo("Asia/Shanghai")).date()
     raw_date = os.environ.get("ANALYSIS_DATE", "").strip()
-    trade_date = date.fromisoformat(raw_date) if raw_date else today
+    if raw_date:
+        if not re.fullmatch(r"\\d{4}-\\d{2}-\\d{2}", raw_date):
+            raise ValueError("分析日期必须使用 YYYY-MM-DD，例如 2026-11-04；不要省略月份或日期的前导零")
+        try:
+            trade_date = date.fromisoformat(raw_date)
+        except ValueError as exc:
+            raise ValueError("分析日期无效，请使用真实日历日期 YYYY-MM-DD") from exc
+    else:
+        trade_date = today
     if trade_date > today:
         raise ValueError("分析日期不能晚于北京时间当天")
     model = os.environ.get("ANALYSIS_MODEL", "deepseek-flash").strip()
