@@ -80,6 +80,30 @@ class FinancialClaimEvidenceTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "conflicting"):
             validate_claims([self.claim], fp, "000776.SZ", "2026-10-30")
 
+    def test_reject_claim_verification_overrides(self):
+        for changes in (
+            {"official_origin_verified": True},
+            {"source_content_verified": True},
+            {"historical_point_in_time_verified": True},
+            {"official_origin_verified": None},
+            {"status": "verified"},
+        ):
+            with self.subTest(changes=changes):
+                with self.assertRaisesRegex(ValueError, "verification"):
+                    validate_claims(
+                        [dict(self.claim, **changes)], self.fp,
+                        "000776.SZ", "2026-10-30")
+
+    def test_explicit_unverified_claim_flags_are_allowed(self):
+        claim = dict(
+            self.claim, official_origin_verified=False,
+            source_content_verified=False,
+            historical_point_in_time_verified=False,
+            status="manually_transcribed_unverified",
+        )
+        result = validate_claims([claim], self.fp, "000776.SZ", "2026-10-30")
+        self.assertEqual(result[0]["status"], "manually_transcribed_unverified")
+
     def test_reject_false_verified_fingerprint(self):
         fp = [dict(self.fp[0], official_origin_verified=True)]
         with self.assertRaisesRegex(ValueError, "verification claim"):

@@ -49,6 +49,12 @@ def validate_claims(claims, fingerprints, symbol, research_date):
     for claim in claims:
         if not isinstance(claim, dict) or claim.get("symbol") != symbol:
             raise ValueError("claim symbol mismatch")
+        for field in ("official_origin_verified", "source_content_verified",
+                      "historical_point_in_time_verified"):
+            if field in claim and claim[field] is not False:
+                raise ValueError("unsupported financial claim verification flag")
+        if "status" in claim and claim["status"] != "manually_transcribed_unverified":
+            raise ValueError("unsupported financial claim verification status")
         metric, unit, value = claim.get("metric"), claim.get("unit"), claim.get("value")
         if not isinstance(metric, str) or not isinstance(unit, str) or metric not in METRICS or unit not in UNITS:
             raise ValueError("unsupported financial metric or unit")
