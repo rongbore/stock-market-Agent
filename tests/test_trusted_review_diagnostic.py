@@ -7,7 +7,7 @@ from scripts import trusted_review_diagnostic as diagnostic
 class DiagnosticTests(unittest.TestCase):
     def setUp(self):
         self.sha = "a" * 40
-        self.pr = {"changed_files": 1, "head": {"sha": self.sha},
+        self.pr = {"state": "open", "changed_files": 1, "head": {"sha": self.sha},
                    "user": {"login": "alice"}}
         self.files = [{"filename": "scripts/app.py", "status": "modified",
                        "additions": 1, "deletions": 0}]
