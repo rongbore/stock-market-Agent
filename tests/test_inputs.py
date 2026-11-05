@@ -27,6 +27,16 @@ class InputTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 read_inputs()
 
+    def test_non_padded_date_has_actionable_error(self):
+        with patch.dict(os.environ, {"ANALYSIS_TICKER": "NVDA", "ANALYSIS_DATE": "2026-11-4"}):
+            with self.assertRaisesRegex(ValueError, "YYYY-MM-DD"):
+                read_inputs()
+
+    def test_impossible_calendar_date_has_actionable_error(self):
+        with patch.dict(os.environ, {"ANALYSIS_TICKER": "NVDA", "ANALYSIS_DATE": "2026-02-30"}):
+            with self.assertRaisesRegex(ValueError, "日历日期"):
+                read_inputs()
+
     def test_blank_model_rejected(self):
         with patch.dict(os.environ, {"ANALYSIS_TICKER": "NVDA", "ANALYSIS_DATE": "", "ANALYSIS_MODEL": "  "}):
             with self.assertRaises(ValueError):
