@@ -24,6 +24,21 @@ def assess_sample(bundle, review):
     manifest = bundle.get("review_manifest")
     if not isinstance(source, dict) or not isinstance(manifest, dict):
         raise ValueError("invalid sample bundle")
+    # A matching hash is not enough when the evidence labels disagree.
+    # Keep the source claim and the review manifest bound to one filing identity.
+    symbol = source.get("symbol")
+    claimed_date = source.get("announcement_date_claimed")
+    if (not isinstance(symbol, str) or not symbol or
+            not isinstance(claimed_date, str) or not claimed_date or
+            manifest.get("symbol") != symbol or
+            manifest.get("announcement_date_claimed") != claimed_date):
+        raise ValueError("source and manifest filing identity mismatch")
+    if (source.get("source_file_match_verified") is not False or
+            source.get("official_origin_verified") is not False or
+            source.get("financial_meaning_verified") is not False or
+            manifest.get("official_origin_verified") is not False or
+            manifest.get("financial_meaning_verified") is not False):
+        raise ValueError("unexpected verified source or manifest claim")
     hashes = (source.get("file_sha256"), manifest.get("file_sha256"),
               review.get("file_sha256"))
     if (any(not isinstance(x, str) or len(x) != 64 or
