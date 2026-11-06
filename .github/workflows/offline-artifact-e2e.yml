@@ -9,6 +9,7 @@ on:
       - 'scripts/artifact_secret_guard.py'
       - 'scripts/provenance.py'
       - 'scripts/evidence_bundle.py'
+      - 'scripts/financial_claim_evidence.py'
       - 'tests/**'
   push:
     branches: [main]
@@ -19,6 +20,7 @@ on:
       - 'scripts/artifact_secret_guard.py'
       - 'scripts/provenance.py'
       - 'scripts/evidence_bundle.py'
+      - 'scripts/financial_claim_evidence.py'
       - 'tests/**'
 
 permissions:
