@@ -11,10 +11,10 @@ on:
         description: 分析日期 YYYY-MM-DD；留空使用北京时间当天
         required: false
       dry_run:
-        description: 仅运行离线模拟报告验证，不调用付费模型或真实市场数据
+        description: 默认安全离线测试；取消勾选才执行可能产生费用的真实分析
         type: boolean
         required: true
-        default: false
+        default: true
       model:
         description: DeepSeek 模型 ID（须在你的账号可用）
         required: true

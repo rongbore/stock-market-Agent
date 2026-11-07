@@ -9,10 +9,10 @@ class OfflineWorkflowSmokeTests(unittest.TestCase):
         cls.workflow = (Path(__file__).resolve().parents[1] /
                         ".github/workflows/analyze.yml").read_text(encoding="utf-8")
 
-    def test_dry_run_is_explicit_and_defaults_off(self):
+    def test_dry_run_is_explicit_and_defaults_on(self):
         self.assertIn("      dry_run:", self.workflow)
         self.assertIn("        type: boolean", self.workflow)
-        self.assertIn("        default: false", self.workflow)
+        self.assertIn("        default: true", self.workflow)
 
     def test_real_analysis_is_skipped_in_dry_run(self):
         self.assertIn("  analyze:\n    if: ${{ !inputs.dry_run }}", self.workflow)
