@@ -25,7 +25,7 @@ def _validate_endpoint(endpoint):
 
 
 def invoke_review(*, prepared, expected_head_sha, expected_digest, endpoint, token,
-                  model, timeout=20, opener=None):
+                  model, timeout=60, opener=None):
     _validate_endpoint(endpoint)
     if not isinstance(token, str) or not token.strip() or len(token) > 4096:
         raise ValueError("missing API credential")
