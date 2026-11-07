@@ -24,7 +24,7 @@ def assess_provenance(*, repo, expected_head_sha, expected_workflow_id,
         return "manual", "workflow repository mismatch"
     if run.get("head_sha") != expected_head_sha:
         return "manual", "workflow commit mismatch"
-    if run.get("workflow_id") != expected_workflow_id:
+    if type(run.get("workflow_id")) is not int or run["workflow_id"] != expected_workflow_id:
         return "manual", "unexpected workflow"
     if run.get("event") not in ("pull_request", "workflow_dispatch"):
         return "manual", "unexpected workflow event"
@@ -32,7 +32,7 @@ def assess_provenance(*, repo, expected_head_sha, expected_workflow_id,
         return "manual", "workflow not successful"
     if type(run.get("id")) is not int or run["id"] <= 0:
         return "manual", "invalid workflow run ID"
-    if artifact.get("workflow_run_id") != run["id"]:
+    if type(artifact.get("workflow_run_id")) is not int or artifact["workflow_run_id"] != run["id"]:
         return "manual", "artifact from different run"
     if type(artifact.get("id")) is not int or artifact["id"] <= 0:
         return "manual", "invalid artifact ID"
