@@ -9,6 +9,9 @@ on:
       - 'scripts/akshare_provider.py'
       - 'scripts/akshare_crosscheck.py'
       - 'scripts/akshare_evidence_report.py'
+      - 'scripts/market_trend_report.py'
+      - 'scripts/trend_chart_overlay.py'
+      - 'scripts/trend_indicators.py'
       - 'requirements-akshare.txt'
   schedule:
     # Wednesday 02:20 UTC; recent 21 calendar days cover multiple trading weeks.
@@ -64,6 +67,21 @@ jobs:
             python -m scripts.akshare_evidence_report \
               --input-dir dual_output \
               --output dual_output/dual_source_evidence_unverified.md
+          fi
+      - name: Generate offline price trend charts from validated dual snapshots
+        if: always()
+        shell: bash
+        run: |
+          if [ -f dual_output/eastmoney_daily_unverified.json ] && \
+             [ -f dual_output/sina_daily_unverified.json ] && \
+             [ -f dual_output/daily_crosscheck_report.json ]; then
+            python -m scripts.market_trend_report \
+              --primary dual_output/eastmoney_daily_unverified.json \
+              --secondary dual_output/sina_daily_unverified.json \
+              --comparison dual_output/daily_crosscheck_report.json \
+              --output-dir dual_output
+          else
+            echo "Trend charts skipped: required snapshot or comparison artifact missing."
           fi
       - name: Publish safe acceptance summary
         if: always()
@@ -121,5 +139,6 @@ jobs:
           path: |
             dual_output/*.json
             dual_output/*.md
+            dual_output/*.html
           if-no-files-found: warn
           retention-days: 3
