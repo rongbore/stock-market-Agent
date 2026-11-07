@@ -7,6 +7,8 @@ import hashlib
 import json
 import re
 
+from scripts.safe_pr_classifier import classify, DOC_PATH
+
 SHA = re.compile(r"^[a-f0-9]{40}$")
 MAX_FILES = 50
 MAX_FILE_BYTES = 150_000
@@ -18,6 +20,10 @@ def build_envelope(changes, head_sha, base_sha):
         raise ValueError("invalid_sha")
     if not isinstance(changes, list) or not 1 <= len(changes) <= MAX_FILES:
         raise ValueError("invalid_change_list")
+    # The request envelope must never label an unsafe document as a candidate.
+    # Reuse the same complete-content scanner as the PR risk gate.
+    if classify(changes).get("status") != "CANDIDATE":
+        raise ValueError("unsafe_change_list")
     total = 0
     files = []
     seen = set()
@@ -26,7 +32,7 @@ def build_envelope(changes, head_sha, base_sha):
             raise ValueError("invalid_file")
         path = item.get("filename")
         patch = item.get("patch")
-        if not isinstance(path, str) or not path.startswith("docs/") or not path.endswith(".md") or len(path) > 256 or path in seen:
+        if not isinstance(path, str) or not DOC_PATH.fullmatch(path) or len(path) > 256 or path in seen:
             raise ValueError("unsafe_or_duplicate_path")
         if any(ord(c) < 32 or ord(c) == 127 for c in path) or ".." in path.split("/"):
             raise ValueError("unsafe_path")
