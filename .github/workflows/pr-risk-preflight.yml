@@ -1,0 +1,62 @@
+name: PR Risk Preflight (advisory)
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pr-risk-preflight-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  advisory-risk-classification:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Checkout PR head without persisted credentials
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Offline security regression tests
+        run: |
+          python -m unittest discover -s tests -p 'test_safe_pr_classifier.py' -v
+          python -m unittest discover -s tests -p 'test_ai_review_contract.py' -v
+          python -m unittest discover -s tests -p 'test_trusted_pr_diff.py' -v
+          python -m unittest discover -s tests -p 'test_pr_review_preflight.py' -v
+      - name: Collect advisory PR risk classification
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        shell: bash
+        run: |
+          set +e
+          python -m scripts.pr_review_preflight --base-sha "$BASE_SHA" --head-sha "$HEAD_SHA" > risk-result.json
+          status=$?
+          set -e
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          try:
+              result = json.loads(Path("risk-result.json").read_text(encoding="utf-8"))
+              status = result.get("status", "BLOCKED")
+              if status not in ("CANDIDATE", "BLOCKED"):
+                  status = "BLOCKED"
+          except (OSError, ValueError, TypeError):
+              status = "BLOCKED"
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as out:
+              out.write("### PR risk preflight (advisory only)\\n")
+              out.write(f"Risk classification: **{status}**\\n\\n")
+              out.write("No AI approval or merge authorization is produced.\\n")
+          PY
+          echo "Preflight process exit code: $status (classification is advisory)"
