@@ -1,7 +1,11 @@
 import unittest
 from unittest.mock import Mock
 
-from scripts.financial_ai_review_provider import (make_provider_reviewer, review_financial_changes,\n                                                  review_financial_changes_with_roundtable)
+from scripts.financial_ai_review_provider import (
+    make_provider_reviewer,
+    review_financial_changes,
+    review_financial_changes_with_roundtable,
+)
 
 
 class FinancialAiReviewProviderTests(unittest.TestCase):
