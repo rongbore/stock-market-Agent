@@ -11,6 +11,8 @@ import urllib.request
 
 from scripts.ai_review_evidence_binding import prepare_review
 from scripts.ai_review_http_client import invoke_review
+from scripts.financial_ai_review_rules import assess_financial_pr
+from scripts.financial_ai_review_context import build_financial_review_context
 
 
 def github_json(path, token):
@@ -54,7 +56,12 @@ def run(*, repo, pr_number, github_token, model_token, endpoint, model):
         raise ValueError("binary, deleted, renamed or missing patch")
     changed_files = [f["filename"] for f in files]
     diff = "\n".join("FILE " + f["filename"] + "\n" + f["patch"] for f in files)
-    prepared = prepare_review(head_sha=sha, changed_files=changed_files, diff=diff)
+    # Deterministic finance-domain preflight; model output remains advisory.
+    per_file_diffs = {item["filename"]: item["patch"] for item in files}
+    preflight = assess_financial_pr(changed_files, per_file_diffs)
+    financial_context = build_financial_review_context(preflight)
+    prepared = prepare_review(head_sha=sha, changed_files=changed_files, diff=diff,
+                              financial_context=financial_context)
     result = invoke_review(prepared=prepared, expected_head_sha=sha,
                            expected_digest=prepared["request_digest"], endpoint=endpoint,
                            token=model_token, model=model,

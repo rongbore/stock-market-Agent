@@ -17,8 +17,9 @@ def _digest(value):
                                      separators=(",", ":")).encode("utf-8")).hexdigest()
 
 
-def prepare_review(*, head_sha, changed_files, diff):
-    request = build_request(head_sha=head_sha, changed_files=changed_files, diff=diff)
+def prepare_review(*, head_sha, changed_files, diff, financial_context=None):
+    request = build_request(head_sha=head_sha, changed_files=changed_files, diff=diff,
+                            financial_context=financial_context)
     return {"request": request, "request_digest": _digest(request),
             "head_sha": head_sha, "review_only": True}
 
