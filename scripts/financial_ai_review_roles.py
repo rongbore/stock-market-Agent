@@ -36,6 +36,7 @@ ROLE_CHECKS = {
         "Do not convert model confidence into a probability of profit or a guaranteed loss limit.",
     ),
 }
+FINANCE_FALLBACK_MARKERS = ("financial", "finance", "market", "行情", "财务", "投资", "估值")
 ROLE_PATHS = {
     "market_data": ("market_data", "quote", "行情", "price_feed"),
     "fundamental": ("fundamental", "financial_statement", "财务", "balance_sheet", "income_statement"),
@@ -52,6 +53,13 @@ def build_specialist_assignments(financial_files):
         raise ValueError("invalid financial file path")
     if len(set(financial_files)) != len(financial_files):
         raise ValueError("duplicate financial file path")
+    if not financial_files or not any(
+        marker in path.lower()
+        for path in financial_files
+        for marker in FINANCE_FALLBACK_MARKERS
+    ):
+        return []
+
     matched_by_role = {
         role: [
             path for path in financial_files
