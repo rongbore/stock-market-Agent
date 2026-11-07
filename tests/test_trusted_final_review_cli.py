@@ -9,9 +9,8 @@ from unittest.mock import patch
 from scripts.trusted_final_review_cli import main
 from scripts.final_review_gate import REQUIRED_CHECKS
 
-PR_ARGS = ["--repo", "owner/repo", "--pr-number", "7", "--head-sha", SHA]
-
 SHA = "a" * 40
+PR_ARGS = ["--repo", "owner/repo", "--pr-number", "7", "--head-sha", SHA]
 
 
 class TrustedFinalReviewCliTests(unittest.TestCase):
