@@ -47,6 +47,17 @@ jobs:
             echo '::error::请先在仓库 Actions secrets 中配置 DEEPSEEK_API_KEY'
             exit 1
           fi
+      - name: Validate analysis inputs before dependency install
+        env:
+          ANALYSIS_TICKER: ${{ inputs.ticker }}
+          ANALYSIS_DATE: ${{ inputs.date }}
+          ANALYSIS_MODEL: ${{ inputs.model }}
+        run: |
+          python - <<'PY'
+          from scripts.analyze import read_inputs
+          ticker, analysis_date, model = read_inputs()
+          print(f"Validated input: {ticker}, {analysis_date}, model={model}")
+          PY
       - name: Install pinned TradingAgents
         run: python -m pip install 'tradingagents @ git+https://github.com/TauricResearch/TradingAgents.git@c4544913a14ed3df5f1ed7b9e8483270ce20682a'
       - name: Analyze stock
