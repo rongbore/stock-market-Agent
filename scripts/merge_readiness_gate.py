@@ -12,7 +12,8 @@ TIERS = frozenset({"documentation_candidate"})
 
 def evaluate_readiness(*, tier_result, pr, checks, review,
                        review_threads, has_changes_requested_review,
-                       current_base_sha):
+                       current_base_sha, checks_complete,
+                       expected_check_count, review_threads_complete):
     reasons = []
     if not isinstance(tier_result, dict) or tier_result.get("tier") not in TIERS:
         reasons.append("unapproved_change_tier")
@@ -46,6 +47,8 @@ def evaluate_readiness(*, tier_result, pr, checks, review,
         reasons.append("review_status_missing_or_invalid")
     elif has_changes_requested_review:
         reasons.append("changes_requested_review")
+    if review_threads_complete is not True:
+        reasons.append("review_threads_incomplete_or_unverified")
     if not isinstance(review_threads, list):
         reasons.append("review_threads_missing_or_invalid")
     else:
@@ -54,9 +57,13 @@ def evaluate_readiness(*, tier_result, pr, checks, review,
                 reasons.append("review_thread_status_missing_or_invalid")
             elif not thread["is_resolved"]:
                 reasons.append("unresolved_review_threads")
+    if checks_complete is not True:
+        reasons.append("check_evidence_incomplete_or_unverified")
     if not isinstance(checks, list):
         checks = []
         reasons.append("missing_checks")
+    if type(expected_check_count) is not int or expected_check_count != len(checks):
+        reasons.append("check_count_mismatch")
     found = set()
     for c in checks:
         if not isinstance(c, dict) or not isinstance(c.get("name"), str):
