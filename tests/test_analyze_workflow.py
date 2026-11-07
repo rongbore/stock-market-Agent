@@ -27,6 +27,15 @@ class AnalyzeWorkflowTests(unittest.TestCase):
         self.assertIn("from scripts.analyze import read_inputs", preflight_section)
         self.assertNotIn("DEEPSEEK_API_KEY", preflight_section)
 
+    def test_manual_workflow_defaults_to_no_cost_offline_smoke(self):
+        workflow = (Path(__file__).resolve().parents[1] /
+                    ".github/workflows/analyze.yml").read_text(encoding="utf-8")
+        dry_run_section = workflow.split("      dry_run:", 1)[1].split("      model:", 1)[0]
+        self.assertIn("type: boolean", dry_run_section)
+        self.assertIn("default: true", dry_run_section)
+        self.assertIn("if: ${{ !inputs.dry_run }}", workflow)
+        self.assertIn("if: ${{ inputs.dry_run }}", workflow)
+
     def test_manual_dispatch_only(self):
         workflow = (Path(__file__).resolve().parents[1] /
                     ".github/workflows/analyze.yml").read_text(encoding="utf-8")
