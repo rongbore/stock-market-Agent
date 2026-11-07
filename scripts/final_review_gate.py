@@ -40,7 +40,16 @@ def evaluate(*, head_sha, risk, ai_review, checks, is_draft, changed_paths, work
     # Never trust a caller-provided status: validate the raw AI response here.
     if validate_review(ai_review, head_sha).get("status") != "PASS":
         reasons.append("ai_review_not_verified")
-    # When raw workflow runs are supplied, require a strict match with the\n    # normalized evidence. No caller-supplied check list can override it.\n    if workflow_runs is not None:\n        try:\n            trusted_checks = normalize_workflow_runs(workflow_runs, head_sha, REQUIRED_CHECKS)\n            if checks != trusted_checks:\n                reasons.append("check_evidence_mismatch")\n        except (ValueError, TypeError):\n            reasons.append("invalid_workflow_run_evidence")\n    if not isinstance(checks, list):
+    # Verify supplied workflow runs against normalized evidence.
+    # This is advisory only; caller provenance is not authenticated here.
+    if workflow_runs is not None:
+        try:
+            trusted_checks = normalize_workflow_runs(workflow_runs, head_sha, REQUIRED_CHECKS)
+            if sorted(checks, key=lambda c: c["name"]) != trusted_checks:
+                reasons.append("check_evidence_mismatch")
+        except (ValueError, TypeError, KeyError, AttributeError):
+            reasons.append("invalid_workflow_run_evidence")
+    if not isinstance(checks, list):
         reasons.append("invalid_checks")
     else:
         by_name = {}
