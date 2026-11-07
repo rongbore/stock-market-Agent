@@ -1,7 +1,7 @@
 """Deterministic specialist routing for financial code review.
 
-Roles provide independent review checklists, not separate model calls. The caller
-may later dispatch them to isolated agents; this module is offline and advisory.
+Each role has an independent checklist and is dispatched as a separate model call.
+The routing is deterministic and advisory; it performs no network or merge actions.
 """
 MAX_FILES = 200
 ROLE_CHECKS = {
@@ -36,6 +36,12 @@ ROLE_CHECKS = {
         "Do not convert model confidence into a probability of profit or a guaranteed loss limit.",
     ),
 }
+FINANCE_FALLBACK_MARKERS = (
+    "financial", "finance", "market", "fundamental", "technical",
+    "indicator", "backtest", "portfolio", "position", "risk",
+    "pricing", "valuation", "quote", "行情", "财务", "指标",
+    "回测", "投资", "估值", "风控",
+)
 ROLE_PATHS = {
     "market_data": ("market_data", "quote", "行情", "price_feed"),
     "fundamental": ("fundamental", "financial_statement", "财务", "balance_sheet", "income_statement"),
@@ -52,20 +58,40 @@ def build_specialist_assignments(financial_files):
         raise ValueError("invalid financial file path")
     if len(set(financial_files)) != len(financial_files):
         raise ValueError("duplicate financial file path")
+    if not financial_files or not any(
+        marker in path.lower()
+        for path in financial_files
+        for marker in FINANCE_FALLBACK_MARKERS
+    ):
+        return []
+
+    matched_by_role = {
+        role: [
+            path for path in financial_files
+            if any(marker in path.lower() for marker in markers)
+        ]
+        for role, markers in ROLE_PATHS.items()
+    }
+    covered = {path for paths in matched_by_role.values() for path in paths}
+    unmatched = [path for path in financial_files if path not in covered]
+
     assignments = []
     for role, markers in ROLE_PATHS.items():
-        matched = [path for path in financial_files
-                   if any(marker in path.lower() for marker in markers)]
-        if matched:
-            assignments.append({
-                "role": role,
-                "files": matched,
-                "checks": list(ROLE_CHECKS[role]),
-                "output_requirements": [
-                    "verdict: approve, request_changes or uncertain",
-                    "cite exact file and changed-line evidence",
-                    "separate fact, inference and missing evidence",
-                    "include validation method and confidence rationale",
-                ],
-            })
+        # Always dispatch all five specialist roles for a financial review.
+        # If a role has no direct filename match, it receives the complete
+        # financial scope and applies its own checklist as an independent lens.
+        matched = matched_by_role[role] or list(financial_files)
+        if role == "risk" and unmatched:
+            matched = list(dict.fromkeys(matched + unmatched))
+        assignments.append({
+            "role": role,
+            "files": matched,
+            "checks": list(ROLE_CHECKS[role]),
+            "output_requirements": [
+                "verdict: approve, request_changes or uncertain",
+                "cite exact file and changed-line evidence",
+                "separate fact, inference and missing evidence",
+                "include validation method and confidence rationale",
+            ],
+        })
     return assignments
