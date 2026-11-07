@@ -7,6 +7,7 @@ In **Settings → Secrets and variables → Actions** configure:
 - Secret `AI_REVIEW_API_KEY`: API key for the selected model provider.
 - Variable `AI_REVIEW_ENDPOINT`: provider HTTPS chat-completions endpoint.
 - Variable `AI_REVIEW_MODEL`: provider model identifier.
+- Variable `AI_REVIEW_ALLOWED_HOSTS`: comma-separated exact hostnames permitted for outbound model requests (for DeepSeek, `api.deepseek.com`). Do not use wildcards.
 
 Never put credentials in variables, source files, PR comments, or workflow inputs.
 
