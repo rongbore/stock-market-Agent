@@ -58,6 +58,20 @@ def load_disclosure_candidates(ticker, trade_date):
     return screen_disclosures(records, analysis_date=trade_date, symbol=ticker)
 
 
+def run_graph_with_diagnostics(graph, ticker, trade_date):
+    try:
+        return graph.propagate(ticker, trade_date)
+    except ValueError as exc:
+        if "Unexpected response type from OpenAI-compatible endpoint" not in str(exc):
+            raise
+        raise RuntimeError(
+            "模型兼容接口返回了无法解析的响应，分析已停止；"
+            "请核对模型 ID、API 提供方兼容性及上游服务状态。"
+            "不要直接重复付费运行；先使用 dry_run 离线检查。"
+            "FRED/新闻数据源缺失不一定是本次异常的直接原因。"
+        ) from exc
+
+
 def main():
     ticker, trade_date, model = read_inputs()
     candidates = load_disclosure_candidates(ticker, trade_date)
@@ -83,17 +97,7 @@ def main():
     graph = TradingAgentsGraph(
         selected_analysts=["market", "news", "fundamentals"], config=config
     )
-    try:
-        state, _ = graph.propagate(ticker, trade_date)
-    except ValueError as exc:
-        if "Unexpected response type from OpenAI-compatible endpoint" not in str(exc):
-            raise
-        raise RuntimeError(
-            "模型兼容接口返回了无法解析的响应，分析已停止；"
-            "请核对模型 ID、API 提供方兼容性及上游服务状态。"
-            "不要直接重复付费运行；先使用 dry_run 离线检查。"
-            "FRED/新闻数据源缺失不一定是本次异常的直接原因。"
-        ) from exc
+    state, _ = run_graph_with_diagnostics(graph, ticker, trade_date)
     report_file = graph.save_reports(state, ticker, html=True)
     report_dir = Path(report_file).resolve().parent
     expected_root = (root / "reports").resolve()
