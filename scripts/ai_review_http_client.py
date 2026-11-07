@@ -46,6 +46,9 @@ def invoke_review(*, prepared, expected_head_sha, expected_digest, endpoint, tok
     payload = {
         "model": model,
         "temperature": 0,
+        "thinking": {"type": "disabled"},
+        "response_format": {"type": "json_object"},
+        "max_tokens": 3000,
         "messages": [
             {"role": "system", "content": request["system_instructions"]},
             {"role": "user", "content": request["untrusted_pr_data"]},
@@ -65,10 +68,18 @@ def invoke_review(*, prepared, expected_head_sha, expected_digest, endpoint, tok
     try:
         with transport.open(http_request, timeout=timeout) as response:
             if getattr(response, "status", 200) != 200:
-                raise ValueError("model service failed")
+                raise ValueError("provider_http_unexpected_status")
             raw = response.read(MAX_RESPONSE_BYTES + 1)
-    except (urllib.error.URLError, OSError, TimeoutError) as exc:
-        raise ValueError("model service unavailable") from exc
+    except urllib.error.HTTPError as exc:
+        # Do not print provider response bodies: they may contain sensitive details.
+        raise ValueError("provider_http_" + str(exc.code)) from None
+    except urllib.error.URLError as exc:
+        reason = getattr(exc, "reason", None)
+        if isinstance(reason, TimeoutError):
+            raise ValueError("provider_timeout") from None
+        raise ValueError("provider_network_error") from None
+    except (OSError, TimeoutError):
+        raise ValueError("provider_network_error") from None
     if len(raw) > MAX_RESPONSE_BYTES:
         raise ValueError("model response too large")
     try:
