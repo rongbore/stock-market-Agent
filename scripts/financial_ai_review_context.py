@@ -5,6 +5,8 @@ synthesis). This is original integration code; it does not copy upstream source.
 """
 import json
 
+from scripts.financial_ai_review_roles import build_specialist_assignments
+
 MAX_CONTEXT_CHARS = 12_000
 
 
@@ -28,6 +30,7 @@ def build_financial_review_context(preflight):
     payload = {
         "review_scope": scope,
         "financial_files": preflight["financial_files"],
+        "specialist_assignments": build_specialist_assignments(preflight["financial_files"]),
         "core_financial_files": preflight["core_financial_files"],
         "sensitive_files": preflight["sensitive_files"],
         "heuristic_findings": preflight["findings"],
