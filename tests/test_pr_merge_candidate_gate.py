@@ -1,4 +1,4 @@
-"""Offline regression tests for the composite merge candidate gate."""
+"""Offline tests: no caller-provided value can certify review evidence."""
 import unittest
 from unittest.mock import patch
 
@@ -12,10 +12,10 @@ class CompositeCandidateTests(unittest.TestCase):
             return assess_candidate({}, [], [], protected=True,
                                     evidence_decision=evidence)
 
-    def test_both_checks_must_pass(self):
+    def test_even_claimed_trusted_controller_is_not_authentication(self):
         self.assertEqual(self.run_gate(
             ("candidate", "ok"),
-            ("candidate", "trusted-controller-verified"))[0], "candidate")
+            ("candidate", "trusted-controller-verified"))[0], "manual")
 
     def test_readiness_failure_blocks(self):
         self.assertEqual(self.run_gate(
