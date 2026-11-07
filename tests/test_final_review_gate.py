@@ -51,6 +51,35 @@ class FinalReviewGateTests(unittest.TestCase):
             with self.subTest(review=review):
                 self.assertEqual(evaluate(**data)["decision"], "BLOCKED")
 
+
+    def test_workflow_run_evidence_matches_normalized_checks(self):
+        data = evidence()
+        data["workflow_runs"] = [
+            {"id": i + 1, "name": c["name"], "head_sha": SHA,
+             "event": "pull_request", "status": "completed",
+             "conclusion": "success"}
+            for i, c in enumerate(data["checks"])
+        ]
+        self.assertEqual(evaluate(**data)["decision"], "ELIGIBLE_FOR_POLICY_REVIEW")
+        self.assertFalse(evaluate(**data)["merge_authorized"])
+
+        data["workflow_runs"][0]["head_sha"] = "b" * 40
+        self.assertEqual(evaluate(**data)["decision"], "BLOCKED")
+
+    def test_workflow_run_duplicate_and_forged_checks_block(self):
+        data = evidence()
+        data["workflow_runs"] = [
+            {"id": i + 1, "name": c["name"], "head_sha": SHA,
+             "event": "pull_request", "status": "completed",
+             "conclusion": "success"}
+            for i, c in enumerate(data["checks"])
+        ]
+        data["workflow_runs"].append(dict(data["workflow_runs"][0], id=999))
+        self.assertEqual(evaluate(**data)["decision"], "BLOCKED")
+        data["workflow_runs"].pop()
+        data["checks"][0]["status"] = "queued"
+        self.assertEqual(evaluate(**data)["decision"], "BLOCKED")
+
     def test_failed_check_blocks(self):
         data = evidence()
         data["checks"][0]["conclusion"] = "failure"
