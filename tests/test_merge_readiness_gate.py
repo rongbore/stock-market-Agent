@@ -15,6 +15,8 @@ def evidence(tier="documentation_candidate"):
         checks=[{"name": n, "head_sha": SHA, "status": "completed", "conclusion": "success"}
                 for n in ("unit-tests", "merge-policy")],
         review={"head_sha": SHA, "verdict": "approve", "trusted": True},
+        review_threads=[],
+        has_changes_requested_review=False,
     )
 
 
@@ -75,6 +77,35 @@ class ReadinessTests(unittest.TestCase):
         result = evaluate_readiness(**e)
         self.assertEqual(result["decision"], "BLOCKED")
         self.assertIn("fork_or_unverified_head_repository", result["reasons"])
+
+    def test_unresolved_review_thread_blocks(self):
+        e = evidence()
+        e["review_threads"] = [{"is_resolved": False}]
+        result = evaluate_readiness(**e)
+        self.assertEqual(result["decision"], "BLOCKED")
+        self.assertIn("unresolved_review_threads", result["reasons"])
+
+    def test_missing_or_malformed_review_thread_evidence_blocks(self):
+        for threads in (None, [{"is_resolved": "false"}], [None]):
+            with self.subTest(threads=threads):
+                e = evidence()
+                e["review_threads"] = threads
+                result = evaluate_readiness(**e)
+                self.assertEqual(result["decision"], "BLOCKED")
+
+    def test_active_change_request_blocks(self):
+        e = evidence()
+        e["has_changes_requested_review"] = True
+        result = evaluate_readiness(**e)
+        self.assertEqual(result["decision"], "BLOCKED")
+        self.assertIn("changes_requested_review", result["reasons"])
+
+    def test_missing_change_request_state_blocks(self):
+        e = evidence()
+        e["has_changes_requested_review"] = None
+        result = evaluate_readiness(**e)
+        self.assertEqual(result["decision"], "BLOCKED")
+        self.assertIn("review_status_missing_or_invalid", result["reasons"])
 
 
 if __name__ == "__main__":
