@@ -13,7 +13,8 @@ TIERS = frozenset({"documentation_candidate"})
 def evaluate_readiness(*, tier_result, pr, checks, review,
                        review_threads, has_changes_requested_review,
                        current_base_sha, checks_complete,
-                       expected_check_count, review_threads_complete):
+                       expected_check_count, review_threads_complete,
+                       trusted_check_app_ids):
     reasons = []
     if not isinstance(tier_result, dict) or tier_result.get("tier") not in TIERS:
         reasons.append("unapproved_change_tier")
@@ -64,11 +65,27 @@ def evaluate_readiness(*, tier_result, pr, checks, review,
         reasons.append("missing_checks")
     if type(expected_check_count) is not int or expected_check_count != len(checks):
         reasons.append("check_count_mismatch")
+    if (not isinstance(trusted_check_app_ids, list) or not trusted_check_app_ids or
+            any(type(app_id) is not int or app_id <= 0 for app_id in trusted_check_app_ids) or
+            len(set(trusted_check_app_ids)) != len(trusted_check_app_ids)):
+        reasons.append("trusted_check_app_allowlist_invalid")
+        trusted_apps = set()
+    else:
+        trusted_apps = set(trusted_check_app_ids)
     found = set()
+    run_ids = set()
     for c in checks:
         if not isinstance(c, dict) or not isinstance(c.get("name"), str):
             reasons.append("invalid_check")
             continue
+        run_id, app_id = c.get("id"), c.get("app_id")
+        if (type(run_id) is not int or run_id <= 0 or type(app_id) is not int or
+                app_id not in trusted_apps):
+            reasons.append("check_provenance_missing_or_untrusted")
+        elif run_id in run_ids:
+            reasons.append("duplicate_check_run_id")
+        else:
+            run_ids.add(run_id)
         name = c["name"]
         if name in found:
             reasons.append("duplicate_check")
