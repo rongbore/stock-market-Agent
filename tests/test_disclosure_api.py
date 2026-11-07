@@ -177,6 +177,55 @@ class OfficialDisclosureAPITests(unittest.TestCase):
         self.assertFalse(result["source_content_verified"])
         self.assertFalse(result["historical_point_in_time_verified"])
 
+    def test_original_download_is_opt_in_and_hash_is_attached_to_snapshot(self):
+        import tempfile
+        from pathlib import Path
+        from datetime import datetime, timezone
+        notice = dict(self.record, provider="CNINFO")
+        snapshot = {
+            "schema_version": "0.1", "source": "cninfo",
+            "endpoint": self.endpoint, "analysis_date": "2026-10-30",
+            "retrieved_at": datetime.now(timezone.utc).isoformat(),
+            "records": [notice], "source_content_verified": False,
+            "historical_point_in_time_verified": False,
+            "limitations": [],
+        }
+        with tempfile.TemporaryDirectory() as tmp, \
+                patch("scripts.disclosure_api.fetch_disclosure_snapshot",
+                      return_value=snapshot), \
+                patch("scripts.disclosure_pdf_fetch.fetch_cninfo_pdf",
+                      return_value={
+                          "relative_path": "000776.SZ_2026-10-29_abcd.pdf",
+                          "sha256": "a" * 64,
+                          "official_origin_verified": False,
+                          "source_content_verified": False,
+                          "historical_point_in_time_verified": False,
+                      }) as download:
+            result = collect_disclosure_candidates(
+                self.endpoint, source="cninfo", analysis_date="2026-10-30",
+                symbol="000776.SZ", output_dir=tmp)
+            download.assert_not_called()
+            result = collect_disclosure_candidates(
+                self.endpoint, source="cninfo", analysis_date="2026-10-30",
+                symbol="000776.SZ", output_dir=tmp, download_originals=True)
+            download.assert_called_once()
+            saved = json.loads(Path(result["snapshot_path"]).read_text())
+            self.assertEqual(saved["original_pdf_artifacts"][0]["sha256"], "a" * 64)
+            self.assertFalse(saved["source_content_verified"])
+            self.assertFalse(saved["records"][0]["pdf_artifact"]["official_origin_verified"])
+
+    def test_original_download_is_limited_to_cninfo(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp, patch(
+                "scripts.disclosure_api.fetch_disclosure_snapshot",
+                return_value={"records": [], "source_content_verified": False,
+                              "historical_point_in_time_verified": False}):
+            with self.assertRaisesRegex(ValueError, "CNINFO only"):
+                collect_disclosure_candidates(
+                    "https://www.sse.com.cn/api", source="sse",
+                    analysis_date="2026-10-30", symbol="600519.SS",
+                    output_dir=tmp, download_originals=True)
+
     def test_timeout_validation(self):
         for timeout in (0, -1, 31, True, "10"):
             with self.subTest(timeout=timeout), self.assertRaisesRegex(ValueError, "timeout"):
