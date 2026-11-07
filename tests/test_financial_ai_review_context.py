@@ -16,6 +16,7 @@ class FinancialAiReviewContextTests(unittest.TestCase):
         self.assertFalse(payload["investment_advice"])
         self.assertTrue(any("point-in-time" in x for x in payload["review_protocol"]))
         self.assertTrue(payload["heuristic_findings"])
+        self.assertEqual(payload["specialist_assignments"][0]["role"], "quant_backtest")
 
     def test_general_scope_is_still_valid(self):
         preflight = assess_financial_pr(["docs/usage.md"])
