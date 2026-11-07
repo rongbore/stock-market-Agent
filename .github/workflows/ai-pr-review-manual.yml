@@ -21,7 +21,7 @@ concurrency:
 jobs:
   review:
     # Do not spend model calls on fork PRs. This trusted workflow never checks out PR code.
-    if: github.event_name != 'pull_request_target' || github.event.pull_request.head.repo.full_name == github.repository
+    if: github.event_name == 'workflow_dispatch' || (github.event.pull_request.base.ref == 'main' && github.event.pull_request.head.repo.full_name == github.repository)
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
