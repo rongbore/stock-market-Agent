@@ -15,13 +15,19 @@ class TierPolicyTests(unittest.TestCase):
     def test_docs(self):
         self.assertEqual(self.check([file("docs/guide.md")])["tier"], "documentation_candidate")
 
-    def test_tests(self):
-        self.assertEqual(self.check([file("tests/test_quality.py")])["tier"], "tests_candidate")
-
-    def test_financial_requires_independent_validation(self):
-        result = self.check([file("scripts/financial_evidence_quality.py")])
-        self.assertEqual(result["tier"], "financial_algorithm_requires_independent_validation")
+    def test_tests_require_manual_review(self):
+        result = self.check([file("tests/test_quality.py")])
+        self.assertEqual(result["tier"], "manual")
+        self.assertEqual(result["reason"], "non_documentation_changes_require_manual_review")
         self.assertFalse(result["auto_merge_authorized"])
+
+    def test_financial_and_security_changes_require_manual_review(self):
+        for path in ("scripts/financial_evidence_quality.py", "config/security.yaml",
+                     ".github/workflows/permissions.yml"):
+            with self.subTest(path=path):
+                result = self.check([file(path)])
+                self.assertEqual(result["tier"], "manual")
+                self.assertFalse(result["auto_merge_authorized"])
 
     def test_workflow_change_manual(self):
         self.assertEqual(self.check([file(".github/workflows/test.yml")])["tier"], "manual")
@@ -31,6 +37,10 @@ class TierPolicyTests(unittest.TestCase):
 
     def test_missing_pagination_manual(self):
         self.assertEqual(self.check([file("docs/a.md")], expected=2)["tier"], "manual")
+
+    def test_documentation_size_limits_match_repository_classifier(self):
+        self.assertEqual(self.check([file(f"docs/{i}.md") for i in range(21)])["tier"], "manual")
+        self.assertEqual(self.check([file("docs/large.md", additions=301, deletions=0)])["tier"], "manual")
 
     def test_rename_manual(self):
         self.assertEqual(self.check([file("docs/a.md", status="renamed")])["tier"], "manual")
@@ -42,7 +52,8 @@ class TierPolicyTests(unittest.TestCase):
         self.assertEqual(self.check([file("docs/../test.md")])["tier"], "manual")
 
     def test_no_candidate_is_authorization(self):
-        for p in ("docs/a.md", "tests/test_a.py", "scripts/financial_metric_citations.py"):
+        for p in ("docs/a.md", "tests/test_a.py", "scripts/financial_metric_citations.py",
+                  "config/security.yaml"):
             self.assertFalse(self.check([file(p)])["auto_merge_authorized"])
 
 

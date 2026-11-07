@@ -2,18 +2,9 @@
 
 Classification is advisory. No AI result or this module grants merge rights.
 """
-from pathlib import PurePosixPath
-
-MAX_FILES = 30
-MAX_CHANGED_LINES = 500
+MAX_FILES = 20
+MAX_CHANGED_LINES = 300
 DOC_PREFIX = "docs/"
-TEST_PREFIX = "tests/"
-FINANCIAL_PREFIX = "scripts/"
-FINANCIAL_NAMES = frozenset({
-    "financial_evidence_quality.py",
-    "financial_metric_citations.py",
-    "fundamental_evidence_ledger.py",
-})
 
 
 def classify_tier(files, *, expected_count=None):
@@ -48,12 +39,8 @@ def classify_tier(files, *, expected_count=None):
         return blocked("duplicate_paths")
     if all(p.startswith(DOC_PREFIX) and p.endswith(".md") for p in paths):
         tier = "documentation_candidate"
-    elif all(p.startswith(TEST_PREFIX) and p.endswith(".py") and PurePosixPath(p).name.startswith("test_") for p in paths):
-        tier = "tests_candidate"
-    elif all(p.startswith(FINANCIAL_PREFIX) and PurePosixPath(p).name in FINANCIAL_NAMES for p in paths):
-        tier = "financial_algorithm_requires_independent_validation"
     else:
-        return blocked("non_allowlisted_or_mixed_changes")
+        return blocked("non_documentation_changes_require_manual_review")
     return {
         "tier": tier,
         "reason": "candidate_only_requires_trusted_review_and_ci",

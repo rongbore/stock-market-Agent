@@ -7,11 +7,10 @@ import re
 
 SHA = re.compile(r"^[0-9a-f]{40}$")
 REQUIRED = frozenset({"unit-tests", "merge-policy"})
-TIERS = frozenset({"documentation_candidate", "tests_candidate",
-                   "financial_algorithm_requires_independent_validation"})
+TIERS = frozenset({"documentation_candidate"})
 
 
-def evaluate_readiness(*, tier_result, pr, checks, review, independent_validation=None):
+def evaluate_readiness(*, tier_result, pr, checks, review):
     reasons = []
     if not isinstance(tier_result, dict) or tier_result.get("tier") not in TIERS:
         reasons.append("unapproved_change_tier")
@@ -46,9 +45,6 @@ def evaluate_readiness(*, tier_result, pr, checks, review, independent_validatio
             reasons.append("stale_pending_or_failed_check")
     if not REQUIRED.issubset(found):
         reasons.append("required_checks_missing")
-    if tier_result.get("tier") == "financial_algorithm_requires_independent_validation":
-        if not isinstance(independent_validation, dict) or independent_validation.get("head_sha") != sha or independent_validation.get("passed") is not True or independent_validation.get("trusted") is not True:
-            reasons.append("independent_financial_validation_missing")
     return {
         "decision": "READY_FOR_TRUSTED_CONTROLLER" if not reasons else "BLOCKED",
         "reasons": sorted(set(reasons)),

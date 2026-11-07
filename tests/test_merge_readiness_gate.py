@@ -23,17 +23,13 @@ class ReadinessTests(unittest.TestCase):
         self.assertFalse(result["merge_authorized"])
         self.assertFalse(result["evidence_authenticated"])
 
-    def test_tests_tier(self):
-        self.assertEqual(evaluate_readiness(**evidence("tests_candidate"))["decision"], "READY_FOR_TRUSTED_CONTROLLER")
-
-    def test_financial_needs_independent_validation(self):
-        result = evaluate_readiness(**evidence("financial_algorithm_requires_independent_validation"))
-        self.assertIn("independent_financial_validation_missing", result["reasons"])
-
-    def test_financial_passed_independent_validation(self):
-        e = evidence("financial_algorithm_requires_independent_validation")
-        e["independent_validation"] = {"head_sha": SHA, "passed": True, "trusted": True}
-        self.assertEqual(evaluate_readiness(**e)["decision"], "READY_FOR_TRUSTED_CONTROLLER")
+    def test_tests_financial_and_security_tiers_are_rejected(self):
+        for tier in ("tests_candidate", "financial_algorithm_requires_independent_validation",
+                     "security_configuration_candidate"):
+            with self.subTest(tier=tier):
+                result = evaluate_readiness(**evidence(tier))
+                self.assertEqual(result["decision"], "BLOCKED")
+                self.assertIn("unapproved_change_tier", result["reasons"])
 
     def test_stale_review_blocks(self):
         e = evidence()

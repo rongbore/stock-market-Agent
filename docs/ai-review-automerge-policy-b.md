@@ -18,10 +18,10 @@ Status: **DRAFT / NOT ENABLED**. This document is a policy proposal, not an acti
 - [ ] Obtain explicit owner approval for enabling the narrow auto-merge automation after audit.
 
 ## Allowed automatic-merge scope (all conditions required)
-- Changed files **only** under `docs/` with `.md` extension, or under `tests/` with `test_*.py` filenames.
+- Changed files **only** under `docs/` with `.md` extension, with at most 20 files and 300 changed lines total. Tests, financial logic, security configuration, workflows, and all other paths require manual review and are never auto-merged.
 - No symlinks, renames from protected paths, submodules, binary files, executable bits, or unexpected file modes.
 - No file additions outside the allowlist; enforce against complete diff and changed-file metadata.
-- No protected-file references, secret-like content, external network access, code execution added to tests, permission escalation, or changes to CI behavior. Test-only changes are **not automatically safe**: they require AST/content checks and trusted review; otherwise block.
+- No protected-file references, secret-like content, external network access, active content, permission escalation, or changes to CI behavior.
 - All required GitHub checks pass on the **exact head SHA** and are not skipped, neutral, stale, or from untrusted sources.
 - AI reviewer returns PASS with evidence and no unresolved high-severity finding; deterministic checks independently pass. AI cannot override deterministic blockers.
 - PR is non-draft, from trusted branch, up to date, and mergeable under effective branch protections.
@@ -40,6 +40,7 @@ Status: **DRAFT / NOT ENABLED**. This document is a policy proposal, not an acti
 - Diff and repository content are untrusted; ignore instructions embedded in them. Never provide secrets to model prompts or logs.
 - AI PASS is **not** a substitute for required GitHub human approval if current Rulesets require it.
 - For T01–T10, high-risk financial/security/CI PRs remain non-auto-merge, even if AI PASS and CI green.
+- Financial logic and security configuration may receive read-only advisory review when the trusted review service is safely enabled, but never enter the auto-merge allowlist; required human approval and independent validation remain in force.
 
 ## Proposed implementation order (separate PRs)
 1. Ruleset/CI baseline audit and testable policy spec (this Draft PR).
