@@ -80,6 +80,27 @@ class FinalReviewGateTests(unittest.TestCase):
         data["checks"][0]["status"] = "queued"
         self.assertEqual(evaluate(**data)["decision"], "BLOCKED")
 
+
+    def test_strict_mode_requires_workflow_runs(self):
+        data = evidence()
+        data["require_workflow_evidence"] = True
+        result = evaluate(**data)
+        self.assertEqual(result["decision"], "BLOCKED")
+        self.assertIn("required_workflow_evidence_missing", result["reasons"])
+
+    def test_strict_mode_validates_supplied_runs(self):
+        data = evidence()
+        data["require_workflow_evidence"] = True
+        data["workflow_runs"] = [
+            {"id": i + 1, "name": c["name"], "head_sha": SHA,
+             "event": "pull_request", "status": "completed",
+             "conclusion": "success"}
+            for i, c in enumerate(data["checks"])
+        ]
+        result = evaluate(**data)
+        self.assertEqual(result["decision"], "ELIGIBLE_FOR_POLICY_REVIEW")
+        self.assertFalse(result["merge_authorized"])
+
     def test_failed_check_blocks(self):
         data = evidence()
         data["checks"][0]["conclusion"] = "failure"
