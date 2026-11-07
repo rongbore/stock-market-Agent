@@ -29,7 +29,7 @@ class HttpDiagnosticsTests(unittest.TestCase):
         from scripts.ai_review_evidence_binding import _digest
         prepared["request_digest"]=_digest(prepared["request"])
         invoke_review(prepared=prepared,expected_head_sha=SHA,expected_digest=prepared["request_digest"],
-                      endpoint="https://api.example.com/chat/completions",token="t",model="deepseek-flash",opener=op)
+                      endpoint="https://api.example.com/chat/completions",token="t",model="deepseek-flash",opener=op,allowed_hosts=["api.example.com"])
         body=json.loads(op.request.data)
         self.assertEqual(body["response_format"],{"type":"json_object"})
         self.assertEqual(body["thinking"],{"type":"disabled"})
@@ -42,6 +42,6 @@ class HttpDiagnosticsTests(unittest.TestCase):
         prepared={"head_sha":SHA,"request":req,"request_digest":_digest(req)}
         with self.assertRaisesRegex(ValueError,"provider_http_401"):
             invoke_review(prepared=prepared,expected_head_sha=SHA,expected_digest=prepared["request_digest"],
-                          endpoint="https://api.example.com/chat/completions",token="t",model="deepseek-flash",opener=Unauthorized())
+                          endpoint="https://api.example.com/chat/completions",token="t",model="deepseek-flash",opener=Unauthorized(),allowed_hosts=["api.example.com"])
 
 if __name__ == "__main__": unittest.main()
