@@ -10,6 +10,7 @@ on:
       - 'scripts/akshare_crosscheck.py'
       - 'scripts/akshare_evidence_report.py'
       - 'scripts/market_trend_report.py'
+      - 'scripts/market_research_brief.py'
       - 'scripts/trend_chart_overlay.py'
       - 'scripts/trend_indicators.py'
       - 'requirements-akshare.txt'
@@ -82,6 +83,17 @@ jobs:
               --output-dir dual_output
           else
             echo "Trend charts skipped: required snapshot or comparison artifact missing."
+          fi
+      - name: Generate evidence-bounded offline research brief
+        if: always()
+        shell: bash
+        run: |
+          if [ -f dual_output/price_trend_data.json ]; then
+            python -m scripts.market_research_brief \
+              --trend-data dual_output/price_trend_data.json \
+              --output-dir dual_output
+          else
+            echo "Research brief skipped: price trend evidence unavailable."
           fi
       - name: Publish safe acceptance summary
         if: always()
