@@ -23,6 +23,12 @@ on:
       - 'scripts/financial_claim_evidence.py'
       - 'tests/**'
 
+# Cancel obsolete runs for the same PR when a new commit arrives.
+# Never cancel unrelated PRs or main-branch verification.
+concurrency:
+  group: offline-artifact-e2e-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 permissions:
   contents: read
 
