@@ -7,26 +7,39 @@ import json
 import urllib.error
 import urllib.parse
 import urllib.request
+import ipaddress
 
 from scripts.ai_review_evidence_binding import attach_review
 
 MAX_RESPONSE_BYTES = 65_536
 
 
-def _validate_endpoint(endpoint):
+def _validate_endpoint(endpoint, allowed_hosts=None):
     if not isinstance(endpoint, str) or len(endpoint) > 2048:
         raise ValueError("invalid endpoint")
     parsed = urllib.parse.urlsplit(endpoint)
-    if parsed.scheme != "https" or not parsed.hostname or parsed.username or parsed.password or parsed.fragment:
+    host = (parsed.hostname or "").lower()
+    if parsed.scheme != "https" or not host or parsed.username or parsed.password or parsed.fragment:
         raise ValueError("HTTPS endpoint without credentials or fragment required")
-    if parsed.hostname in ("localhost",) or parsed.hostname.endswith(".local"):
-        raise ValueError("local endpoints forbidden")
+    if parsed.query or parsed.port not in (None, 443):
+        raise ValueError("endpoint query and nonstandard ports forbidden")
+    try:
+        ipaddress.ip_address(host)
+        raise ValueError("IP literal endpoints forbidden")
+    except ValueError as exc:
+        if str(exc) == "IP literal endpoints forbidden":
+            raise
+    if not isinstance(allowed_hosts, (list, tuple, set)) or not allowed_hosts:
+        raise ValueError("provider host allowlist required")
+    normalized = {str(item).lower() for item in allowed_hosts}
+    if host not in normalized:
+        raise ValueError("provider host not allowlisted")
     return endpoint
 
 
 def invoke_review(*, prepared, expected_head_sha, expected_digest, endpoint, token,
-                  model, timeout=60, opener=None):
-    _validate_endpoint(endpoint)
+                  model, timeout=60, opener=None, allowed_hosts=None):
+    _validate_endpoint(endpoint, allowed_hosts=allowed_hosts)
     if not isinstance(token, str) or not token.strip() or len(token) > 4096:
         raise ValueError("missing API credential")
     if not isinstance(model, str) or not model.strip() or len(model) > 128:
