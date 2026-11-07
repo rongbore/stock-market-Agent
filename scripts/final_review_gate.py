@@ -7,6 +7,8 @@ import argparse
 import json
 import re
 
+from scripts.ai_review_contract import validate_review
+
 SHA = re.compile(r"^[0-9a-f]{40}$")
 REQUIRED_CHECKS = frozenset({
     "Python input tests",
@@ -34,7 +36,8 @@ def evaluate(*, head_sha, risk, ai_review, checks, is_draft, changed_paths):
             reasons.append("duplicate_paths")
     if not isinstance(risk, dict) or risk.get("status") != "CANDIDATE" or risk.get("head_sha") != head_sha:
         reasons.append("risk_not_current_candidate")
-    if not isinstance(ai_review, dict) or ai_review.get("status") != "PASS" or ai_review.get("head_sha") != head_sha or ai_review.get("review_complete") is not True:
+    # Never trust a caller-provided status: validate the raw AI response here.
+    if validate_review(ai_review, head_sha).get("status") != "PASS":
         reasons.append("ai_review_not_verified")
     if not isinstance(checks, list):
         reasons.append("invalid_checks")
