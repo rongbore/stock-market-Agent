@@ -11,7 +11,7 @@ class TimeoutDefaultsTests(unittest.TestCase):
 
     def test_timeout_validation_still_caps_unbounded_requests(self):
         from scripts.ai_review_http_client import _validate_endpoint
-        self.assertEqual(_validate_endpoint("https://api.deepseek.com/chat/completions"),
+        self.assertEqual(_validate_endpoint("https://api.deepseek.com/chat/completions", ["api.deepseek.com"]),
                          "https://api.deepseek.com/chat/completions")
         self.assertTrue(True)
 
