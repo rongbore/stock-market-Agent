@@ -8,6 +8,7 @@ import json
 import re
 
 from scripts.ai_review_contract import validate_review
+from scripts.github_check_evidence import normalize_workflow_runs
 
 SHA = re.compile(r"^[0-9a-f]{40}$")
 REQUIRED_CHECKS = frozenset({
@@ -18,7 +19,7 @@ REQUIRED_CHECKS = frozenset({
 })
 
 
-def evaluate(*, head_sha, risk, ai_review, checks, is_draft, changed_paths):
+def evaluate(*, head_sha, risk, ai_review, checks, is_draft, changed_paths, workflow_runs=None):
     reasons = []
     if not isinstance(head_sha, str) or not SHA.fullmatch(head_sha):
         reasons.append("invalid_head_sha")
@@ -39,7 +40,7 @@ def evaluate(*, head_sha, risk, ai_review, checks, is_draft, changed_paths):
     # Never trust a caller-provided status: validate the raw AI response here.
     if validate_review(ai_review, head_sha).get("status") != "PASS":
         reasons.append("ai_review_not_verified")
-    if not isinstance(checks, list):
+    # When raw workflow runs are supplied, require a strict match with the\n    # normalized evidence. No caller-supplied check list can override it.\n    if workflow_runs is not None:\n        try:\n            trusted_checks = normalize_workflow_runs(workflow_runs, head_sha, REQUIRED_CHECKS)\n            if checks != trusted_checks:\n                reasons.append("check_evidence_mismatch")\n        except (ValueError, TypeError):\n            reasons.append("invalid_workflow_run_evidence")\n    if not isinstance(checks, list):
         reasons.append("invalid_checks")
     else:
         by_name = {}
