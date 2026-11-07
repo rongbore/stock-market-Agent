@@ -1,0 +1,83 @@
+"""Isolated, opt-in AI review API transport (stdlib only).
+
+Provider-neutral OpenAI-compatible chat-completions request. Never grants merge.
+No invocation unless an endpoint and token are explicitly supplied by caller.
+"""
+import json
+import urllib.error
+import urllib.parse
+import urllib.request
+
+from scripts.ai_review_evidence_binding import attach_review
+
+MAX_RESPONSE_BYTES = 65_536
+
+
+def _validate_endpoint(endpoint):
+    if not isinstance(endpoint, str) or len(endpoint) > 2048:
+        raise ValueError("invalid endpoint")
+    parsed = urllib.parse.urlsplit(endpoint)
+    if parsed.scheme != "https" or not parsed.hostname or parsed.username or parsed.password or parsed.fragment:
+        raise ValueError("HTTPS endpoint without credentials or fragment required")
+    if parsed.hostname in ("localhost",) or parsed.hostname.endswith(".local"):
+        raise ValueError("local endpoints forbidden")
+    return endpoint
+
+
+def invoke_review(*, prepared, expected_head_sha, expected_digest, endpoint, token,
+                  model, timeout=20, opener=None):
+    _validate_endpoint(endpoint)
+    if not isinstance(token, str) or not token.strip() or len(token) > 4096:
+        raise ValueError("missing API credential")
+    if not isinstance(model, str) or not model.strip() or len(model) > 128:
+        raise ValueError("invalid model")
+    if type(timeout) not in (int, float) or not 1 <= timeout <= 60:
+        raise ValueError("invalid timeout")
+    # Validate SHA/digest and immutable request BEFORE any network request.
+    request = prepared.get("request") if isinstance(prepared, dict) else None
+    if not isinstance(request, dict):
+        raise ValueError("missing prepared request")
+    from scripts.ai_review_evidence_binding import _digest
+    if (request.get("head_sha") != expected_head_sha or
+            prepared.get("head_sha") != expected_head_sha or
+            prepared.get("request_digest") != expected_digest or
+            _digest(request) != expected_digest):
+        raise ValueError("stale or modified request")
+    payload = {
+        "model": model,
+        "temperature": 0,
+        "messages": [
+            {"role": "system", "content": request["system_instructions"]},
+            {"role": "user", "content": request["untrusted_pr_data"]},
+        ],
+    }
+    body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+    http_request = urllib.request.Request(
+        endpoint, data=body,
+        headers={"Authorization": "Bearer " + token, "Content-Type": "application/json"},
+        method="POST",
+    )
+    # Redirects are disabled to avoid sending bearer credentials to a new host.
+    class NoRedirect(urllib.request.HTTPRedirectHandler):
+        def redirect_request(self, req, fp, code, msg, headers, newurl):
+            raise ValueError("redirect forbidden")
+    transport = opener if opener is not None else urllib.request.build_opener(NoRedirect())
+    try:
+        with transport.open(http_request, timeout=timeout) as response:
+            if getattr(response, "status", 200) != 200:
+                raise ValueError("model service failed")
+            raw = response.read(MAX_RESPONSE_BYTES + 1)
+    except (urllib.error.URLError, OSError, TimeoutError) as exc:
+        raise ValueError("model service unavailable") from exc
+    if len(raw) > MAX_RESPONSE_BYTES:
+        raise ValueError("model response too large")
+    try:
+        envelope = json.loads(raw.decode("utf-8"))
+        content = envelope["choices"][0]["message"]["content"]
+    except (UnicodeError, ValueError, KeyError, IndexError, TypeError) as exc:
+        raise ValueError("invalid provider response") from exc
+    result = attach_review(prepared=prepared, response=content,
+                           expected_head_sha=expected_head_sha,
+                           expected_digest=expected_digest)
+    result["model_invoked"] = True
+    return result
