@@ -15,6 +15,18 @@ class AnalyzeWorkflowTests(unittest.TestCase):
         self.assertIn("run: python scripts/report_contract.py results/reports", workflow)
         self.assertIn("if-no-files-found: error", workflow)
 
+    def test_input_preflight_precedes_paid_analysis_and_install(self):
+        workflow = (Path(__file__).resolve().parents[1] /
+                    ".github/workflows/analyze.yml").read_text(encoding="utf-8")
+        preflight = workflow.index("      - name: Validate analysis inputs before dependency install\n")
+        install = workflow.index("      - name: Install pinned TradingAgents\n")
+        analyze = workflow.index("      - name: Analyze stock\n")
+        self.assertLess(preflight, install)
+        self.assertLess(install, analyze)
+        preflight_section = workflow[preflight:install]
+        self.assertIn("from scripts.analyze import read_inputs", preflight_section)
+        self.assertNotIn("DEEPSEEK_API_KEY", preflight_section)
+
     def test_manual_dispatch_only(self):
         workflow = (Path(__file__).resolve().parents[1] /
                     ".github/workflows/analyze.yml").read_text(encoding="utf-8")
