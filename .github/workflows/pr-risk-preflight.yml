@@ -32,6 +32,9 @@ jobs:
           python -m unittest discover -s tests -p 'test_ai_review_contract.py' -v
           python -m unittest discover -s tests -p 'test_trusted_pr_diff.py' -v
           python -m unittest discover -s tests -p 'test_pr_review_preflight.py' -v
+          python -m unittest discover -s tests -p 'test_ai_review_envelope.py' -v
+          python -m unittest discover -s tests -p 'test_final_review_gate.py' -v
+          python -m unittest discover -s tests -p 'test_review_pipeline_e2e.py' -v
       - name: Collect advisory PR risk classification
         if: github.event_name == 'pull_request'
         env:
