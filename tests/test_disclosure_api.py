@@ -76,6 +76,9 @@ class OfficialDisclosureAPITests(unittest.TestCase):
         result = normalize_cninfo_query_response(
             payload, symbol="000776.SZ", analysis_date="2026-10-30")
         self.assertEqual(result[0]["announcement_date"], "2026-10-29")
+        self.assertEqual(result[0]["published_at_epoch_ms"], stamp)
+        self.assertEqual(result[0]["url"],
+                         "https://static.cninfo.com.cn/finalpage/2026-10-29/sample.PDF")
         self.assertFalse(result[0]["source_content_verified"])
         self.assertFalse(result[0]["publication_time_verified"])
         payload["announcements"][0]["announcementTime"] = str(stamp)
@@ -93,6 +96,33 @@ class OfficialDisclosureAPITests(unittest.TestCase):
         payload["announcements"][0]["secCode"] = "000776"
         payload["announcements"][0]["adjunctUrl"] = "finalpage/../secret"
         with self.assertRaises(ValueError):
+            normalize_cninfo_query_response(
+                payload, symbol="000776.SZ", analysis_date="2026-10-30")
+
+    def test_cninfo_wrapper_rejects_pdf_path_date_mismatch(self):
+        from datetime import datetime
+        from zoneinfo import ZoneInfo
+        stamp = int(datetime(2026, 10, 29, 16, 0,
+                             tzinfo=ZoneInfo("Asia/Shanghai")).timestamp() * 1000)
+        payload = {"announcements": [{
+            "secCode": "000776", "announcementTitle": "SYNTHETIC NOTICE",
+            "adjunctUrl": "finalpage/2026-10-28/sample.PDF",
+            "announcementTime": stamp,
+        }]}
+        with self.assertRaisesRegex(ValueError, "path date and announcementTime disagree"):
+            normalize_cninfo_query_response(
+                payload, symbol="000776.SZ", analysis_date="2026-10-30")
+
+    def test_cninfo_wrapper_requires_date_segment_in_pdf_path(self):
+        from datetime import datetime
+        from zoneinfo import ZoneInfo
+        stamp = int(datetime(2026, 10, 29, 16, 0,
+                             tzinfo=ZoneInfo("Asia/Shanghai")).timestamp() * 1000)
+        payload = {"announcements": [{
+            "secCode": "000776", "announcementTitle": "SYNTHETIC NOTICE",
+            "adjunctUrl": "finalpage/sample.PDF", "announcementTime": stamp,
+        }]}
+        with self.assertRaisesRegex(ValueError, "include its disclosure date"):
             normalize_cninfo_query_response(
                 payload, symbol="000776.SZ", analysis_date="2026-10-30")
 

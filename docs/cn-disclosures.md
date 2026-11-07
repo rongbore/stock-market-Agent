@@ -20,6 +20,12 @@ marker, and refuses redirects. It uses no API key. Downloads and SHA-256
 digests make the retrieved bytes traceable; they do not prove publisher
 authenticity or validate the financial contents.
 
+When normalizing CNINFO index responses, the adapter requires the PDF path to
+contain a canonical disclosure date and checks it against the Shanghai date
+derived from the response timestamp. The original millisecond timestamp is
+preserved as metadata. These checks detect inconsistent response fields; they
+do not verify the publisher, timestamp, or historical availability.
+
 Selected page text can be extracted from that snapshot with
 `scripts.disclosure_pdf_text_evidence`. Its page-request JSON is a list such
 as:
