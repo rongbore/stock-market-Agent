@@ -9,7 +9,9 @@ def evidence(tier="documentation_candidate"):
     return dict(
         tier_result={"tier": tier, "auto_merge_authorized": False},
         pr={"head_sha": SHA, "reviewed_head_sha": SHA, "draft": False,
-            "state": "open", "base_ref": "main", "mergeable": True},
+            "state": "open", "base_ref": "main", "mergeable": True,
+            "base_repo_full_name": "rongbore/stock-market-Agent",
+            "head_repo_full_name": "rongbore/stock-market-Agent"},
         checks=[{"name": n, "head_sha": SHA, "status": "completed", "conclusion": "success"}
                 for n in ("unit-tests", "merge-policy")],
         review={"head_sha": SHA, "verdict": "approve", "trusted": True},
@@ -59,6 +61,20 @@ class ReadinessTests(unittest.TestCase):
         e = evidence()
         e["pr"]["base_ref"] = "development"
         self.assertEqual(evaluate_readiness(**e)["decision"], "BLOCKED")
+
+    def test_fork_pull_request_blocks(self):
+        e = evidence()
+        e["pr"]["head_repo_full_name"] = "contributor/stock-market-Agent"
+        result = evaluate_readiness(**e)
+        self.assertEqual(result["decision"], "BLOCKED")
+        self.assertIn("fork_or_unverified_head_repository", result["reasons"])
+
+    def test_missing_repository_identity_blocks(self):
+        e = evidence()
+        del e["pr"]["head_repo_full_name"]
+        result = evaluate_readiness(**e)
+        self.assertEqual(result["decision"], "BLOCKED")
+        self.assertIn("fork_or_unverified_head_repository", result["reasons"])
 
 
 if __name__ == "__main__":

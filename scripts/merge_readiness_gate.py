@@ -23,6 +23,12 @@ def evaluate_readiness(*, tier_result, pr, checks, review):
         reasons.append("draft_or_closed_pr")
     if pr.get("base_ref") != "main":
         reasons.append("wrong_base")
+    base_repo = pr.get("base_repo_full_name")
+    head_repo = pr.get("head_repo_full_name")
+    if (not isinstance(base_repo, str) or not base_repo.strip() or
+            not isinstance(head_repo, str) or not head_repo.strip() or
+            base_repo.casefold() != head_repo.casefold()):
+        reasons.append("fork_or_unverified_head_repository")
     if pr.get("mergeable") is not True:
         reasons.append("mergeability_not_confirmed")
     if pr.get("head_sha") != pr.get("reviewed_head_sha"):
