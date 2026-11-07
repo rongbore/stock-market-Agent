@@ -173,8 +173,12 @@ def save_disclosure_snapshot(directory, snapshot):
 
 
 def collect_disclosure_candidates(url, *, source, analysis_date, symbol,
-                                  output_dir, timeout=10):
-    """Fetch, screen and persist unverified records without LLM or trading."""
+                                  output_dir, timeout=10, download_originals=False):
+    """Fetch, screen and persist unverified records without LLM or trading.
+
+    Original PDF downloads are opt-in and currently supported for CNINFO only.
+    """
+    from pathlib import Path
     if __package__:
         from .disclosure_candidates import screen_disclosures, save_disclosure_candidates
     else:
@@ -184,6 +188,24 @@ def collect_disclosure_candidates(url, *, source, analysis_date, symbol,
         symbol=symbol, timeout=timeout)
     candidates = screen_disclosures(
         snapshot["records"], analysis_date=analysis_date, symbol=symbol)
+    if download_originals:
+        if source != "cninfo":
+            raise ValueError("original PDF download currently supports CNINFO only")
+        if __package__:
+            from .disclosure_pdf_fetch import fetch_cninfo_pdf
+        else:
+            from disclosure_pdf_fetch import fetch_cninfo_pdf
+        originals_dir = Path(output_dir) / "originals"
+        artifacts = []
+        for record in snapshot["records"]:
+            artifact = fetch_cninfo_pdf(record, originals_dir, timeout=timeout)
+            artifact["relative_path"] = "originals/" + artifact["relative_path"]
+            record["pdf_artifact"] = artifact
+            artifacts.append(artifact)
+        snapshot["original_pdf_artifacts"] = artifacts
+        snapshot["limitations"].append(
+            "PDF hashes identify downloaded bytes only; official origin and document contents are not verified."
+        )
     # Validate the complete candidate set before writing either artifact.
     snapshot_path = save_disclosure_snapshot(output_dir, snapshot)
     candidates_path = save_disclosure_candidates(output_dir, candidates)
@@ -202,6 +224,10 @@ def main():
     parser.add_argument("--symbol", required=True)
     parser.add_argument("--output-dir", required=True)
     parser.add_argument("--timeout", type=float, default=10)
+    parser.add_argument(
+        "--download-originals", action="store_true",
+        help="also download bounded CNINFO PDF originals and record SHA-256 fingerprints",
+    )
     args = parser.parse_args()
     from datetime import date
     import re
@@ -218,7 +244,8 @@ def main():
         parser.error(str(exc))
     result = collect_disclosure_candidates(
         args.endpoint, source=args.source, analysis_date=args.analysis_date,
-        symbol=args.symbol, output_dir=args.output_dir, timeout=args.timeout)
+        symbol=args.symbol, output_dir=args.output_dir, timeout=args.timeout,
+        download_originals=args.download_originals)
     print(f"Unverified candidates: {result['candidate_count']}")
     print(result["snapshot_path"])
     print(result["candidates_path"])
