@@ -9,6 +9,8 @@ import json
 import math
 from datetime import date
 from pathlib import Path
+from scripts.trend_chart_overlay import render_overlay_section
+from scripts.trend_indicators import technical_summary
 
 
 def _validate_snapshot(snapshot):
@@ -109,7 +111,7 @@ def render_html(report):
             f'<p>区间：{report["dates"][0]} 至 {report["dates"][-1]}；'
             f'共同日期：{report["shared_points"]}；双源数值一致性：'
             f'{"通过（非官方认证）" if report["numerical_agreement"] else "未通过或未完成"}。</p>'
-            f'<h2>收盘价变化</h2>{_svg(report)}'
+            f'<h2>收盘价变化</h2>{render_overlay_section(report)}'
             f'<h2>核心要点</h2><ul><li>观察期变化：{change}</li>'
             f'<li>最新价格：{report["end_price"]:.3f} CNY/股</li>'
             f'<li>最近最多 5 个共同交易日均价：{report["last_ma"]:.3f} CNY/股</li>'
@@ -121,6 +123,7 @@ def render_html(report):
 
 
 def render_markdown(report):
+    indicators = technical_summary(report)
     change = "数据不足" if report["change_pct"] is None else f'{report["change_pct"]:+.2f}%'
     lines = [
         f'# {report["symbol"]} 价格趋势', "",
@@ -131,10 +134,15 @@ def render_markdown(report):
         f'- 观察期价格变化：{change}',
         f'- 最新收盘价：{report["end_price"]:.3f} CNY/股',
         f'- 最近最多 5 个共同交易日均价：{report["last_ma"]:.3f} CNY/股',
-        f'- 技术观察：{report["trend"]}；仅描述观察期，不代表未来走势。',
+        f'- 技术观察：{report["trend"]}；{indicators['observation']}；仅描述观察期，不代表未来走势。',
         "", "## 折线图数据", "", "| 日期 | 双源收盘价均值（CNY/股） |", "|---|---:|",
     ]
     lines.extend(f"| {day} | {price:.3f} |" for day, price in zip(report["dates"], report["prices"]))
+    lines += ["", "## MA5 / MA20 历史均线", "", "| 日期 | MA5 | MA20 |", "|---|---:|---:|"]
+    for day, ma5, ma20 in zip(report["dates"], indicators["ma5"], indicators["ma20"]):
+        a = f"{ma5:.3f}" if ma5 is not None else "数据不足"
+        b = f"{ma20:.3f}" if ma20 is not None else "数据不足"
+        lines.append(f"| {day} | {a} | {b} |")
     lines += ["", "## 数据边界", "",
               f'- 上游：{", ".join(report["sources"])}；双源数值一致不等于官方认证。',
               "- 未核验来源内容及历史时点；缺失日期不补零、不插值。",
