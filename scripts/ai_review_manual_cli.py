@@ -55,7 +55,7 @@ def run(*, repo, pr_number, github_token, model_token, endpoint, model):
     if any(f.get("status") not in ("added", "modified") or not isinstance(f.get("patch"), str) for f in files):
         raise ValueError("binary, deleted, renamed or missing patch")
     changed_files = [f["filename"] for f in files]
-    diff = "\\n".join("FILE " + f["filename"] + "\\n" + f["patch"] for f in files)
+    diff = "\n".join("FILE " + f["filename"] + "\n" + f["patch"] for f in files)
     # Deterministic finance-domain preflight; model output remains advisory.
     per_file_diffs = {item["filename"]: item["patch"] for item in files}
     preflight = assess_financial_pr(changed_files, per_file_diffs)
