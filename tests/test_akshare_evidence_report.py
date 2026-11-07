@@ -199,6 +199,40 @@ class EvidenceReportTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "requires claims"):
             render(diag, pages=[])
 
+    def test_disclosure_page_evidence_renders_url_retrieval_and_cutoff_warning(self):
+        diag = {"symbol": "000776.SZ", "start_date": "2026-10-01",
+                "end_date": "2026-10-30"}
+        fp = {"symbol": "000776.SZ", "announcement_date": "2026-10-20",
+              "file_sha256": "a" * 64, "file_size_bytes": 1024,
+              "official_origin_verified": False, "source_content_verified": False}
+        claim = {"symbol": "000776.SZ", "metric": "revenue", "value": "123.45",
+                 "unit": "CNY", "period_end": "2026-09-30",
+                 "announcement_date": "2026-10-20", "file_sha256": "a" * 64,
+                 "page": 4}
+        page = {"symbol": "000776.SZ", "announcement_date": "2026-10-20",
+                "source_url": "https://static.cninfo.com.cn/finalpage/2026/report.pdf",
+                "retrieved_at": "2026-11-01T02:00:00+00:00",
+                "file_sha256": "a" * 64, "page": 4,
+                "text": "营业收入 123.45 亿元",
+                "text_extraction_status": "text_extracted_unverified",
+                "official_origin_verified": False, "source_content_verified": False,
+                "financial_meaning_verified": False,
+                "historical_point_in_time_verified": False}
+        evidence = {"schema_version": "0.1", "page_count": 1,
+                    "all_pages_verified": False, "pages": [page]}
+        output = render(diag, fingerprints=[fp], claims=[claim],
+                        disclosure_page_evidence=evidence)
+        self.assertIn("找到相同数字（未认证）", output)
+        self.assertIn("https://static.cninfo.com.cn/finalpage/2026/report.pdf", output)
+        self.assertIn("2026-11-01T02:00:00+00:00", output)
+        self.assertIn("抓取日期晚于研究日期：是", output)
+
+    def test_page_text_and_disclosure_evidence_are_mutually_exclusive(self):
+        with self.assertRaisesRegex(ValueError, "either page text or disclosure"):
+            render({"symbol": "000776.SZ", "end_date": "2026-10-30"},
+                   claims=[], fingerprints=[], pages=[],
+                   disclosure_page_evidence={"schema_version": "0.1"})
+
     def test_report_requires_diagnostic_object(self):
         with self.assertRaises(ValueError):
             render([])
