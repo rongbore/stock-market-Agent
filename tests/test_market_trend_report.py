@@ -82,6 +82,25 @@ class MarketTrendReportTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "ISO timestamp"):
             build_report(self.a, self.b)
 
+    def test_snapshot_fingerprints_are_stable_and_rendered(self):
+        report = build_report(self.a, self.b)
+        reordered = dict(reversed(list(self.a.items())))
+        same_content = build_report(reordered, self.b)
+        self.assertEqual(report["snapshot_fingerprints"][0]["canonical_json_sha256"],
+                         same_content["snapshot_fingerprints"][0]["canonical_json_sha256"])
+        self.assertEqual(len(report["snapshot_fingerprints"][0]["canonical_json_sha256"]), 64)
+        self.assertIn("规范化快照 SHA-256", render_markdown(report))
+        self.assertIn("快照 SHA-256", render_html(report))
+        self.a["records"][0]["close"] += 0.01
+        changed = build_report(self.a, self.b)
+        self.assertNotEqual(report["snapshot_fingerprints"][0]["canonical_json_sha256"],
+                            changed["snapshot_fingerprints"][0]["canonical_json_sha256"])
+
+    def test_snapshot_fingerprint_rejects_non_json_values(self):
+        self.a["extra"] = float("nan")
+        with self.assertRaisesRegex(ValueError, "canonical JSON"):
+            build_report(self.a, self.b)
+
 
 if __name__ == "__main__":
     unittest.main()
