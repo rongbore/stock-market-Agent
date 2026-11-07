@@ -30,7 +30,7 @@ def collect(base_sha, head_sha):
     base = git("merge-base", base_sha, head_sha).decode().strip()
     if base != base_sha:
         raise ValueError("base_not_ancestor")
-    raw = git("diff", "--raw", "-z", "--no-renames", base_sha, head_sha)
+    raw = git("diff", "--raw", "-z", "--abbrev=40", "--no-renames", base_sha, head_sha)
     parts = raw.split(b"\0")
     if parts[-1:] == [b""]:
         parts.pop()
