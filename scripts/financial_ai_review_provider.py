@@ -35,6 +35,12 @@ def make_provider_reviewer(*, head_sha, endpoint, token, model, allowed_hosts,
             "output_requirements": task.get("output_requirements", []),
             "merge_authorized": False,
             "ai_review_is_advisory": True,
+            "discussion_phase": task.get("discussion_phase", "independent_review"),
+            "discussion_round": task.get("discussion_round", 0),
+            "discussion_history": task.get("discussion_history", []),
+            "initial_reviews": task.get("initial_reviews", []),
+            "current_position": task.get("current_position"),
+            "moderator_instruction": task.get("moderator_instruction"),
         }
         rendered = json.dumps(context, ensure_ascii=False, sort_keys=True)
         if len(rendered) > MAX_CONTEXT:
