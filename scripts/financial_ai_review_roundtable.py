@@ -119,14 +119,29 @@ def run_financial_roundtable(*, financial_files, diff_by_file, independent_revie
         raise ValueError("moderator context too large")
     moderator = _validate_response(reviewer(moderator_task), set(moderator_files))
     all_reviews = list(positions.values())
-    all_findings = [finding for item in all_reviews for finding in item["findings"]]
+    # Preserve concerns from every stage: a later model cannot erase an earlier finding.
+    all_findings = [
+        finding
+        for item in independent_reviews
+        for finding in item["findings"]
+    ]
+    all_findings += [
+        finding
+        for item in history
+        for finding in item["findings"]
+    ]
+    all_findings += [finding for item in all_reviews for finding in item["findings"]]
     all_findings += moderator["findings"]
-    verdicts = [item["verdict"] for item in all_reviews]
+
+    initial_verdicts = [item["verdict"] for item in independent_reviews]
+    final_verdicts = [item["verdict"] for item in all_reviews]
+    all_verdicts = initial_verdicts + final_verdicts + [moderator["verdict"]]
+
     if any(f["severity"] in ("high", "critical") for f in all_findings):
         safe_verdict = "request_changes"
-    elif "request_changes" in verdicts:
+    elif "request_changes" in all_verdicts:
         safe_verdict = "request_changes"
-    elif "uncertain" in verdicts or len(set(verdicts)) > 1:
+    elif "uncertain" in all_verdicts or len(set(all_verdicts)) > 1:
         safe_verdict = "uncertain"
     else:
         safe_verdict = moderator["verdict"]
@@ -139,9 +154,11 @@ def run_financial_roundtable(*, financial_files, diff_by_file, independent_revie
         ],
         "moderator_synthesis": moderator,
         "overall_verdict": safe_verdict,
-        "dissent_preserved": len(set(verdicts)) > 1 or any(
-            item["verdict"] != moderator["verdict"] for item in all_reviews),
-        "unresolved_disagreement": len(set(verdicts)) > 1,
+        "dissent_preserved": len(set(all_verdicts)) > 1 or any(
+            item["verdict"] != moderator["verdict"]
+            for item in independent_reviews + all_reviews
+        ),
+        "unresolved_disagreement": len(set(all_verdicts)) > 1,
         "merge_authorized": False,
         "review_advisory_only": True,
     }
