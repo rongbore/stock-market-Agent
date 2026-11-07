@@ -30,6 +30,7 @@ class ManualCliRoundtableTests(unittest.TestCase):
             "review_advisory_only": True,
         }
 
+    @patch.dict("os.environ", {"AI_REVIEW_ROUNDTABLE_ROUNDS": "2"})
     @patch("scripts.ai_review_manual_cli.review_financial_changes_with_roundtable")
     @patch("scripts.ai_review_manual_cli.github_json")
     def test_financial_pr_uses_roundtable_and_reports_call_count(self, github, roundtable):
@@ -79,6 +80,7 @@ class ManualCliRoundtableTests(unittest.TestCase):
         self.assertEqual(result["verdict"], "uncertain")
         self.assertFalse(result["merge_authorized"])
 
+    @patch.dict("os.environ", {"AI_REVIEW_ROUNDTABLE_ROUNDS": "2"})
     @patch("scripts.ai_review_manual_cli.review_financial_changes_with_roundtable")
     @patch("scripts.ai_review_manual_cli.invoke_review")
     @patch("scripts.ai_review_manual_cli.github_json")
