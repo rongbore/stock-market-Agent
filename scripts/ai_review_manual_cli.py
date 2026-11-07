@@ -65,6 +65,7 @@ def run(*, repo, pr_number, github_token, model_token, endpoint, model):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--pr-number", type=int, required=True)
+    parser.add_argument("--output", default="ai-review-result.json")
     args = parser.parse_args()
     try:
         result = run(repo=os.environ.get("GITHUB_REPOSITORY", ""),
@@ -73,11 +74,17 @@ def main():
                      model_token=os.environ.get("AI_REVIEW_API_KEY", ""),
                      endpoint=os.environ.get("AI_REVIEW_ENDPOINT", ""),
                      model=os.environ.get("AI_REVIEW_MODEL", ""))
-        print(json.dumps(result, ensure_ascii=False))
+        rendered = json.dumps(result, ensure_ascii=False, indent=2) + "\\n"
+        with open(args.output, "w", encoding="utf-8") as output:
+            output.write(rendered)
+        print(rendered)
         return 0
     except (ValueError, KeyError, TypeError, OSError, urllib.error.URLError):
-        print(json.dumps({"status": "BLOCKED", "reason": "review_unavailable_or_invalid",
-                          "merge_authorized": False}))
+        blocked = json.dumps({"status": "BLOCKED", "reason": "review_unavailable_or_invalid",
+                              "merge_authorized": False}, ensure_ascii=False) + "\\n"
+        with open(args.output, "w", encoding="utf-8") as output:
+            output.write(blocked)
+        print(blocked)
         return 1
 
 
