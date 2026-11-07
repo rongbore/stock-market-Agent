@@ -38,8 +38,8 @@ class TrustedDiffTests(unittest.TestCase):
     def test_diverged_base_uses_merge_base(self, run):
         ancestor = "c" * 40
         run.side_effect = [BASE.encode(), HEAD.encode(), ancestor.encode(),
-                           b":000000 100644 " + b"0"*40 + b" " + b"1"*40 + b" A\\0docs/guide.md\\0",
-                           b"# Guide\\n"]
+                           b":000000 100644 " + b"0"*40 + b" " + b"1"*40 + b" A\0docs/guide.md\0",
+                           b"# Guide\n"]
         data = collect(BASE, HEAD)
         self.assertEqual(data[0]["filename"], "docs/guide.md")
         diff_call = run.call_args_list[3].args
