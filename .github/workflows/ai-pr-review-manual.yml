@@ -1,0 +1,32 @@
+name: AI PR review (manual, read only)
+
+on:
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'Open PR number to review (no merge)'
+        required: true
+        type: number
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Run advisory AI review without PR checkout
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          AI_REVIEW_API_KEY: ${{ secrets.AI_REVIEW_API_KEY }}
+          AI_REVIEW_ENDPOINT: ${{ vars.AI_REVIEW_ENDPOINT }}
+          AI_REVIEW_MODEL: ${{ vars.AI_REVIEW_MODEL }}
+        run: python -m scripts.ai_review_manual_cli --pr-number "${{ inputs.pr_number }}"
