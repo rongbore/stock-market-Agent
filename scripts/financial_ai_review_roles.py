@@ -1,7 +1,7 @@
 """Deterministic specialist routing for financial code review.
 
-Roles provide independent review checklists, not separate model calls. The caller
-may later dispatch them to isolated agents; this module is offline and advisory.
+Each role has an independent checklist and is dispatched as a separate model call.
+The routing is deterministic and advisory; it performs no network or merge actions.
 """
 MAX_FILES = 200
 ROLE_CHECKS = {
