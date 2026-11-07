@@ -52,7 +52,7 @@ class MarketTrendReportTests(unittest.TestCase):
         md = render_markdown(report)
         self.assertNotIn("<script>", html)
         self.assertIn("&lt;script&gt;", html)
-        self.assertIn("非官方认证", html)
+        self.assertIn("不代表交易所认证", html)
         self.assertIn("数据边界", md)
         self.assertIn("| 日期 |", md)
 
