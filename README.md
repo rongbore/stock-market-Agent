@@ -111,6 +111,8 @@ python -m scripts.akshare_evidence_report --input-dir dual_output --output dual_
 
 `scripts.financial_page_text_crosscheck.check_page_text(claims, fingerprints, pages, symbol, research_date)` 接受由调用方提供的页面文字记录数组（每项为 `file_sha256`、`page`、`text`）。`check_disclosure_page_evidence` 则接受 `scripts.disclosure_pdf_text_evidence` 导出的对象，并把核对结果附上公告 URL 和抓取时间；该连接仍是未验证引用，不能证明下载来源或公告当时可得。两种入口都会按文件指纹及页码查找**完整数值字面串**，输出 `literal_value_found_unverified`、`literal_value_not_found` 或 `page_text_missing`。即使找到数值，也无法判断它属于哪个财务指标、单位或报告期，更不能据此认定财务内容正确。若抓取日期晚于研究日期，结果会显式标记 `retrieval_date_after_research_date=true`。
 
+中文报告 CLI 可通过 `--disclosure-page-evidence-json` 传入上述页面证据对象；报告会显示公告 URL、抓取时间和抓取日期晚于研究日期的提示。该字段只用于审计追溯，不能当作历史时点或财务真实性证明。
+
 #### 从本地 PDF 提取指定页码文字（可选依赖）
 
 先在本地环境安装 `pypdf`（CI 使用注入式离线测试，不要求联网安装依赖）。仅处理本地文件，限制 20 MiB、单次最多 100 个指定页码，提取前后计算 SHA-256 并拒绝文件变化；加密 PDF 不支持。示例：

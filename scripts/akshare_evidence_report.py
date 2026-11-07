@@ -5,7 +5,10 @@ from datetime import date
 import re
 from pathlib import Path
 from scripts.financial_claim_evidence import validate_claims
-from scripts.financial_page_text_crosscheck import check_page_text
+from scripts.financial_page_text_crosscheck import (
+    check_disclosure_page_evidence,
+    check_page_text,
+)
 
 
 def _disclosures(items, symbol, start_date, end_date):
@@ -73,9 +76,12 @@ def _fingerprints(items, symbol, start_date, end_date):
     return sorted(result)
 
 
-def render(diag, comparison=None, disclosures=None, fingerprints=None, claims=None, pages=None):
+def render(diag, comparison=None, disclosures=None, fingerprints=None, claims=None,
+           pages=None, disclosure_page_evidence=None):
     if not isinstance(diag, dict):
         raise ValueError("invalid diagnostics")
+    if pages is not None and disclosure_page_evidence is not None:
+        raise ValueError("provide either page text or disclosure page evidence, not both")
     comparison = comparison if isinstance(comparison, dict) else None
     agreed = bool(comparison and comparison.get("status") == "passed"
                   and comparison.get("cross_source_numerical_agreement") is True
@@ -154,12 +160,18 @@ def render(diag, comparison=None, disclosures=None, fingerprints=None, claims=No
             )
         lines.append("")
     lines += ["## 财务指标页面文字字面核对（可选、未认证）", ""]
-    if pages is None:
+    if pages is None and disclosure_page_evidence is None:
         lines += ["- 未提供 PDF 页面文字；未执行数字字面核对。", ""]
     else:
         if claims is None or fingerprints is None:
             raise ValueError("page crosscheck requires claims and PDF fingerprints")
-        checks = check_page_text(claims, fingerprints, pages, diag.get("symbol"), diag.get("end_date"))
+        if disclosure_page_evidence is not None:
+            checks = check_disclosure_page_evidence(
+                claims, fingerprints, disclosure_page_evidence,
+                diag.get("symbol"), diag.get("end_date"))
+        else:
+            checks = check_page_text(
+                claims, fingerprints, pages, diag.get("symbol"), diag.get("end_date"))
         labels = {
             "literal_value_found_unverified": "找到相同数字（未认证）",
             "literal_value_not_found": "未找到相同数字",
@@ -176,6 +188,12 @@ def render(diag, comparison=None, disclosures=None, fingerprints=None, claims=No
                 f"同行报告期线索：{'有（未认证）' if item['period_end_near_value_unverified'] else '无'}；"
                 f"多列表格歧义提示：{'可能存在（需人工复核）' if item['table_column_ambiguous_unverified'] else '未触发'}。"
             )
+            if disclosure_page_evidence is not None and item.get("source_url"):
+                lines.append(
+                    f"  来源 URL：{safe(item['source_url'])}；抓取时间："
+                    f"{safe(item['retrieved_at'])}；抓取日期晚于研究日期："
+                    f"{'是' if item['retrieval_date_after_research_date'] else '否/未标记'}。"
+                )
         lines.append("")
     return "\n".join(lines)
 
@@ -188,6 +206,8 @@ def main(argv=None):
     parser.add_argument("--fingerprints-json", default=None)
     parser.add_argument("--claims-json", default=None)
     parser.add_argument("--pages-json", default=None)
+    parser.add_argument("--disclosure-page-evidence-json", default=None,
+                        help="page evidence object exported from a CNINFO disclosure snapshot")
     args = parser.parse_args(argv)
     folder = Path(args.input_dir)
     diag = json.loads((folder / "dual_upstream_diagnostics.json").read_text(encoding="utf-8"))
@@ -197,9 +217,12 @@ def main(argv=None):
     fingerprints = json.loads(Path(args.fingerprints_json).read_text(encoding="utf-8")) if args.fingerprints_json else None
     claims = json.loads(Path(args.claims_json).read_text(encoding="utf-8")) if args.claims_json else None
     pages = json.loads(Path(args.pages_json).read_text(encoding="utf-8")) if args.pages_json else None
+    disclosure_page_evidence = (json.loads(Path(args.disclosure_page_evidence_json).read_text(encoding="utf-8"))
+                                if args.disclosure_page_evidence_json else None)
     target = Path(args.output)
     target.parent.mkdir(parents=True, exist_ok=True)
-    target.write_text(render(diag, comparison, disclosures, fingerprints, claims, pages), encoding="utf-8")
+    target.write_text(render(diag, comparison, disclosures, fingerprints, claims, pages,
+                             disclosure_page_evidence), encoding="utf-8")
     return 0
 
 
