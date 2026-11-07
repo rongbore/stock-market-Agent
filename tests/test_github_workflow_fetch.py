@@ -43,6 +43,41 @@ class GitHubWorkflowFetchTests(unittest.TestCase):
                         token="test-token", opener=lambda req, timeout: Response(
                             {"total_count": 1, "workflow_runs": [bad]}))
 
+
+    def test_rejects_truncated_response_and_wrong_count(self):
+        for payload in (
+            {"total_count": 1, "workflow_runs": []},
+            {"total_count": 0, "workflow_runs": [run()]},
+            {"workflow_runs": [run()]},
+            {"total_count": True, "workflow_runs": [run()]},
+        ):
+            with self.subTest(payload=payload):
+                with self.assertRaises(ValueError):
+                    fetch_workflow_evidence("owner/repo", SHA, REQUIRED,
+                        token="test-token", opener=lambda req, timeout: Response(payload))
+
+    def test_rejects_oversized_body(self):
+        class HugeResponse:
+            def __enter__(self):
+                return io.BytesIO(b"x" * 2_000_001)
+
+            def __exit__(self, *args):
+                return False
+
+        with self.assertRaises(ValueError):
+            fetch_workflow_evidence("owner/repo", SHA, REQUIRED,
+                token="test-token", opener=lambda req, timeout: HugeResponse())
+
+    def test_rejects_unsafe_repository_and_token(self):
+        for repo, token in (
+            ("owner/../repo", "test-token"),
+            ("owner/repo", "bad\ntoken"),
+            ("owner/repo", "  "),
+        ):
+            with self.subTest(repo=repo):
+                with self.assertRaises(ValueError):
+                    fetch_workflow_evidence(repo, SHA, REQUIRED, token=token)
+
     def test_rejects_ambiguous_pagination_and_missing_token(self):
         with self.assertRaises(ValueError):
             fetch_workflow_evidence("owner/repo", SHA, REQUIRED, token="")
