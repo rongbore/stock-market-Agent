@@ -13,8 +13,9 @@ def evidence(tier="documentation_candidate"):
             "base_sha": "b" * 40,
             "base_repo_full_name": "rongbore/stock-market-Agent",
             "head_repo_full_name": "rongbore/stock-market-Agent"},
-        checks=[{"name": n, "head_sha": SHA, "status": "completed", "conclusion": "success"}
-                for n in ("unit-tests", "merge-policy")],
+        checks=[{"id": i, "app_id": 9001, "name": n, "head_sha": SHA,
+                 "status": "completed", "conclusion": "success"}
+                for i, n in enumerate(("unit-tests", "merge-policy"), start=1)],
         review={"head_sha": SHA, "verdict": "approve", "trusted": True},
         review_threads=[],
         has_changes_requested_review=False,
@@ -22,6 +23,7 @@ def evidence(tier="documentation_candidate"):
         checks_complete=True,
         expected_check_count=2,
         review_threads_complete=True,
+        trusted_check_app_ids=[9001],
     )
 
 
@@ -142,6 +144,32 @@ class ReadinessTests(unittest.TestCase):
         result = evaluate_readiness(**e)
         self.assertEqual(result["decision"], "BLOCKED")
         self.assertIn("review_threads_incomplete_or_unverified", result["reasons"])
+
+    def test_untrusted_or_missing_check_provenance_blocks(self):
+        e = evidence()
+        e["checks"][0]["app_id"] = 9002
+        result = evaluate_readiness(**e)
+        self.assertEqual(result["decision"], "BLOCKED")
+        self.assertIn("check_provenance_missing_or_untrusted", result["reasons"])
+        e = evidence()
+        del e["checks"][0]["id"]
+        result = evaluate_readiness(**e)
+        self.assertEqual(result["decision"], "BLOCKED")
+        self.assertIn("check_provenance_missing_or_untrusted", result["reasons"])
+
+    def test_duplicate_check_run_ids_block(self):
+        e = evidence()
+        e["checks"][1]["id"] = e["checks"][0]["id"]
+        result = evaluate_readiness(**e)
+        self.assertEqual(result["decision"], "BLOCKED")
+        self.assertIn("duplicate_check_run_id", result["reasons"])
+
+    def test_missing_trusted_app_allowlist_blocks(self):
+        e = evidence()
+        e["trusted_check_app_ids"] = []
+        result = evaluate_readiness(**e)
+        self.assertEqual(result["decision"], "BLOCKED")
+        self.assertIn("trusted_check_app_allowlist_invalid", result["reasons"])
 
 
 if __name__ == "__main__":
