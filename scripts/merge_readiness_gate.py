@@ -10,7 +10,8 @@ REQUIRED = frozenset({"unit-tests", "merge-policy"})
 TIERS = frozenset({"documentation_candidate"})
 
 
-def evaluate_readiness(*, tier_result, pr, checks, review):
+def evaluate_readiness(*, tier_result, pr, checks, review,
+                       review_threads, has_changes_requested_review):
     reasons = []
     if not isinstance(tier_result, dict) or tier_result.get("tier") not in TIERS:
         reasons.append("unapproved_change_tier")
@@ -35,6 +36,18 @@ def evaluate_readiness(*, tier_result, pr, checks, review):
         reasons.append("reviewed_sha_changed")
     if not isinstance(review, dict) or review.get("head_sha") != sha or review.get("verdict") != "approve" or review.get("trusted") is not True:
         reasons.append("missing_trusted_ai_review")
+    if type(has_changes_requested_review) is not bool:
+        reasons.append("review_status_missing_or_invalid")
+    elif has_changes_requested_review:
+        reasons.append("changes_requested_review")
+    if not isinstance(review_threads, list):
+        reasons.append("review_threads_missing_or_invalid")
+    else:
+        for thread in review_threads:
+            if not isinstance(thread, dict) or type(thread.get("is_resolved")) is not bool:
+                reasons.append("review_thread_status_missing_or_invalid")
+            elif not thread["is_resolved"]:
+                reasons.append("unresolved_review_threads")
     if not isinstance(checks, list):
         checks = []
         reasons.append("missing_checks")
