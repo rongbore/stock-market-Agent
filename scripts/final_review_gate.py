@@ -27,7 +27,7 @@ def evaluate(*, head_sha, risk, ai_review, checks, is_draft, changed_paths):
     else:
         # Never authorize merges involving CI, code, config or sensitive files.
         if any(not isinstance(p, str) or not re.fullmatch(
-            r"docs/(?:[A-Za-z0-9_-]+/)*[A-Za-z0-9_-]+\\.md", p
+            r"docs/(?:[A-Za-z0-9_-]+/)*[A-Za-z0-9_-]+\.md", p
         ) for p in changed_paths):
             reasons.append("non_documentation_change")
         if len(changed_paths) != len(set(changed_paths)):
