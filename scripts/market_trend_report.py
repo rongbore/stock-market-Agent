@@ -55,6 +55,17 @@ def build_report(primary, secondary, comparison=None):
     shared = sorted(a.keys() & b.keys())
     if not shared:
         raise ValueError("no shared dates for chart")
+    # Never average materially divergent upstream prices into an apparently
+    # reliable chart, even when the optional comparison JSON is missing or stale.
+    if any(abs(a[day] - b[day]) > 0.011 for day in shared):
+        raise ValueError("cross-source close price divergence exceeds tolerance")
+    if comparison is not None:
+        if not isinstance(comparison, dict) or comparison.get("status") != "passed" or comparison.get("cross_source_numerical_agreement") is not True:
+            raise ValueError("cross-source comparison not passed")
+        if comparison.get("symbol", sym_a) != sym_a:
+            raise ValueError("comparison symbol mismatch")
+        if comparison.get("primary_upstream", primary.get("upstream")) != primary.get("upstream") or comparison.get("secondary_upstream", secondary.get("upstream")) != secondary.get("upstream"):
+            raise ValueError("comparison upstream mismatch")
     # Plot only dates present in both snapshots; do not fill gaps with zero.
     values = [(day, (a[day] + b[day]) / 2) for day in shared]
     values.sort(key=lambda item: item[0])
