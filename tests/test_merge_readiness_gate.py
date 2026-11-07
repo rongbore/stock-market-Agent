@@ -19,6 +19,9 @@ def evidence(tier="documentation_candidate"):
         review_threads=[],
         has_changes_requested_review=False,
         current_base_sha="b" * 40,
+        checks_complete=True,
+        expected_check_count=2,
+        review_threads_complete=True,
     )
 
 
@@ -120,6 +123,25 @@ class ReadinessTests(unittest.TestCase):
         result = evaluate_readiness(**e)
         self.assertEqual(result["decision"], "BLOCKED")
         self.assertIn("review_status_missing_or_invalid", result["reasons"])
+
+    def test_incomplete_check_pagination_blocks(self):
+        e = evidence()
+        e["checks_complete"] = False
+        result = evaluate_readiness(**e)
+        self.assertEqual(result["decision"], "BLOCKED")
+        self.assertIn("check_evidence_incomplete_or_unverified", result["reasons"])
+        e = evidence()
+        e["expected_check_count"] = 3
+        result = evaluate_readiness(**e)
+        self.assertEqual(result["decision"], "BLOCKED")
+        self.assertIn("check_count_mismatch", result["reasons"])
+
+    def test_incomplete_review_thread_pagination_blocks(self):
+        e = evidence()
+        e["review_threads_complete"] = False
+        result = evaluate_readiness(**e)
+        self.assertEqual(result["decision"], "BLOCKED")
+        self.assertIn("review_threads_incomplete_or_unverified", result["reasons"])
 
 
 if __name__ == "__main__":
