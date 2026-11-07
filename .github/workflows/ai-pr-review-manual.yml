@@ -29,4 +29,12 @@ jobs:
           AI_REVIEW_API_KEY: ${{ secrets.AI_REVIEW_API_KEY }}
           AI_REVIEW_ENDPOINT: ${{ vars.AI_REVIEW_ENDPOINT }}
           AI_REVIEW_MODEL: ${{ vars.AI_REVIEW_MODEL }}
-        run: python -m scripts.ai_review_manual_cli --pr-number "${{ inputs.pr_number }}"
+        run: python -m scripts.ai_review_manual_cli --pr-number "${{ inputs.pr_number }}" --output ai-review-result.json
+      - name: Upload advisory review result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ai-pr-review-${{ inputs.pr_number }}
+          path: ai-review-result.json
+          if-no-files-found: ignore
+          retention-days: 14
