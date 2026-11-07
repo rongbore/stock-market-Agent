@@ -40,6 +40,16 @@ class FinancialEvidenceQualityTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "period"):
             assess_quality(payload(row(period="2026Q5")))
 
+    def test_normalization_overflow_rejected(self):
+        with self.assertRaisesRegex(ValueError, "normalized financial value"):
+            assess_quality(payload(row(value=1e308, unit="CNY_billion")))
+
+    def test_unhashable_metric_and_unit_rejected_as_value_error(self):
+        for changes in ({"metric": ["revenue"]}, {"unit": ["CNY"]},
+                        {"metric": {"name": "revenue"}}, {"unit": {"name": "CNY"}}):
+            with self.subTest(changes=changes), self.assertRaises(ValueError):
+                assess_quality(payload(row(**changes)))
+
     def test_nan_rejected(self):
         with self.assertRaisesRegex(ValueError, "financial value"):
             assess_quality(payload(row(value=float("nan"))))
