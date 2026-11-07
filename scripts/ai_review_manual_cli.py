@@ -75,8 +75,23 @@ def main():
                      model=os.environ.get("AI_REVIEW_MODEL", ""))
         print(json.dumps(result, ensure_ascii=False))
         return 0
-    except (ValueError, KeyError, TypeError, OSError, urllib.error.URLError):
-        print(json.dumps({"status": "BLOCKED", "reason": "review_unavailable_or_invalid",
+    except ValueError as exc:
+        # ValueError messages from the transport are fixed diagnostic codes, not raw provider text.
+        code = str(exc)
+        allowed = {"provider_http_400", "provider_http_401", "provider_http_402", "provider_http_403",
+                   "provider_http_404", "provider_http_408", "provider_http_429", "provider_http_500",
+                   "provider_http_502", "provider_http_503", "provider_timeout", "provider_network_error",
+                   "invalid provider response", "invalid review", "review is not JSON",
+                   "review request changed", "stale or modified request", "invalid endpoint",
+                   "HTTPS endpoint without credentials or fragment required", "missing API credential",
+                   "invalid model", "invalid or oversized diff", "file listing too large or incomplete",
+                   "binary, deleted, renamed or missing patch", "PR changed during review",
+                   "PR not open against main", "required token missing", "unsupported repository or PR"}
+        reason = code if code in allowed else "review_validation_failed"
+        print(json.dumps({"status": "BLOCKED", "reason": reason, "merge_authorized": False}))
+        return 1
+    except (KeyError, TypeError, OSError, urllib.error.URLError):
+        print(json.dumps({"status": "BLOCKED", "reason": "review_internal_or_network_error",
                           "merge_authorized": False}))
         return 1
 
