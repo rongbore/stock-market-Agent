@@ -63,6 +63,25 @@ class MarketTrendReportTests(unittest.TestCase):
         self.assertEqual(report["trend"], "数据不足，暂不判断")
         self.assertIsNone(report["change_pct"])
 
+    def test_source_retrieval_timestamps_are_reported_with_offsets(self):
+        self.a["retrieved_at"] = "2026-11-07T12:00:00Z"
+        self.b["retrieved_at"] = "2026-11-07T20:00:00+08:00"
+        report = build_report(self.a, self.b)
+        self.assertEqual(report["source_retrieved_at"][0]["retrieved_at"],
+                         "2026-11-07T12:00:00+00:00")
+        self.assertEqual(report["source_retrieved_at"][1]["retrieved_at"],
+                         "2026-11-07T20:00:00+08:00")
+        self.assertIn("抓取时间", render_html(report))
+        self.assertIn("2026-11-07T12:00:00+00:00", render_markdown(report))
+
+    def test_naive_or_invalid_retrieval_timestamp_is_rejected(self):
+        self.a["retrieved_at"] = "2026-11-07T12:00:00"
+        with self.assertRaisesRegex(ValueError, "timezone"):
+            build_report(self.a, self.b)
+        self.a["retrieved_at"] = "not-a-timestamp"
+        with self.assertRaisesRegex(ValueError, "ISO timestamp"):
+            build_report(self.a, self.b)
+
 
 if __name__ == "__main__":
     unittest.main()

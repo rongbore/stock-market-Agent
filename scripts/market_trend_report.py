@@ -7,7 +7,7 @@ import argparse
 import html
 import json
 import math
-from datetime import date
+from datetime import date, datetime
 from pathlib import Path
 from scripts.trend_chart_overlay import render_overlay_section
 from scripts.trend_indicators import technical_summary
@@ -45,6 +45,21 @@ def _validate_snapshot(snapshot):
             raise ValueError("invalid close price")
         result[day] = float(close)
     return symbol, snapshot["adjust"], result
+
+
+def _retrieval_time(snapshot):
+    value = snapshot.get("retrieved_at")
+    if value is None:
+        return None
+    if not isinstance(value, str):
+        raise ValueError("retrieved_at must be an ISO timestamp with timezone")
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError as exc:
+        raise ValueError("retrieved_at must be an ISO timestamp with timezone") from exc
+    if parsed.tzinfo is None or parsed.utcoffset() is None:
+        raise ValueError("retrieved_at must include a timezone")
+    return parsed.isoformat()
 
 
 def build_report(primary, secondary, comparison=None):
@@ -88,6 +103,10 @@ def build_report(primary, secondary, comparison=None):
         "end_price": prices[-1], "change_pct": change, "last_ma": ma,
         "trend": trend, "numerical_agreement": agreed,
         "sources": [primary.get("upstream", "unknown"), secondary.get("upstream", "unknown")],
+        "source_retrieved_at": [
+            {"upstream": primary.get("upstream", "unknown"), "retrieved_at": _retrieval_time(primary)},
+            {"upstream": secondary.get("upstream", "unknown"), "retrieved_at": _retrieval_time(secondary)},
+        ],
         "source_verified": False, "official_verified": False,
     }
 
@@ -128,6 +147,7 @@ def render_html(report):
             f'<li>最近最多 5 个共同交易日均价：{report["last_ma"]:.3f} CNY/股</li>'
             f'<li>技术观察：{html.escape(report["trend"])}；不构成基本面或买卖建议。</li></ul>'
             f'<h2>证据边界</h2><p>来源：{html.escape(", ".join(report["sources"]))}。'
+            f'抓取时间：{html.escape("；".join(item["upstream"] + " " + (item["retrieved_at"] or "缺失") for item in report["source_retrieved_at"]))}。'
             '双源一致性不代表交易所认证；来源内容及历史时点均未核验。'
             '该图仅使用两个快照共同存在的日期，未对缺失日期补零或插值。</p>')
     return '<!doctype html><html lang="zh-CN"><meta charset="utf-8"><title>价格趋势报告</title><body>' + body + '</body></html>'
@@ -156,6 +176,7 @@ def render_markdown(report):
         lines.append(f"| {day} | {a} | {b} |")
     lines += ["", "## 数据边界", "",
               f'- 上游：{", ".join(report["sources"])}；双源数值一致不等于官方认证。',
+              f'- 抓取时间：{"；".join(item["upstream"] + " " + (item["retrieved_at"] or "缺失") for item in report["source_retrieved_at"])}。',
               "- 未核验来源内容及历史时点；缺失日期不补零、不插值。",
               "- 当前只提供行情趋势观察，不生成基本面投资建议或确定性目标价。", ""]
     return "\n".join(lines)
