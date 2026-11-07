@@ -9,6 +9,7 @@ import json
 from scripts.ai_review_evidence_binding import prepare_review
 from scripts.ai_review_http_client import invoke_review
 from scripts.financial_ai_review_orchestrator import run_specialist_reviews
+from scripts.financial_ai_review_roundtable import run_financial_roundtable
 
 MAX_CONTEXT = 12_000
 
@@ -35,6 +36,12 @@ def make_provider_reviewer(*, head_sha, endpoint, token, model, allowed_hosts,
             "output_requirements": task.get("output_requirements", []),
             "merge_authorized": False,
             "ai_review_is_advisory": True,
+            "discussion_phase": task.get("discussion_phase", "independent_review"),
+            "discussion_round": task.get("discussion_round", 0),
+            "discussion_history": task.get("discussion_history", []),
+            "initial_reviews": task.get("initial_reviews", []),
+            "current_position": task.get("current_position"),
+            "moderator_instruction": task.get("moderator_instruction"),
         }
         rendered = json.dumps(context, ensure_ascii=False, sort_keys=True)
         if len(rendered) > MAX_CONTEXT:
@@ -75,4 +82,37 @@ def review_financial_changes(*, head_sha, financial_files, diff_by_file,
         financial_files=financial_files,
         diff_by_file=diff_by_file,
         reviewer=reviewer,
+    )
+
+
+
+def review_financial_changes_with_roundtable(*, head_sha, financial_files,
+                                              diff_by_file, endpoint, token,
+                                              model, allowed_hosts, timeout=60,
+                                              rounds=2, invoke=invoke_review):
+    """Run independent reviews, bounded peer discussion rounds and moderator synthesis."""
+    reviewer = make_provider_reviewer(
+        head_sha=head_sha, endpoint=endpoint, token=token, model=model,
+        allowed_hosts=allowed_hosts, timeout=timeout, invoke=invoke)
+    independent = run_specialist_reviews(
+        financial_files=financial_files,
+        diff_by_file=diff_by_file,
+        reviewer=reviewer,
+    )
+    if not independent["specialist_reviews"]:
+        return {
+            **independent,
+            "overall_verdict": "uncertain",
+            "discussion_rounds": 0,
+            "discussion_transcript": [],
+            "moderator_synthesis": None,
+            "dissent_preserved": False,
+            "unresolved_disagreement": False,
+        }
+    return run_financial_roundtable(
+        financial_files=financial_files,
+        diff_by_file=diff_by_file,
+        independent_reviews=independent["specialist_reviews"],
+        reviewer=reviewer,
+        rounds=rounds,
     )
