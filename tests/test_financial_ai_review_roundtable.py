@@ -58,6 +58,27 @@ class FinancialAiRoundtableTests(unittest.TestCase):
             independent_reviews=independent, reviewer=reviewer, rounds=1)
         self.assertEqual(result["overall_verdict"], "request_changes")
 
+    def test_discussion_critical_finding_cannot_be_erased(self):
+        files, independent, diffs = self._fixture()
+        calls = {"count": 0}
+        def reviewer(task):
+            calls["count"] += 1
+            if task["role"] == independent[0]["role"]:
+                return {"verdict": "approve", "summary": "reviewed",
+                        "findings": [{"severity": "critical", "path": files[0],
+                                      "explanation": "critical issue found during debate"}]}
+            return {"verdict": "approve", "summary": "approved",
+                    "findings": []}
+        result = run_financial_roundtable(
+            financial_files=files, diff_by_file=diffs,
+            independent_reviews=independent, reviewer=reviewer, rounds=1)
+        self.assertEqual(result["overall_verdict"], "request_changes")
+        self.assertTrue(any(
+            finding["severity"] == "critical"
+            for entry in result["discussion_transcript"]
+            for finding in entry["findings"]
+        ))
+
     def test_rejects_invalid_round_count_and_unassigned_finding(self):
         files, independent, diffs = self._fixture()
         independent[0]["findings"] = [{"severity": "high", "path": "other.py",
