@@ -36,7 +36,12 @@ ROLE_CHECKS = {
         "Do not convert model confidence into a probability of profit or a guaranteed loss limit.",
     ),
 }
-FINANCE_FALLBACK_MARKERS = ("financial", "finance", "market", "行情", "财务", "投资", "估值")
+FINANCE_FALLBACK_MARKERS = (
+    "financial", "finance", "market", "fundamental", "technical",
+    "indicator", "backtest", "portfolio", "position", "risk",
+    "pricing", "valuation", "quote", "行情", "财务", "指标",
+    "回测", "投资", "估值", "风控",
+)
 ROLE_PATHS = {
     "market_data": ("market_data", "quote", "行情", "price_feed"),
     "fundamental": ("fundamental", "financial_statement", "财务", "balance_sheet", "income_statement"),
