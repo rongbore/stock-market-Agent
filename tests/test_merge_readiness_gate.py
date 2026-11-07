@@ -10,6 +10,7 @@ def evidence(tier="documentation_candidate"):
         tier_result={"tier": tier, "auto_merge_authorized": False},
         pr={"head_sha": SHA, "reviewed_head_sha": SHA, "draft": False,
             "state": "open", "base_ref": "main", "mergeable": True,
+            "base_sha": "b" * 40,
             "base_repo_full_name": "rongbore/stock-market-Agent",
             "head_repo_full_name": "rongbore/stock-market-Agent"},
         checks=[{"name": n, "head_sha": SHA, "status": "completed", "conclusion": "success"}
@@ -17,6 +18,7 @@ def evidence(tier="documentation_candidate"):
         review={"head_sha": SHA, "verdict": "approve", "trusted": True},
         review_threads=[],
         has_changes_requested_review=False,
+        current_base_sha="b" * 40,
     )
 
 
@@ -77,6 +79,18 @@ class ReadinessTests(unittest.TestCase):
         result = evaluate_readiness(**e)
         self.assertEqual(result["decision"], "BLOCKED")
         self.assertIn("fork_or_unverified_head_repository", result["reasons"])
+
+    def test_stale_or_missing_base_sha_blocks(self):
+        e = evidence()
+        e["current_base_sha"] = "c" * 40
+        result = evaluate_readiness(**e)
+        self.assertEqual(result["decision"], "BLOCKED")
+        self.assertIn("base_not_current_or_unverified", result["reasons"])
+        e = evidence()
+        del e["pr"]["base_sha"]
+        result = evaluate_readiness(**e)
+        self.assertEqual(result["decision"], "BLOCKED")
+        self.assertIn("base_not_current_or_unverified", result["reasons"])
 
     def test_unresolved_review_thread_blocks(self):
         e = evidence()
