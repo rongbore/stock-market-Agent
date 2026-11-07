@@ -4,6 +4,7 @@ This module never fetches data, calls an LLM, or places orders. Two-source
 agreement is reported only as numerical agreement, never official verification.
 """
 import argparse
+import hashlib
 import html
 import json
 import math
@@ -62,6 +63,15 @@ def _retrieval_time(snapshot):
     return parsed.isoformat()
 
 
+def _snapshot_fingerprint(snapshot):
+    try:
+        canonical = json.dumps(snapshot, ensure_ascii=False, sort_keys=True,
+                               separators=(",", ":"), allow_nan=False)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("snapshot must contain canonical JSON values") from exc
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
 def build_report(primary, secondary, comparison=None):
     sym_a, adj_a, a = _validate_snapshot(primary)
     sym_b, adj_b, b = _validate_snapshot(secondary)
@@ -107,6 +117,12 @@ def build_report(primary, secondary, comparison=None):
             {"upstream": primary.get("upstream", "unknown"), "retrieved_at": _retrieval_time(primary)},
             {"upstream": secondary.get("upstream", "unknown"), "retrieved_at": _retrieval_time(secondary)},
         ],
+        "snapshot_fingerprints": [
+            {"upstream": primary.get("upstream", "unknown"), "algorithm": "sha256",
+             "canonical_json_sha256": _snapshot_fingerprint(primary)},
+            {"upstream": secondary.get("upstream", "unknown"), "algorithm": "sha256",
+             "canonical_json_sha256": _snapshot_fingerprint(secondary)},
+        ],
         "source_verified": False, "official_verified": False,
     }
 
@@ -148,6 +164,7 @@ def render_html(report):
             f'<li>技术观察：{html.escape(report["trend"])}；不构成基本面或买卖建议。</li></ul>'
             f'<h2>证据边界</h2><p>来源：{html.escape(", ".join(report["sources"]))}。'
             f'抓取时间：{html.escape("；".join(item["upstream"] + " " + (item["retrieved_at"] or "缺失") for item in report["source_retrieved_at"]))}。'
+            f'快照 SHA-256：{html.escape("；".join(item["upstream"] + " " + item["canonical_json_sha256"] for item in report["snapshot_fingerprints"]))}。'
             '双源一致性不代表交易所认证；来源内容及历史时点均未核验。'
             '该图仅使用两个快照共同存在的日期，未对缺失日期补零或插值。</p>')
     return '<!doctype html><html lang="zh-CN"><meta charset="utf-8"><title>价格趋势报告</title><body>' + body + '</body></html>'
@@ -177,6 +194,7 @@ def render_markdown(report):
     lines += ["", "## 数据边界", "",
               f'- 上游：{", ".join(report["sources"])}；双源数值一致不等于官方认证。',
               f'- 抓取时间：{"；".join(item["upstream"] + " " + (item["retrieved_at"] or "缺失") for item in report["source_retrieved_at"])}。',
+              f'- 规范化快照 SHA-256：{"；".join(item["upstream"] + " " + item["canonical_json_sha256"] for item in report["snapshot_fingerprints"])}；仅用于比对输入内容。',
               "- 未核验来源内容及历史时点；缺失日期不补零、不插值。",
               "- 当前只提供行情趋势观察，不生成基本面投资建议或确定性目标价。", ""]
     return "\n".join(lines)
