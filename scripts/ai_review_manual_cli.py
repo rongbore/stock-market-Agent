@@ -31,8 +31,14 @@ def run(*, repo, pr_number, github_token, model_token, endpoint, model):
         raise ValueError("required token missing")
     prefix = repo + "/"
     pr = github_json(prefix + "pulls/" + str(pr_number), github_token)
-    if pr.get("state") != "open" or pr.get("base", {}).get("ref") != "main":
-        raise ValueError("PR not open against main")
+    if pr.get("state") != "open":
+        raise ValueError("PR is not open")
+    # Allow stacked PRs targeting another branch in this same repository.
+    # Never send fork PR diffs to the external model provider.
+    base_repo = pr.get("base", {}).get("repo", {}).get("full_name")
+    head_repo = pr.get("head", {}).get("repo", {}).get("full_name")
+    if base_repo != repo or head_repo != repo:
+        raise ValueError("PR must belong to the trusted repository")
     sha = pr["head"]["sha"]
     files = []
     for page in range(1, 5):
@@ -94,7 +100,7 @@ def main():
                    "HTTPS endpoint without credentials or fragment required", "missing API credential",
                    "invalid model", "invalid or oversized diff", "file listing too large or incomplete",
                    "binary, deleted, renamed or missing patch", "PR changed during review",
-                   "PR not open against main", "required token missing", "unsupported repository or PR"}
+                   "PR is not open", "PR must belong to the trusted repository", "required token missing", "unsupported repository or PR"}
         reason = code if code in allowed else "review_validation_failed"
         blocked = {"status": "BLOCKED", "reason": reason, "merge_authorized": False}
         _write_json_output(args.output, blocked)
