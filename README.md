@@ -109,7 +109,7 @@ python -m scripts.akshare_evidence_report --input-dir dual_output --output dual_
 
 #### 财务指标与页面文字的离线字面核对（实验）
 
-`scripts.financial_page_text_crosscheck.check_page_text(claims, fingerprints, pages, symbol, research_date)` 接受由调用方提供的页面文字记录数组（每项为 `file_sha256`、`page`、`text`）。先校验人工财务摘录与 PDF 指纹，再按文件指纹及页码查找**完整数值字面串**，输出 `literal_value_found_unverified`、`literal_value_not_found` 或 `page_text_missing`。这不是 PDF 解析器；页面文字由调用方提供，无法验证其确实来自对应 PDF。即使找到数值，也无法判断它属于哪个财务指标、单位或报告期，更不能据此认定财务内容正确。
+`scripts.financial_page_text_crosscheck.check_page_text(claims, fingerprints, pages, symbol, research_date)` 接受由调用方提供的页面文字记录数组（每项为 `file_sha256`、`page`、`text`）。`check_disclosure_page_evidence` 则接受 `scripts.disclosure_pdf_text_evidence` 导出的对象，并把核对结果附上公告 URL 和抓取时间；该连接仍是未验证引用，不能证明下载来源或公告当时可得。两种入口都会按文件指纹及页码查找**完整数值字面串**，输出 `literal_value_found_unverified`、`literal_value_not_found` 或 `page_text_missing`。即使找到数值，也无法判断它属于哪个财务指标、单位或报告期，更不能据此认定财务内容正确。若抓取日期晚于研究日期，结果会显式标记 `retrieval_date_after_research_date=true`。
 
 #### 从本地 PDF 提取指定页码文字（可选依赖）
 

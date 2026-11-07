@@ -1,7 +1,9 @@
 """Offline checks of supplied PDF page text; never claims PDF authenticity."""
 import re
+from datetime import date, datetime
 
 from scripts.financial_claim_evidence import validate_claims
+from scripts.disclosure_pdf_fetch import validate_cninfo_pdf_url
 
 
 # Conservative lexical hints only. Not financial statement interpretation.
@@ -145,3 +147,93 @@ def check_page_text(claims, fingerprints, pages, symbol, research_date):
             "official_origin_verified": False,
         })
     return results
+
+
+def check_disclosure_page_evidence(claims, fingerprints, evidence, symbol, research_date):
+    """Cross-check claims against page evidence exported from a disclosure snapshot.
+
+    This validates the evidence links and literal text only. It does not prove
+    that the PDF came from CNINFO, that the document is authentic, or that a
+    number belongs to the named metric or period.
+    """
+    if (not isinstance(evidence, dict) or evidence.get("schema_version") != "0.1"
+            or evidence.get("all_pages_verified") is not False):
+        raise ValueError("invalid or verified disclosure page evidence")
+    records = evidence.get("pages")
+    if (not isinstance(records, list) or len(records) > 100
+            or type(evidence.get("page_count")) is not int
+            or evidence["page_count"] != len(records)):
+        raise ValueError("invalid disclosure page evidence collection")
+
+    pages, citation_by_page = [], {}
+    for item in records:
+        if not isinstance(item, dict):
+            raise ValueError("invalid disclosure page evidence")
+        item_symbol = item.get("symbol")
+        raw_date = item.get("announcement_date")
+        url = item.get("source_url")
+        retrieved = item.get("retrieved_at")
+        digest, page, text = item.get("file_sha256"), item.get("page"), item.get("text")
+        if item_symbol != symbol:
+            raise ValueError("disclosure page evidence symbol mismatch")
+        if not isinstance(raw_date, str):
+            raise ValueError("disclosure page announcement date required")
+        try:
+            parsed_date = date.fromisoformat(raw_date)
+        except ValueError as exc:
+            raise ValueError("invalid disclosure page announcement date") from exc
+        if parsed_date.isoformat() != raw_date:
+            raise ValueError("invalid disclosure page announcement date")
+        if not isinstance(url, str):
+            raise ValueError("disclosure source URL required")
+        try:
+            validate_cninfo_pdf_url(url)
+        except ValueError as exc:
+            raise ValueError("disclosure source URL must be CNINFO finalpage HTTPS") from exc
+        if not isinstance(retrieved, str):
+            raise ValueError("disclosure retrieval timestamp required")
+        try:
+            retrieved_at = datetime.fromisoformat(retrieved.replace("Z", "+00:00"))
+        except ValueError as exc:
+            raise ValueError("invalid disclosure retrieval timestamp") from exc
+        if retrieved_at.tzinfo is None or retrieved_at.utcoffset() is None:
+            raise ValueError("disclosure retrieval timestamp needs a timezone")
+        if not isinstance(digest, str) or not re.fullmatch(r"[0-9a-f]{64}", digest):
+            raise ValueError("invalid disclosure page SHA-256")
+        if isinstance(page, bool) or not isinstance(page, int) or not 1 <= page <= 10000:
+            raise ValueError("invalid disclosure page number")
+        if not isinstance(text, str) or len(text) > 100000:
+            raise ValueError("invalid disclosure page text")
+        for field in ("official_origin_verified", "source_content_verified",
+                      "financial_meaning_verified", "historical_point_in_time_verified"):
+            if item.get(field) is not False:
+                raise ValueError("disclosure page evidence must remain unverified")
+        key = (digest, page)
+        if key in citation_by_page:
+            raise ValueError("duplicate disclosure page citation")
+        citation_by_page[key] = {
+            "source_url": url, "retrieved_at": retrieved,
+            "announcement_date": raw_date,
+        }
+        pages.append({"file_sha256": digest, "page": page, "text": text})
+
+    checked = check_page_text(claims, fingerprints, pages, symbol, research_date)
+    validated_claims = validate_claims(claims, fingerprints, symbol, research_date)
+    result = []
+    for claim, item in zip(validated_claims, checked):
+        citation = citation_by_page.get((claim["file_sha256"], claim["page"]))
+        if citation is not None and citation["announcement_date"] != claim["announcement_date"]:
+            raise ValueError("page announcement date differs from financial claim")
+        retrieved_date = (date.fromisoformat(citation["retrieved_at"][:10])
+                          if citation else None)
+        research_day = date.fromisoformat(research_date)
+        result.append({
+            **item,
+            "source_url": citation["source_url"] if citation else None,
+            "retrieved_at": citation["retrieved_at"] if citation else None,
+            "retrieval_date_after_research_date": bool(
+                retrieved_date and retrieved_date > research_day),
+            "source_url_match_verified": False,
+            "historical_point_in_time_verified": False,
+        })
+    return result
