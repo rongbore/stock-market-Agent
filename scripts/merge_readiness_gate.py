@@ -11,7 +11,8 @@ TIERS = frozenset({"documentation_candidate"})
 
 
 def evaluate_readiness(*, tier_result, pr, checks, review,
-                       review_threads, has_changes_requested_review):
+                       review_threads, has_changes_requested_review,
+                       current_base_sha):
     reasons = []
     if not isinstance(tier_result, dict) or tier_result.get("tier") not in TIERS:
         reasons.append("unapproved_change_tier")
@@ -24,6 +25,11 @@ def evaluate_readiness(*, tier_result, pr, checks, review,
         reasons.append("draft_or_closed_pr")
     if pr.get("base_ref") != "main":
         reasons.append("wrong_base")
+    pr_base_sha = pr.get("base_sha")
+    if (not isinstance(pr_base_sha, str) or not SHA.fullmatch(pr_base_sha) or
+            not isinstance(current_base_sha, str) or not SHA.fullmatch(current_base_sha) or
+            pr_base_sha != current_base_sha):
+        reasons.append("base_not_current_or_unverified")
     base_repo = pr.get("base_repo_full_name")
     head_repo = pr.get("head_repo_full_name")
     if (not isinstance(base_repo, str) or not base_repo.strip() or
