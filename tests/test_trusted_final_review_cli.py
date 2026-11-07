@@ -45,7 +45,7 @@ class TrustedFinalReviewCliTests(unittest.TestCase):
             f.flush()
             output = io.StringIO()
             with contextlib.redirect_stdout(output):
-                code = main(["--repo", "owner/repo", "--head-sha", SHA, "--evidence-json", f.name])
+                code = main(PR_ARGS + ["--evidence-json", f.name])
             result = json.loads(output.getvalue())
             self.assertEqual(code, 0)
             self.assertEqual(result["decision"], "ELIGIBLE_FOR_POLICY_REVIEW")
