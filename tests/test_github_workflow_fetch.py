@@ -71,7 +71,7 @@ class GitHubWorkflowFetchTests(unittest.TestCase):
     def test_rejects_unsafe_repository_and_token(self):
         for repo, token in (
             ("owner/../repo", "test-token"),
-            ("owner/repo", "bad\\ntoken"),
+            ("owner/repo", "bad\ntoken"),
             ("owner/repo", "  "),
         ):
             with self.subTest(repo=repo):
