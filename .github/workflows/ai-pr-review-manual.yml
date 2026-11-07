@@ -39,6 +39,7 @@ jobs:
           AI_REVIEW_API_KEY: ${{ secrets.AI_REVIEW_API_KEY }}
           AI_REVIEW_ENDPOINT: ${{ vars.AI_REVIEW_ENDPOINT }}
           AI_REVIEW_MODEL: ${{ vars.AI_REVIEW_MODEL }}
+          AI_REVIEW_ALLOWED_HOSTS: ${{ vars.AI_REVIEW_ALLOWED_HOSTS }}
           PR_NUMBER: ${{ github.event.pull_request.number || inputs.pr_number }}
         run: python -m scripts.ai_review_manual_cli --pr-number "$PR_NUMBER" --output ai-review-result.json
       - name: Upload AI review result

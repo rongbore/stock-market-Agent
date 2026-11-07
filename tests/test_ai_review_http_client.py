@@ -43,7 +43,8 @@ def prepared():
 def invoke(p, opener, **overrides):
     args = dict(prepared=p, expected_head_sha=SHA,
                 expected_digest=p["request_digest"], endpoint=ENDPOINT,
-                token="fake-token", model="test-model", opener=opener)
+                token="fake-token", model="test-model", opener=opener,
+                allowed_hosts=["api.example.com"])
     args.update(overrides)
     return invoke_review(**args)
 

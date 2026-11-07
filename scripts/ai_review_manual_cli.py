@@ -57,7 +57,8 @@ def run(*, repo, pr_number, github_token, model_token, endpoint, model):
     prepared = prepare_review(head_sha=sha, changed_files=changed_files, diff=diff)
     result = invoke_review(prepared=prepared, expected_head_sha=sha,
                            expected_digest=prepared["request_digest"], endpoint=endpoint,
-                           token=model_token, model=model)
+                           token=model_token, model=model,
+                           allowed_hosts=[host.strip() for host in os.environ.get("AI_REVIEW_ALLOWED_HOSTS", "").split(",") if host.strip()])
     latest = github_json(prefix + "pulls/" + str(pr_number), github_token)
     if latest["head"]["sha"] != sha or latest.get("state") != "open":
         raise ValueError("PR changed during review")
@@ -98,7 +99,9 @@ def main():
                    "invalid provider response", "invalid review", "review is not JSON",
                    "review request changed", "stale or modified request", "invalid endpoint",
                    "HTTPS endpoint without credentials or fragment required", "missing API credential",
-                   "invalid model", "invalid or oversized diff", "file listing too large or incomplete",
+                   "invalid model", "invalid or oversized diff", "provider host allowlist required",
+                   "provider host not allowlisted", "IP literal endpoints forbidden",
+                   "endpoint query and nonstandard ports forbidden", "file listing too large or incomplete",
                    "binary, deleted, renamed or missing patch", "PR changed during review",
                    "PR is not open", "PR must belong to the trusted repository", "required token missing", "unsupported repository or PR"}
         reason = code if code in allowed else "review_validation_failed"
