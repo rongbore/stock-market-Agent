@@ -1,0 +1,36 @@
+name: AI Review Safety Gate (Phase 1)
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ai-review-safety-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  classifier-unit-tests:
+    name: classifier-unit-tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout PR code (unprivileged)
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Run offline classifier tests
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+        run: python -m unittest discover -s tests -p 'test_safe_pr_classifier.py' -v
+      - name: Explain limitations
+        run: |
+          echo 'This is a read-only offline safety test, NOT an AI approval.'
+          echo 'No secrets, privileged token, PR comments, or auto-merge.'
+          echo 'Rulesets and trusted PR-diff ingestion must be audited separately.'
