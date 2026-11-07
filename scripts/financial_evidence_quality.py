@@ -29,9 +29,9 @@ def assess_quality(payload):
         if not isinstance(row, dict) or row.get("symbol") != symbol:
             raise ValueError("invalid metric symbol")
         name, period, unit = row.get("metric"), row.get("period"), row.get("unit")
-        if name not in _ALLOWED or not isinstance(period, str) or not _PERIOD.fullmatch(period):
+        if not isinstance(name, str) or name not in _ALLOWED or not isinstance(period, str) or not _PERIOD.fullmatch(period):
             raise ValueError("invalid metric name or period")
-        if unit not in _SCALE:
+        if not isinstance(unit, str) or unit not in _SCALE:
             raise ValueError("invalid financial unit")
         value = row.get("value")
         if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value):
@@ -47,7 +47,10 @@ def assess_quality(payload):
             issues.append({"code": "negative_nonnegative_metric", "index": i, "metric": name, "period": period})
         if row.get("metric_value_verified") is True or row.get("source_content_verified") is True:
             issues.append({"code": "unsupported_verification_claim", "index": i, "metric": name, "period": period})
-        normalized[f"{name}:{period}"] = value * _SCALE[unit]
+        scaled = value * _SCALE[unit]
+        if not math.isfinite(scaled):
+            raise ValueError("normalized financial value is not finite")
+        normalized[f"{name}:{period}"] = scaled
     return {
         "schema_version": "0.1", "symbol": symbol, "metric_count": len(records),
         "status": "needs_review" if issues else "structurally_consistent_unverified",
