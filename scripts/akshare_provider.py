@@ -51,7 +51,13 @@ def _iso(value):
     if isinstance(value, date):
         return value.isoformat()
     if isinstance(value, str):
-        return date.fromisoformat(value[:10]).isoformat()
+        try:
+            parsed = date.fromisoformat(value)
+        except ValueError as exc:
+            raise ValueError("invalid trading date") from exc
+        if parsed.isoformat() != value:
+            raise ValueError("trading date must use YYYY-MM-DD")
+        return parsed.isoformat()
     raise ValueError("invalid trading date")
 
 

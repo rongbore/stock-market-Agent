@@ -71,6 +71,14 @@ class AKShareProviderTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             fetch_a_share_daily("000776.SZ", "2026-10-01", "2026-10-30", client=client)
 
+    def test_reject_noncanonical_date_strings(self):
+        client = Mock()
+        client.stock_zh_a_hist.return_value = Frame([
+            {"日期": "2026-10-29garbage", "开盘": 15, "收盘": 16,
+             "最高": 17, "最低": 14, "成交量": 1000}])
+        with self.assertRaisesRegex(ValueError, "invalid trading date"):
+            fetch_a_share_daily("000776.SZ", "2026-10-01", "2026-10-30", client=client)
+
 
 if __name__ == "__main__":
     unittest.main()
