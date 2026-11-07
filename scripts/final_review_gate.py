@@ -19,7 +19,7 @@ REQUIRED_CHECKS = frozenset({
 })
 
 
-def evaluate(*, head_sha, risk, ai_review, checks, is_draft, changed_paths, workflow_runs=None):
+def evaluate(*, head_sha, risk, ai_review, checks, is_draft, changed_paths, workflow_runs=None, require_workflow_evidence=False):
     reasons = []
     if not isinstance(head_sha, str) or not SHA.fullmatch(head_sha):
         reasons.append("invalid_head_sha")
@@ -42,6 +42,10 @@ def evaluate(*, head_sha, risk, ai_review, checks, is_draft, changed_paths, work
         reasons.append("ai_review_not_verified")
     # Verify supplied workflow runs against normalized evidence.
     # This is advisory only; caller provenance is not authenticated here.
+    if require_workflow_evidence is True and workflow_runs is None:
+        reasons.append("required_workflow_evidence_missing")
+    elif require_workflow_evidence is not False and require_workflow_evidence is not True:
+        reasons.append("invalid_strict_mode")
     if workflow_runs is not None:
         try:
             trusted_checks = normalize_workflow_runs(workflow_runs, head_sha, REQUIRED_CHECKS)
@@ -80,7 +84,7 @@ def main():
     try:
         with open(args.evidence_json, encoding="utf-8") as stream:
             data = json.load(stream)
-        result = evaluate(**data)
+        # CLI is strict by default: missing workflow evidence must fail closed.\n        data["require_workflow_evidence"] = True\n        result = evaluate(**data)
     except (OSError, ValueError, TypeError, UnicodeError):
         result = {"decision": "BLOCKED", "reasons": ["invalid_evidence"], "merge_authorized": False}
     print(json.dumps(result, ensure_ascii=False))
