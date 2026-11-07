@@ -13,7 +13,7 @@ SHA = re.compile(r"^[a-f0-9]{40}$")
 API = "https://api.github.com"
 
 
-def fetch_workflow_evidence(repo, head_sha, required_names, *, token, opener=urlopen):
+def fetch_workflow_runs(repo, head_sha, *, token, opener=urlopen):
     if not isinstance(repo, str) or not REPO.fullmatch(repo) or ".." in repo.split("/"):
         raise ValueError("invalid_repository")
     if not isinstance(head_sha, str) or not SHA.fullmatch(head_sha):
@@ -39,4 +39,10 @@ def fetch_workflow_evidence(repo, head_sha, required_names, *, token, opener=url
         raise ValueError("ambiguous_paginated_results")
     if len(data["workflow_runs"]) != data["total_count"]:
         raise ValueError("incomplete_api_response")
-    return normalize_workflow_runs(data["workflow_runs"], head_sha, required_names)
+    return data["workflow_runs"]
+
+
+def fetch_workflow_evidence(repo, head_sha, required_names, *, token, opener=urlopen):
+    """Return validated normalized checks for the requested SHA."""
+    runs = fetch_workflow_runs(repo, head_sha, token=token, opener=opener)
+    return normalize_workflow_runs(runs, head_sha, required_names)
