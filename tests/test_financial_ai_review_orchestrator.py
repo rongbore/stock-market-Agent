@@ -66,7 +66,7 @@ class FinancialAiReviewOrchestratorTests(unittest.TestCase):
                                         diff_by_file={"docs/readme.md": "+x"},
                                         reviewer=reviewer)
         self.assertEqual(result["specialist_reviews"], [])
-        self.assertEqual(result["overall_verdict"], "approve")
+        self.assertEqual(result["overall_verdict"], "uncertain")
 
 
 if __name__ == "__main__":
