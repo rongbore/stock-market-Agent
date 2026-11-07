@@ -62,6 +62,12 @@ def run(*, repo, pr_number, github_token, model_token, endpoint, model):
             "merge_authorized": False, "review_advisory_only": True}
 
 
+def _write_json_output(path, payload):
+    rendered = json.dumps(payload, ensure_ascii=False, indent=2) + "\\n"
+    with open(path, "w", encoding="utf-8") as output:
+        output.write(rendered)
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--pr-number", type=int, required=True)
@@ -74,10 +80,8 @@ def main():
                      model_token=os.environ.get("AI_REVIEW_API_KEY", ""),
                      endpoint=os.environ.get("AI_REVIEW_ENDPOINT", ""),
                      model=os.environ.get("AI_REVIEW_MODEL", ""))
-        rendered = json.dumps(result, ensure_ascii=False, indent=2) + "\\n"
-        with open(args.output, "w", encoding="utf-8") as output:
-            output.write(rendered)
-        print(rendered)
+        _write_json_output(args.output, result)
+        print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
     except ValueError as exc:
         # ValueError messages from the transport are fixed diagnostic codes, not raw provider text.
@@ -92,17 +96,15 @@ def main():
                    "binary, deleted, renamed or missing patch", "PR changed during review",
                    "PR not open against main", "required token missing", "unsupported repository or PR"}
         reason = code if code in allowed else "review_validation_failed"
-        blocked = json.dumps({"status": "BLOCKED", "reason": reason, "merge_authorized": False}, ensure_ascii=False) + "\\n"
-        with open(args.output, "w", encoding="utf-8") as output:
-            output.write(blocked)
-        print(blocked)
+        blocked = {"status": "BLOCKED", "reason": reason, "merge_authorized": False}
+        _write_json_output(args.output, blocked)
+        print(json.dumps(blocked, ensure_ascii=False))
         return 1
     except (KeyError, TypeError, OSError, urllib.error.URLError):
-        blocked = json.dumps({"status": "BLOCKED", "reason": "review_internal_or_network_error",
-                              "merge_authorized": False}, ensure_ascii=False) + "\\n"
-        with open(args.output, "w", encoding="utf-8") as output:
-            output.write(blocked)
-        print(blocked)
+        blocked = {"status": "BLOCKED", "reason": "review_internal_or_network_error",
+                   "merge_authorized": False}
+        _write_json_output(args.output, blocked)
+        print(json.dumps(blocked, ensure_ascii=False))
         return 1
 
 
