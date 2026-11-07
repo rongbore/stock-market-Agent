@@ -8,6 +8,7 @@ import json
 
 from scripts.ai_review_evidence_binding import prepare_review
 from scripts.ai_review_http_client import invoke_review
+from scripts.financial_ai_review_orchestrator import run_specialist_reviews
 
 MAX_CONTEXT = 12_000
 
@@ -60,3 +61,18 @@ def make_provider_reviewer(*, head_sha, endpoint, token, model, allowed_hosts,
         }
 
     return reviewer
+
+
+
+def review_financial_changes(*, head_sha, financial_files, diff_by_file,
+                             endpoint, token, model, allowed_hosts,
+                             timeout=60, invoke=invoke_review):
+    """Run each matched specialist as a separate provider call and aggregate."""
+    reviewer = make_provider_reviewer(
+        head_sha=head_sha, endpoint=endpoint, token=token, model=model,
+        allowed_hosts=allowed_hosts, timeout=timeout, invoke=invoke)
+    return run_specialist_reviews(
+        financial_files=financial_files,
+        diff_by_file=diff_by_file,
+        reviewer=reviewer,
+    )
