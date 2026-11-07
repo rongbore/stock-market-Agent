@@ -16,9 +16,13 @@ class FinancialAiReviewRolesTests(unittest.TestCase):
         self.assertTrue(all(item["checks"] for item in result))
         self.assertTrue(all(item["output_requirements"] for item in result))
 
-    def test_only_matching_specialists_are_assigned(self):
+    def test_all_five_specialists_are_assigned_with_role_fallback(self):
         result = build_specialist_assignments(["scripts/backtest_engine.py"])
-        self.assertEqual([x["role"] for x in result], ["quant_backtest"])
+        self.assertEqual(
+            [x["role"] for x in result],
+            ["market_data", "fundamental", "technical_indicators", "quant_backtest", "risk"],
+        )
+        self.assertTrue(all(x["files"] == ["scripts/backtest_engine.py"] for x in result))
 
     def test_empty_and_generic_paths_create_no_specialist_calls(self):
         self.assertEqual(build_specialist_assignments([]), [])
