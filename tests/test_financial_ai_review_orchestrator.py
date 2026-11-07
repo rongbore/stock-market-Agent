@@ -4,7 +4,7 @@ from scripts.financial_ai_review_orchestrator import run_specialist_reviews
 
 
 class FinancialAiReviewOrchestratorTests(unittest.TestCase):
-    def test_invokes_only_relevant_role_and_returns_advisory_result(self):
+    def test_invokes_five_specialists_and_returns_advisory_result(self):
         calls = []
         def reviewer(request):
             calls.append(request["role"])
@@ -14,7 +14,9 @@ class FinancialAiReviewOrchestratorTests(unittest.TestCase):
             financial_files=["scripts/backtest_engine.py"],
             diff_by_file={"scripts/backtest_engine.py": "+run_backtest()"},
             reviewer=reviewer)
-        self.assertEqual(calls, ["quant_backtest"])
+        self.assertEqual(len(calls), 5)
+        self.assertIn("quant_backtest", calls)
+        self.assertEqual(len(set(calls)), 5)
         self.assertEqual(result["overall_verdict"], "approve")
         self.assertFalse(result["merge_authorized"])
 
