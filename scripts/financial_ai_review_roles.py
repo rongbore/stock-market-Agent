@@ -52,20 +52,33 @@ def build_specialist_assignments(financial_files):
         raise ValueError("invalid financial file path")
     if len(set(financial_files)) != len(financial_files):
         raise ValueError("duplicate financial file path")
+    matched_by_role = {
+        role: [
+            path for path in financial_files
+            if any(marker in path.lower() for marker in markers)
+        ]
+        for role, markers in ROLE_PATHS.items()
+    }
+    covered = {path for paths in matched_by_role.values() for path in paths}
+    unmatched = [path for path in financial_files if path not in covered]
+
     assignments = []
     for role, markers in ROLE_PATHS.items():
-        matched = [path for path in financial_files
-                   if any(marker in path.lower() for marker in markers)]
-        if matched:
-            assignments.append({
-                "role": role,
-                "files": matched,
-                "checks": list(ROLE_CHECKS[role]),
-                "output_requirements": [
-                    "verdict: approve, request_changes or uncertain",
-                    "cite exact file and changed-line evidence",
-                    "separate fact, inference and missing evidence",
-                    "include validation method and confidence rationale",
-                ],
-            })
+        # Always dispatch all five specialist roles for a financial review.
+        # If a role has no direct filename match, it receives the complete
+        # financial scope and applies its own checklist as an independent lens.
+        matched = matched_by_role[role] or list(financial_files)
+        if role == "risk" and unmatched:
+            matched = list(dict.fromkeys(matched + unmatched))
+        assignments.append({
+            "role": role,
+            "files": matched,
+            "checks": list(ROLE_CHECKS[role]),
+            "output_requirements": [
+                "verdict: approve, request_changes or uncertain",
+                "cite exact file and changed-line evidence",
+                "separate fact, inference and missing evidence",
+                "include validation method and confidence rationale",
+            ],
+        })
     return assignments
