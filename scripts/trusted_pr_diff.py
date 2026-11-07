@@ -28,9 +28,12 @@ def collect(base_sha, head_sha):
         if git("rev-parse", "--verify", sha + "^{commit}").decode().strip() != sha:
             raise ValueError("missing_commit")
     base = git("merge-base", base_sha, head_sha).decode().strip()
-    if base != base_sha:
-        raise ValueError("base_not_ancestor")
-    raw = git("diff", "--raw", "-z", "--abbrev=40", "--no-renames", base_sha, head_sha)
+    # GitHub PR comparisons use merge-base...head; the base branch may advance
+    # after the PR was created. Requiring base_sha to be an ancestor would
+    # incorrectly block legitimate PRs whenever main has moved forward.
+    if not SHA.fullmatch(base):
+        raise ValueError("invalid_merge_base")
+    raw = git("diff", "--raw", "-z", "--abbrev=40", "--no-renames", base, head_sha)
     parts = raw.split(b"\0")
     if parts[-1:] == [b""]:
         parts.pop()
