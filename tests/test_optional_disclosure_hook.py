@@ -11,7 +11,7 @@ class OptionalDisclosureHookTests(unittest.TestCase):
         self.assertIn("screen_disclosures(records, analysis_date=trade_date, symbol=ticker)", source)
         self.assertIn("save_disclosure_candidates(report_dir, candidates)", source)
         self.assertLess(source.index("candidates = load_disclosure_candidates(ticker, trade_date)"),
-                        source.index("graph.propagate("))
+                        source.index("state, _ = run_graph_with_diagnostics(graph, ticker, trade_date)"))
         self.assertLess(source.index("graph.save_reports("),
                         source.index("save_disclosure_candidates(report_dir, candidates)"))
         self.assertLess(source.index("save_evidence_bundle("),
