@@ -64,7 +64,9 @@ def run_specialist_reviews(*, financial_files, diff_by_file, reviewer):
         })
     verdicts = [item["verdict"] for item in results]
     findings = [finding for item in results for finding in item["findings"]]
-    if any(item in ("request_changes", "uncertain") for item in verdicts):
+    if not results:
+        overall = "uncertain"
+    elif any(item in ("request_changes", "uncertain") for item in verdicts):
         overall = "request_changes" if "request_changes" in verdicts else "uncertain"
     elif any(f["severity"] in ("high", "critical") for f in findings):
         overall = "request_changes"
