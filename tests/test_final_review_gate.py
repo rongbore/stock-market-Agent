@@ -6,7 +6,8 @@ SHA = "a" * 40
 
 def evidence():
     return dict(head_sha=SHA, risk={"status": "CANDIDATE", "head_sha": SHA},
-                ai_review={"status": "PASS", "head_sha": SHA, "review_complete": True},
+                ai_review={"verdict": "PASS", "head_sha": SHA, "review_complete": True,
+                           "findings": [], "policy_version": "1"},
                 checks=[{"name": name, "head_sha": SHA, "status": "completed",
                          "conclusion": "success"} for name in sorted(REQUIRED_CHECKS)],
                 is_draft=False, changed_paths=["docs/guide.md"])
@@ -23,13 +24,31 @@ class FinalReviewGateTests(unittest.TestCase):
             {"is_draft": True},
             {"changed_paths": [".github/workflows/ci.yml"]},
             {"risk": {"status": "BLOCKED", "head_sha": SHA}},
-            {"ai_review": {"status": "PASS", "head_sha": "b" * 40, "review_complete": True}},
+            {"ai_review": {"verdict": "PASS", "head_sha": "b" * 40, "review_complete": True,
+                           "findings": [], "policy_version": "1"}},
             {"checks": []},
         ]
         for change in cases:
             data = evidence()
             data.update(change)
             with self.subTest(change=change):
+                self.assertEqual(evaluate(**data)["decision"], "BLOCKED")
+
+
+    def test_forged_pass_status_without_valid_contract_blocks(self):
+        data = evidence()
+        data["ai_review"] = {"status": "PASS", "head_sha": SHA, "review_complete": True}
+        self.assertEqual(evaluate(**data)["decision"], "BLOCKED")
+
+    def test_pass_with_findings_or_missing_policy_blocks(self):
+        for review in (
+            {"verdict": "PASS", "head_sha": SHA, "review_complete": True,
+             "findings": [{"severity": "high", "message": "Unsafe"}], "policy_version": "1"},
+            {"verdict": "PASS", "head_sha": SHA, "review_complete": True, "findings": []},
+        ):
+            data = evidence()
+            data["ai_review"] = review
+            with self.subTest(review=review):
                 self.assertEqual(evaluate(**data)["decision"], "BLOCKED")
 
     def test_failed_check_blocks(self):
