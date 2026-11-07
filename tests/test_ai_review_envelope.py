@@ -28,6 +28,14 @@ class ReviewEnvelopeTests(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     build_envelope(changes, HEAD, BASE)
 
+
+    def test_reject_embedded_secret_or_active_html(self):
+        for patch in ('+api_key = "1234567890abcdef"\\n',
+                      '+<script>alert(1)</script>\\n'):
+            with self.subTest(patch=patch):
+                with self.assertRaises(ValueError):
+                    build_envelope([item(patch=patch)], HEAD, BASE)
+
     def test_reject_invalid_sha(self):
         with self.assertRaises(ValueError):
             build_envelope([item()], "main", BASE)
