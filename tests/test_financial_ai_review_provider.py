@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import Mock
 
-from scripts.financial_ai_review_provider import make_provider_reviewer, review_financial_changes
+from scripts.financial_ai_review_provider import (make_provider_reviewer, review_financial_changes,\n                                                  review_financial_changes_with_roundtable)
 
 
 class FinancialAiReviewProviderTests(unittest.TestCase):
@@ -46,6 +46,32 @@ class FinancialAiReviewProviderTests(unittest.TestCase):
         self.assertEqual(len(calls), 5)
         self.assertEqual(len(result["specialist_reviews"]), 5)
         self.assertEqual(result["overall_verdict"], "uncertain")
+        self.assertFalse(result["merge_authorized"])
+
+    def test_full_roundtable_runs_five_reviews_ten_discussion_calls_and_moderator(self):
+        import json
+        calls = []
+        def invoke(**kwargs):
+            calls.append(kwargs)
+            payload = json.loads(kwargs["prepared"]["request"]["untrusted_pr_data"])
+            context = payload["trusted_financial_review_context"]
+            role = context.get("role", "reviewer")
+            return {"status": "ADVISORY_ONLY", "merge_authorized": False,
+                    "review": {"verdict": "approve", "summary": role + " reviewed",
+                               "findings": []}}
+        files = ["scripts/market_data.py", "scripts/fundamental_metrics.py",
+                 "scripts/technical_indicators.py", "scripts/backtest_engine.py",
+                 "scripts/portfolio_risk.py"]
+        diffs = {path: "+placeholder = True" for path in files}
+        result = review_financial_changes_with_roundtable(
+            head_sha="c" * 40, financial_files=files, diff_by_file=diffs,
+            endpoint="https://api.example.com/v1/chat/completions",
+            token="test-token", model="test-model", allowed_hosts=["api.example.com"],
+            rounds=2, invoke=invoke)
+        self.assertEqual(len(calls), 16)
+        self.assertEqual(len(result["independent_reviews"]), 5)
+        self.assertEqual(len(result["discussion_transcript"]), 10)
+        self.assertEqual(result["moderator_synthesis"]["verdict"], "approve")
         self.assertFalse(result["merge_authorized"])
 
     def test_rejects_missing_allowlist_before_invocation(self):
