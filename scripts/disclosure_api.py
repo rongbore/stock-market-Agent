@@ -4,6 +4,7 @@ The endpoint URL is caller supplied. This is a transport adapter, not an
 assertion of data authenticity or a stable exchange API contract.
 """
 import json
+from datetime import date, datetime, timezone
 from urllib.parse import urlsplit
 from urllib.request import Request, build_opener, HTTPRedirectHandler
 
@@ -98,25 +99,36 @@ def normalize_cninfo_query_response(payload, *, symbol, analysis_date):
                 any(part in ("", ".", "..") for part in adjunct.split("/")) or
                 not adjunct.lower().endswith(".pdf")):
             raise ValueError("invalid CNINFO PDF path")
+        path_parts = adjunct.split("/")
+        if len(path_parts) != 3 or path_parts[0] != "finalpage":
+            raise ValueError("CNINFO PDF path must include its disclosure date")
+        path_date = path_parts[1]
+        try:
+            if date.fromisoformat(path_date).isoformat() != path_date:
+                raise ValueError
+        except ValueError as exc:
+            raise ValueError("CNINFO PDF path contains an invalid disclosure date") from exc
         milliseconds = notice.get("announcementTime")
         if isinstance(milliseconds, str) and milliseconds.isascii() and milliseconds.isdecimal():
             milliseconds = int(milliseconds)
         if type(milliseconds) is not int or not 0 <= milliseconds <= 253402300799999:
             raise ValueError("CNINFO announcementTime must be milliseconds")
-        from datetime import datetime, timezone
         from zoneinfo import ZoneInfo
         timestamp = datetime.fromtimestamp(milliseconds / 1000, tz=timezone.utc)
         local = timestamp.astimezone(ZoneInfo("Asia/Shanghai"))
-        records.append({
+        announcement_date = local.date().isoformat()
+        if path_date != announcement_date:
+            raise ValueError("CNINFO PDF path date and announcementTime disagree")
+        normalized = adapt_official_disclosure({
             "symbol": symbol,
             "title": notice.get("announcementTitle"),
             "url": "https://static.cninfo.com.cn/" + adjunct,
-            "announcement_date": local.date().isoformat(),
+            "announcement_date": announcement_date,
             "published_at": local.isoformat(),
-        })
-    return [adapt_official_disclosure(record, source="cninfo",
-                                      analysis_date=analysis_date)
-            for record in records]
+        }, source="cninfo", analysis_date=analysis_date)
+        normalized["published_at_epoch_ms"] = milliseconds
+        records.append(normalized)
+    return records
 
 
 def fetch_disclosure_snapshot(url, *, source, analysis_date, symbol=None, timeout=10):
