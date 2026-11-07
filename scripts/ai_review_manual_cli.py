@@ -63,7 +63,7 @@ def run(*, repo, pr_number, github_token, model_token, endpoint, model):
 
 
 def _write_json_output(path, payload):
-    rendered = json.dumps(payload, ensure_ascii=False, indent=2) + "\\n"
+    rendered = json.dumps(payload, ensure_ascii=False, indent=2) + "\n"
     with open(path, "w", encoding="utf-8") as output:
         output.write(rendered)
 
