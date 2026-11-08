@@ -60,7 +60,8 @@ def main(argv=None):
         report = {"status": "manual", "reason": "unable to validate review artifact inputs",
                   "evidence_authenticated": False, "merge_authorized": False}
     print(json.dumps(report, sort_keys=True))
-    return 0
+    # Nonzero exit makes fail-closed results harder to mistake for success in scripts.
+    return 0 if report["status"] == "candidate" else 1
 
 
 if __name__ == "__main__":

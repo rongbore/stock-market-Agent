@@ -99,7 +99,7 @@ class TrustedReviewArtifactCliTests(unittest.TestCase):
                        "--metadata", str(metadata_path), "--archive", str(archive_path)]
             result = subprocess.run(command, cwd=repo_root, capture_output=True,
                                     text=True, timeout=10, check=False)
-        self.assertEqual(result.returncode, 0)
+        self.assertEqual(result.returncode, 1)
         report = json.loads(result.stdout)
         self.assertEqual(report["status"], "manual")
         self.assertFalse(report["evidence_authenticated"])
