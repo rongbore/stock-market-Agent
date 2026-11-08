@@ -1,9 +1,13 @@
 import hashlib
+import json
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
-from scripts.financial_filing_evidence_bundle import build_filing_evidence_bundle
+from scripts.financial_filing_evidence_bundle import (
+    build_filing_evidence_bundle, main as cli_main,
+)
 
 
 CONTENT = b"%PDF-1.4\nsynthetic test filing\n%%EOF\n"
@@ -153,6 +157,30 @@ class FinancialFilingEvidenceBundleTests(unittest.TestCase):
                 pdf_path=link, source=source(), claims=[claim()], symbol="000776.SZ",
                 analysis_cutoff="2026-10-31T23:59:59+08:00",
             )
+
+    def test_cli_reads_contract_and_writes_bundle(self):
+        input_path = Path(self.tmp.name) / "input.json"
+        output_path = Path(self.tmp.name) / "bundle.json"
+        input_path.write_text(json.dumps({
+            "symbol": "000776.SZ", "analysis_cutoff": "2026-10-31T23:59:59+08:00",
+            "source": source(), "claims": [claim()],
+        }), encoding="utf-8")
+        expected = {"status": "PENDING_MANUAL_VERIFICATION", "claims": []}
+        with patch("scripts.financial_filing_evidence_bundle.build_filing_evidence_bundle",
+                   return_value=expected):
+            self.assertEqual(cli_main([
+                "--input", str(input_path), "--pdf", str(self.pdf),
+                "--output", str(output_path),
+            ]), 0)
+        self.assertEqual(json.loads(output_path.read_text(encoding="utf-8")), expected)
+
+    def test_cli_rejects_unknown_input_fields(self):
+        input_path = Path(self.tmp.name) / "input.json"
+        input_path.write_text(json.dumps({"symbol": "000776.SZ", "extra": True}),
+                              encoding="utf-8")
+        with self.assertRaisesRegex(ValueError, "fields do not match"):
+            cli_main(["--input", str(input_path), "--pdf", str(self.pdf),
+                      "--output", str(Path(self.tmp.name) / "out.json")])
 
 
 if __name__ == "__main__":

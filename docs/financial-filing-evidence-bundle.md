@@ -28,3 +28,22 @@ Run the focused tests with:
 ```sh
 python -m unittest tests.test_financial_filing_evidence_bundle -v
 ```
+
+## Reproducing the 000776.SZ sample
+
+`examples/financial_evidence/000776.SZ_2026Q3_input.json` records the CNINFO
+2026 Q3 report URL, observed SHA-256, disclosure timestamp listed by CNINFO,
+retrieval timestamp, and five page-1 metric excerpts. The PDF itself is not
+included; obtain it from the official URL in the record, then run:
+
+```sh
+python -m scripts.financial_filing_evidence_bundle \
+  --input examples/financial_evidence/000776.SZ_2026Q3_input.json \
+  --pdf /path/to/1225643508.PDF \
+  --output results/000776.SZ_2026Q3_evidence_bundle.json
+```
+
+The run checks the downloaded bytes against the recorded digest and parses the
+cited pages. It still does not independently prove the filing's origin or
+timestamp, or verify that each number belongs to the intended financial
+statement row and column. Human review remains required.
