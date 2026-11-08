@@ -10,6 +10,8 @@ from scripts.github_review_artifact_preflight import assess_provenance
 from scripts.safe_review_artifact import verify_review_artifact_archive
 from scripts.trusted_review_evidence_verifier import verify_review_evidence
 
+_MAX_ARCHIVE_BYTES = 1024 * 1024
+
 
 def verify_trusted_review_artifact(*, archive_bytes, repo, current_head_sha,
                                    current_base_sha, expected_request_digest,
@@ -18,7 +20,8 @@ def verify_trusted_review_artifact(*, archive_bytes, repo, current_head_sha,
                                    trusted_workflow_ref, trusted_workflow_sha,
                                    run, artifact):
     """Return a read-only verdict after checking provenance, bytes, and schema."""
-    if not isinstance(archive_bytes, bytes):
+    if (not isinstance(archive_bytes, bytes) or
+            not 0 < len(archive_bytes) <= _MAX_ARCHIVE_BYTES):
         return {"status": "manual", "reason": "invalid downloaded artifact",
                 "evidence_authenticated": False, "merge_authorized": False}
     downloaded_digest = "sha256:" + hashlib.sha256(archive_bytes).hexdigest()
