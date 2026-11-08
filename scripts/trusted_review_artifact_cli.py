@@ -9,7 +9,7 @@ from scripts.trusted_review_artifact_pipeline import verify_trusted_review_artif
 _MAX_METADATA_BYTES = 64 * 1024
 _MAX_ARCHIVE_BYTES = 1024 * 1024
 _METADATA_KEYS = frozenset({
-    "repo", "current_head_sha", "current_base_sha", "expected_request_digest",
+    "repo", "current_pr_number", "current_head_sha", "current_base_sha", "expected_request_digest",
     "expected_workflow_id", "expected_workflow_path", "expected_event",
     "trusted_artifact_sha", "trusted_workflow_ref", "trusted_workflow_sha",
     "run", "artifact",

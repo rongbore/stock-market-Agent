@@ -29,6 +29,7 @@ python -m scripts.trusted_review_artifact_cli \
 ```json
 {
   "repo": "rongbore/stock-market-Agent",
+  "current_pr_number": 123,
   "current_head_sha": "<40-character PR head SHA>",
   "current_base_sha": "<40-character current main SHA>",
   "expected_request_digest": "<64-character SHA-256 hex>",
@@ -61,7 +62,7 @@ python -m scripts.trusted_review_artifact_cli \
 }
 ```
 
-Replace every placeholder with values checked against the authenticated API responses and protected workflow configuration. Do not copy the placeholder strings literally. The `trusted_artifact_sha` must be independently established by the trusted caller and must not be copied from the evidence JSON being checked. The ZIP must contain exactly one archive member named `ai-review-evidence.json`; the evidence must match the strict schema enforced by `scripts/safe_review_artifact.py`.
+Replace every placeholder with values checked against the authenticated API responses and protected workflow configuration. Do not copy the placeholder strings literally. The `trusted_artifact_sha` must be independently established by the trusted caller and must not be copied from the evidence JSON being checked. The ZIP must contain exactly one archive member named `ai-review-evidence.json`; its `pr_number` must match `current_pr_number`, and the evidence must match the strict schema enforced by `scripts/safe_review_artifact.py`.
 
 ## Result and exit status
 
