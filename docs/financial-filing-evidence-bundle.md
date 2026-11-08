@@ -13,7 +13,8 @@ quarter boundary; `period_end` is reserved for point-in-time total assets.
 Currency units use exact labels and values are decimal strings. Only canonical
 HTTPS CNINFO finalpage PDFs are accepted. Requested pages are parsed, and each
 manual excerpt must appear in the corresponding page text and contain the
-declared metric label and value.
+declared metric label and value. The page must also contain the matching report
+period heading: `本报告期`, `年初至报告期末`, or `本报告期末`.
 
 This contract does not fetch or authenticate a filing, inspect PDF table cells,
 or verify manually entered numbers. Page text and excerpts remain untrusted;
