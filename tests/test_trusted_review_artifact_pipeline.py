@@ -16,10 +16,12 @@ WORKFLOW_PATH = ".github/workflows/ai-pr-review-manual.yml"
 WORKFLOW_REF = REPO + "/" + WORKFLOW_PATH + "@refs/heads/main"
 WORKFLOW_SHA = "e" * 40
 EVENT = "workflow_dispatch"
+PR_NUMBER = 321
 
 
 def evidence():
-    return {"head_sha": HEAD, "base_sha": BASE, "artifact_sha": ARTIFACT_SHA,
+    return {"pr_number": PR_NUMBER, "head_sha": HEAD, "base_sha": BASE,
+            "artifact_sha": ARTIFACT_SHA,
             "workflow_run_id": 123, "request_digest": REQUEST_DIGEST,
             "repository": REPO, "workflow_path": WORKFLOW_PATH,
             "workflow_ref": WORKFLOW_REF, "workflow_sha": WORKFLOW_SHA,
@@ -43,6 +45,7 @@ def inputs():
                 "size_in_bytes": len(archive), "name": "ai-review-evidence",
                 "digest": "sha256:" + hashlib.sha256(archive).hexdigest()}
     return {"archive_bytes": archive, "repo": REPO,
+            "current_pr_number": PR_NUMBER,
             "current_head_sha": HEAD, "current_base_sha": BASE,
             "expected_request_digest": REQUEST_DIGEST,
             "expected_workflow_id": 77, "expected_workflow_path": WORKFLOW_PATH,
@@ -68,6 +71,13 @@ class TrustedReviewArtifactPipelineTests(unittest.TestCase):
         args["current_head_sha"] = "f" * 40
         result = verify_trusted_review_artifact(**args)
         self.assertEqual(result["status"], "manual")
+
+    def test_evidence_from_another_pull_request_blocks(self):
+        args = inputs()
+        args["current_pr_number"] = PR_NUMBER + 1
+        result = verify_trusted_review_artifact(**args)
+        self.assertEqual(result["status"], "manual")
+        self.assertFalse(result["evidence_authenticated"])
 
     def test_digest_mismatch_blocks_before_review_approval(self):
         args = inputs()

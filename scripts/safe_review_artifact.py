@@ -17,7 +17,7 @@ _REQUEST_DIGEST = re.compile(r"^[0-9a-f]{64}$")
 _REPOSITORY = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$")
 _WORKFLOW_PATH = re.compile(r"^\.github/workflows/[A-Za-z0-9_.-]+\.ya?ml$")
 _EXPECTED_KEYS = frozenset({
-    "head_sha", "base_sha", "artifact_sha", "workflow_run_id",
+    "pr_number", "head_sha", "base_sha", "artifact_sha", "workflow_run_id",
     "request_digest", "repository", "workflow_path", "workflow_ref",
     "workflow_sha", "event", "verdict", "findings",
 })
@@ -38,6 +38,8 @@ def _unique_object(pairs):
 def _valid_evidence(value):
     if not isinstance(value, dict) or set(value) != _EXPECTED_KEYS:
         raise ValueError("invalid evidence schema")
+    if type(value["pr_number"]) is not int or value["pr_number"] <= 0:
+        raise ValueError("invalid pull request number")
     for key in ("head_sha", "base_sha", "artifact_sha", "workflow_sha"):
         if not isinstance(value[key], str) or not _SHA.fullmatch(value[key]):
             raise ValueError("invalid evidence SHA")

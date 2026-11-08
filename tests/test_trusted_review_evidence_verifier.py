@@ -11,10 +11,11 @@ REPOSITORY = "rongbore/stock-market-Agent"
 WORKFLOW_PATH = ".github/workflows/ai-review.yml"
 WORKFLOW_REF = "rongbore/stock-market-Agent/.github/workflows/ai-review.yml@refs/heads/main"
 EVENT = "workflow_run"
+PR_NUMBER = 321
 
 
 def valid():
-    return dict(head_sha=HEAD, base_sha=BASE, artifact_sha=ARTIFACT,
+    return dict(pr_number=PR_NUMBER, head_sha=HEAD, base_sha=BASE, artifact_sha=ARTIFACT,
                 workflow_run_id=123, request_digest=DIGEST,
                 repository=REPOSITORY, workflow_path=WORKFLOW_PATH,
                 workflow_ref=WORKFLOW_REF, workflow_sha=WORKFLOW_SHA,
@@ -22,7 +23,7 @@ def valid():
 
 
 def check(evidence=None, **changes):
-    params = dict(current_head_sha=HEAD, current_base_sha=BASE,
+    params = dict(current_pr_number=PR_NUMBER, current_head_sha=HEAD, current_base_sha=BASE,
                   expected_request_digest=DIGEST, evidence=valid() if evidence is None else evidence,
                   trusted_artifact_sha=ARTIFACT, trusted_run_id=123,
                   trusted_repository=REPOSITORY, trusted_workflow_path=WORKFLOW_PATH,
@@ -37,7 +38,8 @@ class TrustedReviewEvidenceVerifierTests(unittest.TestCase):
         self.assertEqual(check(), "candidate")
 
     def test_changed_trusted_metadata_blocks(self):
-        for key, value in (("current_head_sha", "e" * 40),
+        for key, value in (("current_pr_number", PR_NUMBER + 1),
+                           ("current_head_sha", "e" * 40),
                            ("current_base_sha", "e" * 40),
                            ("trusted_artifact_sha", "e" * 40),
                            ("trusted_workflow_sha", "f" * 40),
@@ -47,7 +49,8 @@ class TrustedReviewEvidenceVerifierTests(unittest.TestCase):
                 self.assertEqual(check(**{key: value}), "manual")
 
     def test_modified_evidence_blocks(self):
-        for key, value in (("head_sha", "e" * 40), ("base_sha", "e" * 40),
+        for key, value in (("pr_number", PR_NUMBER + 1),
+                           ("head_sha", "e" * 40), ("base_sha", "e" * 40),
                            ("artifact_sha", "e" * 40), ("workflow_run_id", 124),
                            ("repository", "attacker/fork"),
                            ("workflow_path", ".github/workflows/untrusted.yml"),
@@ -63,6 +66,7 @@ class TrustedReviewEvidenceVerifierTests(unittest.TestCase):
     def test_invalid_inputs_block(self):
         self.assertEqual(check(evidence={}), "manual")
         self.assertEqual(check(evidence="approve"), "manual")
+        self.assertEqual(check(current_pr_number=True), "manual")
         self.assertEqual(check(trusted_run_id=True), "manual")
         self.assertEqual(check(current_head_sha="invalid"), "manual")
 

@@ -13,7 +13,8 @@ from scripts.trusted_review_evidence_verifier import verify_review_evidence
 _MAX_ARCHIVE_BYTES = 1024 * 1024
 
 
-def verify_trusted_review_artifact(*, archive_bytes, repo, current_head_sha,
+def verify_trusted_review_artifact(*, archive_bytes, repo, current_pr_number,
+                                   current_head_sha,
                                    current_base_sha, expected_request_digest,
                                    expected_workflow_id, expected_workflow_path,
                                    expected_event, trusted_artifact_sha,
@@ -41,7 +42,8 @@ def verify_trusted_review_artifact(*, archive_bytes, repo, current_head_sha,
                 "evidence_authenticated": False, "merge_authorized": False}
     evidence = parsed["evidence"]
     review_status, review_reason = verify_review_evidence(
-        current_head_sha=current_head_sha, current_base_sha=current_base_sha,
+        current_pr_number=current_pr_number, current_head_sha=current_head_sha,
+        current_base_sha=current_base_sha,
         expected_request_digest=expected_request_digest, evidence=evidence,
         trusted_artifact_sha=trusted_artifact_sha, trusted_run_id=run.get("id"),
         trusted_repository=repo, trusted_workflow_path=expected_workflow_path,

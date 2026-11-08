@@ -17,10 +17,12 @@ BASE = "b" * 40
 WORKFLOW_PATH = ".github/workflows/ai-pr-review-manual.yml"
 WORKFLOW_REF = REPO + "/" + WORKFLOW_PATH + "@refs/heads/main"
 EVENT = "workflow_dispatch"
+PR_NUMBER = 321
 
 
 def evidence():
-    return {"head_sha": HEAD, "base_sha": BASE, "artifact_sha": "c" * 40,
+    return {"pr_number": PR_NUMBER, "head_sha": HEAD, "base_sha": BASE,
+            "artifact_sha": "c" * 40,
             "workflow_run_id": 123, "request_digest": "d" * 64,
             "repository": REPO, "workflow_path": WORKFLOW_PATH,
             "workflow_ref": WORKFLOW_REF, "workflow_sha": "e" * 40,
@@ -35,7 +37,8 @@ def fixture_files(directory):
     archive_bytes = stream.getvalue()
     archive_path.write_bytes(archive_bytes)
     metadata = {
-        "repo": REPO, "current_head_sha": HEAD, "current_base_sha": BASE,
+        "repo": REPO, "current_pr_number": PR_NUMBER,
+        "current_head_sha": HEAD, "current_base_sha": BASE,
         "expected_request_digest": "d" * 64, "expected_workflow_id": 77,
         "expected_workflow_path": WORKFLOW_PATH, "expected_event": EVENT,
         "trusted_artifact_sha": "c" * 40, "trusted_workflow_ref": WORKFLOW_REF,

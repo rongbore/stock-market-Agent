@@ -10,6 +10,7 @@ from scripts.safe_review_artifact import verify_review_artifact_archive
 
 def evidence():
     return {
+        "pr_number": 321,
         "head_sha": "a" * 40,
         "base_sha": "b" * 40,
         "artifact_sha": "c" * 40,
@@ -65,6 +66,11 @@ class SafeReviewArtifactTests(unittest.TestCase):
     def test_invalid_schema_duplicate_json_keys_and_bad_verdict_block(self):
         invalid = evidence()
         invalid["unexpected"] = True
+        raw = archive(invalid)
+        with self.assertRaises(ValueError):
+            verify_review_artifact_archive(raw, digest(raw))
+        invalid = evidence()
+        invalid["pr_number"] = True
         raw = archive(invalid)
         with self.assertRaises(ValueError):
             verify_review_artifact_archive(raw, digest(raw))

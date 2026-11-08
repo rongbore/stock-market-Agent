@@ -11,7 +11,7 @@ _SHA = re.compile(r"^[0-9a-f]{40}$")
 _DIGEST = re.compile(r"^[0-9a-f]{64}$")
 
 
-def verify_review_evidence(*, current_head_sha, current_base_sha,
+def verify_review_evidence(*, current_pr_number, current_head_sha, current_base_sha,
                            expected_request_digest, evidence,
                            trusted_artifact_sha, trusted_run_id,
                            trusted_repository, trusted_workflow_path,
@@ -36,8 +36,12 @@ def verify_review_evidence(*, current_head_sha, current_base_sha,
         return "manual", "invalid expected request digest"
     if type(trusted_run_id) is not int or trusted_run_id <= 0:
         return "manual", "invalid trusted workflow run"
+    if type(current_pr_number) is not int or current_pr_number <= 0:
+        return "manual", "invalid trusted pull request number"
     if not isinstance(evidence, dict):
         return "manual", "missing review evidence"
+    if type(evidence.get("pr_number")) is not int or evidence["pr_number"] != current_pr_number:
+        return "manual", "review pull request mismatch"
     if evidence.get("head_sha") != current_head_sha:
         return "manual", "review head is stale"
     if evidence.get("base_sha") != current_base_sha:
