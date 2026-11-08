@@ -49,12 +49,17 @@ class FinancialFilingEvidenceBundleTests(unittest.TestCase):
 
     def build(self, source_row=None, claim_row=None, cutoff="2026-10-31T23:59:59+08:00"):
         selected_claim = claim_row or claim()
+        context = {
+            "current_quarter": "本报告期",
+            "year_to_date": "年初至报告期末",
+            "period_end": "本报告期末",
+        }[selected_claim["period_basis"]]
         return build_filing_evidence_bundle(
             pdf_path=self.pdf, source=source_row or source(), claims=[selected_claim],
             symbol="000776.SZ", analysis_cutoff=cutoff,
             page_text_extractor=lambda path, ticker, announcement_date, pages: [
                 {"page": page, "file_sha256": DIGEST,
-                 "text": "header " + selected_claim["excerpt"] + " footer"}
+                 "text": "header " + context + " " + selected_claim["excerpt"] + " footer"}
                 for page in pages
             ],
         )
@@ -114,7 +119,7 @@ class FinancialFilingEvidenceBundleTests(unittest.TestCase):
                 symbol="000776.SZ", analysis_cutoff="2026-10-31T23:59:59+08:00",
                 page_text_extractor=lambda path, ticker, announcement_date, pages: [
                     {"page": page, "file_sha256": DIGEST,
-                     "text": "header " + claim()["excerpt"] + " footer"}
+                     "text": "header 年初至报告期末 " + claim()["excerpt"] + " footer"}
                     for page in pages
                 ],
             )
@@ -145,6 +150,18 @@ class FinancialFilingEvidenceBundleTests(unittest.TestCase):
         selected = claim(value="1.00")
         with self.assertRaisesRegex(ValueError, "not found in parsed PDF"):
             self.build(claim_row=selected)
+
+    def test_rejects_missing_period_context_even_when_metric_and_value_match(self):
+        selected = claim(period_basis="current_quarter", period_start="2026-07-01")
+        with self.assertRaisesRegex(ValueError, "excerpt not found"):
+            build_filing_evidence_bundle(
+                pdf_path=self.pdf, source=source(), claims=[selected], symbol="000776.SZ",
+                analysis_cutoff="2026-10-31T23:59:59+08:00",
+                page_text_extractor=lambda *args: [{
+                    "page": 1, "file_sha256": DIGEST,
+                    "text": "年初至报告期末 " + selected["excerpt"],
+                }],
+            )
 
     def test_rejects_pdf_symlink(self):
         link = Path(self.tmp.name) / "linked.pdf"

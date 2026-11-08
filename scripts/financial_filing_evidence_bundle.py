@@ -25,6 +25,11 @@ METRIC_LABELS = {
 UNITS = {"CNY", "CNY_10000", "CNY_100000000"}
 PERIOD_BASES = {"current_quarter", "year_to_date", "period_end"}
 SCOPES = {"consolidated", "parent_company"}
+PERIOD_CONTEXT = {
+    "current_quarter": "本报告期",
+    "year_to_date": "年初至报告期末",
+    "period_end": "本报告期末",
+}
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
 _DECIMAL = re.compile(r"^-?[0-9]+(?:\.[0-9]+)?$")
 MAX_PDF_BYTES = 20 * 1024 * 1024
@@ -145,15 +150,19 @@ def _metric_claim(claim, symbol, digest, published_date, cutoff_date, page_texts
     page_text = page_texts.get(page)
     normalize = lambda text: "".join(text.split())
     normalized_excerpt = normalize(excerpt)
+    normalized_page = normalize(page_text) if isinstance(page_text, str) else ""
+    period_context = PERIOD_CONTEXT[claim["period_basis"]]
     if (not isinstance(page_text, str)
-            or normalized_excerpt not in normalize(page_text)
+            or normalized_excerpt not in normalized_page
             or METRIC_LABELS[metric] not in normalized_excerpt
-            or value.replace(",", "") not in normalized_excerpt.replace(",", "")):
+            or value.replace(",", "") not in normalized_excerpt.replace(",", "")
+            or period_context not in normalized_page):
         raise ValueError("claim excerpt not found in parsed PDF page text")
     return {
         "symbol": symbol, "metric": metric, "metric_label": METRIC_LABELS[metric],
         "value": value, "unit": claim["unit"],
         "period_basis": claim["period_basis"],
+        "period_context": period_context,
         "period_start": period_start, "period_end": period_end.isoformat(),
         "consolidation_scope": claim["consolidation_scope"], "page": page,
         "source_sha256": digest, "excerpt": excerpt,
