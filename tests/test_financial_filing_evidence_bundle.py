@@ -163,6 +163,22 @@ class FinancialFilingEvidenceBundleTests(unittest.TestCase):
                 }],
             )
 
+    def test_rejects_unit_mismatch_or_missing_unit(self):
+        for changes in ({"unit": "CNY_10000"}, {"excerpt": "营业总收入 37055611760.37"}):
+            with self.subTest(changes=changes), self.assertRaisesRegex(ValueError, "unit"):
+                self.build(claim_row=claim(**changes))
+
+    def test_accepts_explicit_wanyuan_unit(self):
+        result = self.build(claim_row=claim(unit="CNY_10000", excerpt="营业总收入 37055611760.37万元"))
+        self.assertEqual(result["claims"][0]["unit"], "CNY_10000")
+
+    def test_rejects_partial_or_wrong_sign_numeric_match(self):
+        for value in ("7055611760.37", "37055611760.3", "37055611760"):
+            with self.subTest(value=value), self.assertRaisesRegex(ValueError, "excerpt"):
+                self.build(claim_row=claim(value=value))
+        with self.assertRaisesRegex(ValueError, "excerpt"):
+            self.build(claim_row=claim(excerpt="营业总收入 -37055611760.37元"))
+
     def test_rejects_pdf_symlink(self):
         link = Path(self.tmp.name) / "linked.pdf"
         try:

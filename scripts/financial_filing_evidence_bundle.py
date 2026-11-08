@@ -152,12 +152,18 @@ def _metric_claim(claim, symbol, digest, published_date, cutoff_date, page_texts
     normalized_excerpt = normalize(excerpt)
     normalized_page = normalize(page_text) if isinstance(page_text, str) else ""
     period_context = PERIOD_CONTEXT[claim["period_basis"]]
+    numeric_excerpt = normalized_excerpt.replace(",", "")
+    value_pattern = r"(?<![\d.+-])" + re.escape(value) + r"(?![\d.])"
+    unit_label = {"CNY": "元", "CNY_10000": "万元", "CNY_100000000": "亿元"}[claim["unit"]]
+    excerpt_units = set(re.findall(r"(?:万|亿)?元", normalized_excerpt))
     if (not isinstance(page_text, str)
             or normalized_excerpt not in normalized_page
             or METRIC_LABELS[metric] not in normalized_excerpt
-            or value.replace(",", "") not in normalized_excerpt.replace(",", "")
+            or re.search(value_pattern, numeric_excerpt) is None
             or period_context not in normalized_page):
         raise ValueError("claim excerpt not found in parsed PDF page text")
+    if excerpt_units != {unit_label}:
+        raise ValueError("claim unit does not match an unambiguous excerpt unit")
     return {
         "symbol": symbol, "metric": metric, "metric_label": METRIC_LABELS[metric],
         "value": value, "unit": claim["unit"],

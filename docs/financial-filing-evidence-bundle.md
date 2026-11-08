@@ -17,7 +17,14 @@ declared metric label and value. The page must also contain the matching report
 period heading: `本报告期`, `年初至报告期末`, or `本报告期末`.
 
 This contract does not fetch or authenticate a filing, inspect PDF table cells,
-or verify manually entered numbers. Page text and excerpts remain untrusted;
+verify the relationship between a header and a table column, or infer missing units.
+The excerpt must name exactly one matching currency unit (`元`, `万元`, or `亿元`).
+Numeric matching rejects partial numbers and ambiguous adjacent signs. Flattened
+PDF rows can therefore require better cell evidence before acceptance, including
+the example cash-flow row whose placeholder dashes touch its negative amount.
+These checks do not verify manually entered numbers.
+
+Page text and excerpts remain untrusted;
 matching text does not prove the value belongs to the intended table column.
 Every bundle remains
 `PENDING_MANUAL_VERIFICATION`; supplied timestamps do not establish the
