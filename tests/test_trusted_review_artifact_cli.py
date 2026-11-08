@@ -3,6 +3,8 @@ import hashlib
 import io
 import json
 from pathlib import Path
+import subprocess
+import sys
 import tempfile
 import unittest
 import zipfile
@@ -72,6 +74,37 @@ class TrustedReviewArtifactCliTests(unittest.TestCase):
             archive_path.write_bytes(b"x" * (1024 * 1024 + 1))
             with self.assertRaises(ValueError):
                 evaluate_files(metadata_path, archive_path)
+
+    def test_module_entrypoint_emits_only_compact_advisory_result(self):
+        repo_root = Path(__file__).resolve().parents[1]
+        with tempfile.TemporaryDirectory() as directory:
+            metadata_path, archive_path, _ = fixture_files(directory)
+            command = [sys.executable, "-m", "scripts.trusted_review_artifact_cli",
+                       "--metadata", str(metadata_path), "--archive", str(archive_path)]
+            result = subprocess.run(command, cwd=repo_root, capture_output=True,
+                                    text=True, timeout=10, check=False)
+        self.assertEqual(result.returncode, 0)
+        report = json.loads(result.stdout)
+        self.assertEqual(report["status"], "candidate")
+        self.assertFalse(report["merge_authorized"])
+        self.assertNotIn("evidence", report)
+        self.assertNotIn("request_digest", result.stdout)
+
+    def test_module_entrypoint_reports_bad_inputs_without_details(self):
+        repo_root = Path(__file__).resolve().parents[1]
+        with tempfile.TemporaryDirectory() as directory:
+            metadata_path, archive_path, _ = fixture_files(directory)
+            metadata_path.write_text("{}", encoding="utf-8")
+            command = [sys.executable, "-m", "scripts.trusted_review_artifact_cli",
+                       "--metadata", str(metadata_path), "--archive", str(archive_path)]
+            result = subprocess.run(command, cwd=repo_root, capture_output=True,
+                                    text=True, timeout=10, check=False)
+        self.assertEqual(result.returncode, 0)
+        report = json.loads(result.stdout)
+        self.assertEqual(report["status"], "manual")
+        self.assertFalse(report["evidence_authenticated"])
+        self.assertFalse(report["merge_authorized"])
+        self.assertNotIn("request_digest", result.stdout)
 
 
 if __name__ == "__main__":
