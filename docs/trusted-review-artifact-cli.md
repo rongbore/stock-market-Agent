@@ -8,6 +8,12 @@ The CLI only verifies that its inputs are internally consistent. The caller must
 
 The archive digest must be the SHA-256 value returned by GitHub for that exact artifact. The downloaded archive is hashed locally and compared with that value before parsing. A matching digest confirms archive integrity; the CLI then checks the ZIP and evidence JSON structure. It does not independently prove that the metadata source was trusted.
 
+## Production integration status (2026-11-08)
+
+**The metadata and archive names below are synthetic schema examples, not an operational production recipe.** The verified `main` workflow `.github/workflows/ai-pr-review-manual.yml` is manually dispatched (`workflow_dispatch`), names its upload `ai-pr-review-${pr_number}`, and writes `ai-review-result.json`. In contrast, the synthetic example below uses artifact `ai-review-evidence` and ZIP member `ai-review-evidence.json`. These are **not interchangeable**. The manual workflow's review job is currently disabled with `if: ${{ false }}`; no production artifact from that job should be assumed to exist.
+
+Before using this CLI in a live review pipeline, identify and verify the actual producer, its workflow identity and event, artifact name, ZIP member name, and evidence schema using an offline integration test. Do not rename or substitute untrusted metadata merely to make verification pass. Do not enable paid model calls without a reliable Beijing-calendar-month cost ledger and an enforced maximum per call. A successful `candidate` result never authorizes merging.
+
 ## Inputs
 
 Pass two files:
