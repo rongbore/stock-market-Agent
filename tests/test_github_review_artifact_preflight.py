@@ -4,11 +4,14 @@ from scripts.github_review_artifact_preflight import assess_provenance
 
 SHA = "a" * 40
 REPO = "rongbore/stock-market-Agent"
+WORKFLOW_PATH = ".github/workflows/ai-pr-review-manual.yml"
+EVENT = "pull_request"
 
 
 def run():
     return dict(repository_full_name=REPO, head_sha=SHA, workflow_id=42,
-                event="pull_request", status="completed", conclusion="success", id=100)
+                path=WORKFLOW_PATH, event=EVENT, head_repository_full_name=REPO,
+                status="completed", conclusion="success", id=100, run_attempt=1)
 
 
 def artifact():
@@ -18,6 +21,7 @@ def artifact():
 
 def assess(r=None, a=None, **kw):
     args = dict(repo=REPO, expected_head_sha=SHA, expected_workflow_id=42,
+                expected_workflow_path=WORKFLOW_PATH, expected_event=EVENT,
                 run=run() if r is None else r,
                 artifact=artifact() if a is None else a)
     args.update(kw)
@@ -31,6 +35,9 @@ class ProvenancePreflightTests(unittest.TestCase):
     def test_wrong_repo_sha_or_workflow_blocks(self):
         for field, value in (("repository_full_name", "attacker/repo"),
                              ("head_sha", "b" * 40), ("workflow_id", 43),
+                             ("path", ".github/workflows/other.yml"),
+                             ("head_repository_full_name", "attacker/fork"),
+                             ("run_attempt", True),
                              ("status", "in_progress"), ("conclusion", "failure"),
                              ("event", "push"), ("id", 0)):
             with self.subTest(field=field):
@@ -54,6 +61,8 @@ class ProvenancePreflightTests(unittest.TestCase):
         self.assertEqual(assess(repo="attacker/repo"), "manual")
         self.assertEqual(assess(expected_head_sha="bad"), "manual")
         self.assertEqual(assess(expected_workflow_id=True), "manual")
+        self.assertEqual(assess(expected_workflow_path="../untrusted.yml"), "manual")
+        self.assertEqual(assess(expected_event=""), "manual")
 
 
 if __name__ == "__main__":
