@@ -4,13 +4,16 @@ All inputs must be obtained from authenticated GitHub API responses by a
 privileged controller. Matching metadata alone is NOT cryptographic proof.
 No network access, artifact download, credential handling, or merging.
 """
+import hmac
 import re
 
 _SHA = re.compile(r"^[0-9a-f]{40}$")
+_ARTIFACT_DIGEST = re.compile(r"^sha256:[0-9a-f]{64}$")
 
 
 def assess_provenance(*, repo, expected_head_sha, expected_workflow_id,
-                      expected_workflow_path, expected_event, run, artifact):
+                      expected_workflow_path, expected_event, run, artifact,
+                      downloaded_artifact_digest):
     """Return (status, reason); candidate never means merge authorization."""
     if repo != "rongbore/stock-market-Agent":
         return "manual", "unexpected repository"
@@ -53,4 +56,13 @@ def assess_provenance(*, repo, expected_head_sha, expected_workflow_id,
         return "manual", "artifact size invalid or excessive"
     if artifact.get("name") != "ai-review-evidence":
         return "manual", "unexpected artifact name"
-    return "candidate", "metadata matches; authenticate artifact contents separately"
+    artifact_digest = artifact.get("digest")
+    if (not isinstance(artifact_digest, str) or
+            not _ARTIFACT_DIGEST.fullmatch(artifact_digest)):
+        return "manual", "missing or invalid GitHub artifact digest"
+    if (not isinstance(downloaded_artifact_digest, str) or
+            not _ARTIFACT_DIGEST.fullmatch(downloaded_artifact_digest)):
+        return "manual", "missing or invalid downloaded artifact digest"
+    if not hmac.compare_digest(artifact_digest, downloaded_artifact_digest):
+        return "manual", "downloaded artifact digest mismatch"
+    return "candidate", "metadata and archive digest match; validate archive contents separately"
