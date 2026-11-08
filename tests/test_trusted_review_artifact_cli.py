@@ -1,1 +1,111 @@
-YªçŠx-®éÜj×¢ëiºÚ+Š§j[h‘éÜ¢éí×¾ùN‹Z–‹­¦ëeŠw¬Ôˆˆ‰=™™±¥¹”1$¥¹ÁÕÐ½½ÕÑÁÕÐ½¹ÑÉ…ÐÑ•ÍÑÌ¸ˆˆˆ)¥µÁ½ÉÐ¡…Í¡±¥ˆ)¥µÁ½ÉÐ¥¼)¥µÁ½ÉÐ©Í½¸)™É½´Á…Ñ¡±¥ˆ¥µÁ½ÉÐA…Ñ )¥µÁ½ÉÐÍÕ‰ÁÉ½•ÍÌ)¥µÁ½ÉÐÍåÌ)¥µÁ½ÉÐÑ•µÁ™¥±”)¥µÁ½ÉÐÕ¹¥ÑÑ•ÍÐ)¥µÁ½ÉÐé¥Á™¥±”()™É½´ÍÉ¥ÁÑÌ¹ÑÉÕÍÑ•‘}É•Ù¥•Ý}…ÉÑ¥™…Ñ}±¤¥µÁ½ÉÐ•Ù…±Õ…Ñ•}™¥±•Ì()IA<€ô€‰É½¹‰½É”½ÍÑ½¬µµ…É­•Ðµ•¹Ðˆ)!€ô€‰„ˆ€¨€ÐÀ)	M€ô€‰ˆˆ€¨€ÐÀ)]=I-1=]}AQ €ô€ˆ¹¥Ñ¡Õˆ½Ý½É­™±½ÝÌ½…¤µÁÈµÉ•Ù¥•Üµµ…¹Õ…°¹åµ°ˆ)]=I-1=]}I€ôIA<€¬€ˆ¼ˆ€¬]=I-1=]}AQ €¬€‰É•™Ì½¡•…‘Ì½µ…¥¸ˆ)Y9P€ô€‰Ý½É­™±½Ý}‘¥ÍÁ…Ñ ˆ(()‘•˜•Ù¥‘•¹” ¤è(€€€É•ÑÕÉ¸ì‰¡•…‘}Í¡„ˆè!°€‰‰…Í•}Í¡„ˆè	M°€‰…ÉÑ¥™…Ñ}Í¡„ˆè€‰Œˆ€¨€ÐÀ°(€€€€€€€€€€€€‰Ý½É­™±½Ý}ÉÕ¹}¥ˆè€ÄÈÌ°€‰É•ÅÕ•ÍÑ}‘¥•ÍÐˆè€‰ˆ€¨€ØÐ°(€€€€€€€€€€€€‰É•Á½Í¥Ñ½ÉäˆèIA<°€‰Ý½É­™±½Ý}Á…Ñ ˆè]=I-1=]}AQ °(€€€€€€€€€€€€‰Ý½É­™±½Ý}É•˜ˆè]=I-1=]}I°€‰Ý½É­™±½Ý}Í¡„ˆè€‰”ˆ€¨€ÐÀ°(€€€€€€€€€€€€‰•Ù•¹ÐˆèY9P°€‰Ù•É‘¥Ðˆè€‰…ÁÁÉ½Ù”ˆ°€‰™¥¹‘¥¹Ìˆèmuô(()‘•˜™¥áÑÕÉ•}™¥±•Ì¡‘¥É•Ñ½Éä¤è(€€€…É¡¥Ù•}Á…Ñ €ôA…Ñ ¡‘¥É•Ñ½Éä¤€¼€‰…ÉÑ¥™…Ð¹é¥Àˆ(€€€ÍÑÉ•…´€ô¥¼¹	åÑ•Í%< ¤(€€€Ý¥Ñ é¥Á™¥±”¹i¥Á¥±”¡ÍÑÉ•…´°€‰Üˆ°é¥Á™¥±”¹i%A}1Q¤…Ì…É¡¥Ù”è(€€€€€€€…É¡¥Ù”¹ÝÉ¥Ñ•ÍÑÈ ‰…¤µÉ•Ù¥•Üµ•Ù¥‘•¹”¹©Í½¸ˆ°©Í½¸¹‘ÕµÁÌ¡•Ù¥‘•¹” ¤¤¤(€€€…É¡¥Ù•}‰åÑ•Ì€ôÍÑÉ•…´¹•ÑÙ…±Õ” ¤(€€€…É¡¥Ù•}Á…Ñ ¹ÝÉ¥Ñ•}‰åÑ•Ì¡…É¡¥Ù•}‰åÑ•Ì¤(€€€µ•Ñ…‘…Ñ„€ôì(€€€€€€€€‰É•Á¼ˆèIA<°€‰ÕÉÉ•¹Ñ}¡•…‘}Í¡„ˆè!°€‰ÕÉÉ•¹Ñ}‰…Í•}Í¡„ˆè	M°(€€€€€€€€‰•áÁ•Ñ•‘}É•ÅÕ•ÍÑ}‘¥•ÍÐˆè€‰ˆ€¨€ØÐ°€‰•áÁ•Ñ•‘}Ý½É­™±½Ý}¥ˆè€ÜÜ°(€€€€€€€€‰•áÁ•Ñ•‘}Ý½É­™±½Ý}Á…Ñ ˆè]=I-1=]}AQ °€‰•áÁ•Ñ•‘}•Ù•¹ÐˆèY9P°(€€€€€€€€‰ÑÉÕÍÑ•‘}…ÉÑ¥™…Ñ}Í¡„ˆè€‰Œˆ€¨€ÐÀ°€‰ÑÉÕÍÑ•‘}Ý½É­™±½Ý}É•˜ˆè]=I-1=]}I°(€€€€€€€€‰ÑÉÕÍÑ•‘}Ý½É­™±½Ý}Í¡„ˆè€‰”ˆ€¨€ÐÀ°(€€€€€€€€‰ÉÕ¸ˆèì‰É•Á½Í¥Ñ½Éå}™Õ±±}¹…µ”ˆèIA<°€‰¡•…‘}É•Á½Í¥Ñ½Éå}™Õ±±}¹…µ”ˆèIA<°(€€€€€€€€€€€€€€€€‰¡•…‘}Í¡„ˆè!°€‰Ý½É­™±½Ý}¥ˆè€ÜÜ°€‰Á…Ñ ˆè]=I-1=]}AQ °(€€€€€€€€€€€€€€€€‰•Ù•¹ÐˆèY9P°€‰ÍÑ…ÑÕÌˆè€‰½µÁ±•Ñ•ˆ°€‰½¹±ÕÍ¥½¸ˆè€‰ÍÕ•ÍÌˆ°(€€€€€€€€€€€€€€€€‰¥ˆè€ÄÈÌ°€‰ÉÕ¹}…ÑÑ•µÁÐˆè€Åô°(€€€€€€€€‰…ÉÑ¥™…Ðˆèì‰Ý½É­™±½Ý}ÉÕ¹}¥ˆè€ÄÈÌ°€‰¥ˆè€ÐÔØ°€‰•áÁ¥É•ˆè…±Í”°(€€€€€€€€€€€€€€€€€€€€€‰Í¥é•}¥¹}‰åÑ•Ìˆè±•¸¡…É¡¥Ù•}‰åÑ•Ì¤°€‰¹…µ”ˆè€‰…¤µÉ•Ù¥•Üµ•Ù¥‘•¹”ˆ°(€€€€€€€€€€€€€€€€€€€€€‰‘¥•ÍÐˆè€‰Í¡„ÈÔØèˆ€¬¡…Í¡±¥ˆ¹Í¡„ÈÔØ¡…É¡¥Ù•}‰åÑ•Ì¤¹¡•á‘¥•ÍÐ ¥ô°(€€€ô(€€€µ•Ñ…‘…Ñ…}Á…Ñ €ôA…Ñ ¡‘¥É•Ñ½Éä¤€¼€‰µ•Ñ…‘…Ñ„¹©Í½¸ˆ(€€€µ•Ñ…‘…Ñ…}Á…Ñ ¹ÝÉ¥Ñ•}Ñ•áÐ¡©Í½¸¹‘ÕµÁÌ¡µ•Ñ…‘…Ñ„¤°•¹½‘¥¹œô‰ÕÑ˜´àˆ¤(€€€É•ÑÕÉ¸µ•Ñ…‘…Ñ…}Á…Ñ °…É¡¥Ù•}Á…Ñ °µ•Ñ…‘…Ñ„(()±…ÍÌQÉÕÍÑ•‘Knù¶‰žËkºwµçf6öF–æsÒ'WFbÓ‚"¢v—F‚6VÆbæ76W'E&—6W2…fÇVTW'&÷"“ ¢WfÇVFUöf–ÆW2†ÖWFFF÷F‚Â&6†—fU÷F‚¢ÖWFFF÷F‚çw&—FU÷FW‡B‚'·Ò"ÂVæ6öF–æsÒ'WFbÓ‚"¢&6†—fU÷F‚çw&—FUö'—FW2†"'‚"¢ƒ#B¢#B²’¢v—F‚6VÆbæ76W'E&—6W2…fÇVTW'&÷"“ ¢WfÇVFUöf–ÆW2†ÖWFFF÷F‚Â&6†—fU÷F‚ ¢FVbFW7EöÖöGVÆUöVçG'—ö–çEöVÖ—G5ööæÇ•ö6ö×7EöGf—6÷'•÷&W7VÇB‡6VÆb“ ¢&Wõ÷&ö÷BÒF‚…õöf–ÆUõò’ç&W6öÇfR‚’ç&VçG5³Ð¢v—F‚FV×f–ÆRåFV×÷&'”F—&V7F÷'’‚’2F—&V7F÷'“ ¢ÖWFFF÷F‚Â&6†—fU÷F‚ÂòÒf—‡GW&Uöf–ÆW2†F—&V7F÷'’¢6öÖÖæBÒ·7—2æW†V7WF&ÆRÂ"ÖÒ"Â'67&—G2çG'W7FVE÷&Wf–Wuö'F–f7Eö6Æ’"À¢"ÒÖÖWFFF"Â7G"†ÖWFFF÷F‚’Â"ÒÖ&6†—fR"Â7G"†&6†—fU÷F‚•Ð¢&W7VÇBÒ7V'&ö6W72ç'Vâ†6öÖÖæBÂ7vC×&Wõ÷&ö÷BÂ6GW&Uö÷WGWCÕG'VRÀ¢FW‡CÕG'VRÂF–ÖV÷WCÓÂ6†V6³ÔfÇ6R¢6VÆbæ76W'DWVÂ‡&W7VÇBç&WGW&æ6öFRÂ¢&W÷'BÒ§6öâæÆöG2‡&W7VÇBç7FF÷WB¢6VÆbæ76W'DWVÂ‡&W÷'E²'7FGW2%ÒÂ&6æF–FFR"¢6VÆbæ76W'DfÇ6R‡&W÷'E²&ÖW&vUöWF†÷&—¦VB%Ò¢6VÆbæ76W'Dæ÷D–â‚&Wf–FVæ6R"Â&W÷'B¢6VÆbæ76W'Dæ÷D–â‚'&WVW7EöF–vW7B"Â&W7VÇBç7FF÷WB ¢FVbFW7EöÖöGVÆUöVçG'—ö–çE÷&W÷'G5ö&Eö–çWG5÷v—F†÷WEöFWF–Ç2‡6VÆb“ ¢&Wõ÷&ö÷BÒF‚…õöf–ÆUõò’ç&W6öÇfR‚’ç&VçG5³Ð¢v—F‚FV×f–ÆRåFV×÷&'”F—&V7F÷'’‚’2F—&V7F÷'“ ¢ÖWFFF÷F‚Â&6†—fU÷F‚ÂòÒf—‡GW&Uöf–ÆW2†F—&V7F÷'’¢ÖWFFF÷F‚çw&—FU÷FW‡B‚'·Ò"ÂVæ6öF–æsÒ'WFbÓ‚"¢6öÖÖæBÒ·7—2æW†V7WF&ÆRÂ"ÖÒ"Â'67&—G2çG'W7FVE÷&Wf–Wuö'F–f7Eö6Æ’"À¢"ÒÖÖWFFF"Â7G"†ÖWFFF÷F‚’Â"ÒÖ&6†—fR"Â7G"†&6†—fU÷F‚•Ð¢&W7VÇBÒ7V'&ö6W72ç'Vâ†6öÖÖæBÂ7vC×&Wõ÷&ö÷BÂ6GW&Uö÷WGWCÕG'VRÀ¢FW‡CÕG'VRÂF–ÖV÷WCÓÂ6†V6³ÔfÇ6R¢6VÆbæ76W'DWVÂ‡&W7VÇBç&WGW&æ6öFRÂ¢&W÷'BÒ§6öâæÆöG2‡&W7VÇBç7FF÷WB¢6VÆbæ76W'DWVÂ‡&W÷'E²'7FGW2%ÒÂ&ÖçVÂ"¢6VÆbæ76W'DfÇ6R‡&W÷'E²&Wf–FVæ6UöWF†VçF–6FVB%Ò¢6VÆbæ76W'DfÇ6R‡&W÷'E²&ÖW&vUöWF†÷&—¦VB%Ò¢6VÆbæ76W'Dæ÷D–â‚'&WVW7EöF–vW7B"Â&W7VÇBç7FF÷WB  ¦–bõöæÖUõòÓÒ%õöÖ–åõò# ¢Væ—GFW7BæÖ–â‚ 
+"""Offline CLI input/output contract tests."""
+import hashlib
+import io
+import json
+from pathlib import Path
+import subprocess
+import sys
+import tempfile
+import unittest
+import zipfile
+
+from scripts.trusted_review_artifact_cli import evaluate_files
+
+REPO = "rongbore/stock-market-Agent"
+HEAD = "a" * 40
+BASE = "b" * 40
+WORKFLOW_PATH = ".github/workflows/ai-pr-review-manual.yml"
+WORKFLOW_REF = REPO + "/" + WORKFLOW_PATH + "@refs/heads/main"
+EVENT = "workflow_dispatch"
+
+
+def evidence():
+    return {"head_sha": HEAD, "base_sha": BASE, "artifact_sha": "c" * 40,
+            "workflow_run_id": 123, "request_digest": "d" * 64,
+            "repository": REPO, "workflow_path": WORKFLOW_PATH,
+            "workflow_ref": WORKFLOW_REF, "workflow_sha": "e" * 40,
+            "event": EVENT, "verdict": "approve", "findings": []}
+
+
+def fixture_files(directory):
+    archive_path = Path(directory) / "artifact.zip"
+    stream = io.BytesIO()
+    with zipfile.ZipFile(stream, "w", zipfile.ZIP_DEFLATED) as archive:
+        archive.writestr("ai-review-evidence.json", json.dumps(evidence()))
+    archive_bytes = stream.getvalue()
+    archive_path.write_bytes(archive_bytes)
+    metadata = {
+        "repo": REPO, "current_head_sha": HEAD, "current_base_sha": BASE,
+        "expected_request_digest": "d" * 64, "expected_workflow_id": 77,
+        "expected_workflow_path": WORKFLOW_PATH, "expected_event": EVENT,
+        "trusted_artifact_sha": "c" * 40, "trusted_workflow_ref": WORKFLOW_REF,
+        "trusted_workflow_sha": "e" * 40,
+        "run": {"repository_full_name": REPO, "head_repository_full_name": REPO,
+                "head_sha": HEAD, "workflow_id": 77, "path": WORKFLOW_PATH,
+                "event": EVENT, "status": "completed", "conclusion": "success",
+                "id": 123, "run_attempt": 1},
+        "artifact": {"workflow_run_id": 123, "id": 456, "expired": False,
+                     "size_in_bytes": len(archive_bytes), "name": "ai-review-evidence",
+                     "digest": "sha256:" + hashlib.sha256(archive_bytes).hexdigest()},
+    }
+    metadata_path = Path(directory) / "metadata.json"
+    metadata_path.write_text(json.dumps(metadata), encoding="utf-8")
+    return metadata_path, archive_path, metadata
+
+
+class TrustedReviewArtifactCliTests(unittest.TestCase):
+    def test_valid_inputs_emit_non_authorizing_summary(self):
+        with tempfile.TemporaryDirectory() as directory:
+            metadata, archive, _ = fixture_files(directory)
+            result = evaluate_files(metadata, archive)
+        self.assertEqual(result["status"], "candidate")
+        self.assertTrue(result["evidence_authenticated"])
+        self.assertFalse(result["merge_authorized"])
+        self.assertNotIn("evidence", result)
+
+    def test_bad_metadata_and_oversized_input_fail_closed(self):
+        with tempfile.TemporaryDirectory() as directory:
+            metadata_path, archive_path, metadata = fixture_files(directory)
+            metadata["unexpected"] = "ignored input must not be accepted"
+            metadata_path.write_text(json.dumps(metadata), encoding="utf-8")
+            with self.assertRaises(ValueError):
+                evaluate_files(metadata_path, archive_path)
+            metadata_path.write_text("{}", encoding="utf-8")
+            archive_path.write_bytes(b"x" * (1024 * 1024 + 1))
+            with self.assertRaises(ValueError):
+                evaluate_files(metadata_path, archive_path)
+
+    def test_module_entrypoint_emits_only_compact_advisory_result(self):
+        repo_root = Path(__file__).resolve().parents[1]
+        with tempfile.TemporaryDirectory() as directory:
+            metadata_path, archive_path, _ = fixture_files(directory)
+            command = [sys.executable, "-m", "scripts.trusted_review_artifact_cli",
+                       "--metadata", str(metadata_path), "--archive", str(archive_path)]
+            result = subprocess.run(command, cwd=repo_root, capture_output=True,
+                                    text=True, timeout=10, check=False)
+        self.assertEqual(result.returncode, 0)
+        report = json.loads(result.stdout)
+        self.assertEqual(report["status"], "candidate")
+        self.assertFalse(report["merge_authorized"])
+        self.assertNotIn("evidence", report)
+        self.assertNotIn("request_digest", result.stdout)
+
+    def test_module_entrypoint_reports_bad_inputs_without_details(self):
+        repo_root = Path(__file__).resolve().parents[1]
+        with tempfile.TemporaryDirectory() as directory:
+            metadata_path, archive_path, _ = fixture_files(directory)
+            metadata_path.write_text("{}", encoding="utf-8")
+            command = [sys.executable, "-m", "scripts.trusted_review_artifact_cli",
+                       "--metadata", str(metadata_path), "--archive", str(archive_path)]
+            result = subprocess.run(command, cwd=repo_root, capture_output=True,
+                                    text=True, timeout=10, check=False)
+        self.assertEqual(result.returncode, 0)
+        report = json.loads(result.stdout)
+        self.assertEqual(report["status"], "manual")
+        self.assertFalse(report["evidence_authenticated"])
+        self.assertFalse(report["merge_authorized"])
+        self.assertNotIn("request_digest", result.stdout)
+
+
+if __name__ == "__main__":
+    unittest.main()
