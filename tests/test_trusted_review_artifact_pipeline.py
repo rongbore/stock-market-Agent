@@ -76,6 +76,15 @@ class TrustedReviewArtifactPipelineTests(unittest.TestCase):
         self.assertEqual(result["status"], "manual")
         self.assertFalse(result["merge_authorized"])
 
+    def test_invalid_or_oversized_archive_is_rejected_before_hashing(self):
+        for value in (b"", bytearray(b"zip"), b"x" * (1024 * 1024 + 1)):
+            with self.subTest(value_type=type(value).__name__, size=len(value)):
+                args = inputs()
+                args["archive_bytes"] = value
+                result = verify_trusted_review_artifact(**args)
+                self.assertEqual(result["status"], "manual")
+                self.assertFalse(result["merge_authorized"])
+
 
 if __name__ == "__main__":
     unittest.main()
