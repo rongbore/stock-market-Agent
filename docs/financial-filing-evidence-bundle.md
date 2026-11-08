@@ -10,10 +10,15 @@ period-end value.
 For quarterly reports, `period_basis` must be explicit. A `year_to_date` claim
 must begin on January 1; a `current_quarter` claim must begin at the calendar
 quarter boundary; `period_end` is reserved for point-in-time total assets.
-Currency units use exact labels and values are decimal strings.
+Currency units use exact labels and values are decimal strings. Only canonical
+HTTPS CNINFO finalpage PDFs are accepted. Requested pages are parsed, and each
+manual excerpt must appear in the corresponding page text and contain the
+declared metric label and value.
 
 This contract does not fetch or authenticate a filing, inspect PDF table cells,
-or verify manually entered numbers. Every bundle remains
+or verify manually entered numbers. Page text and excerpts remain untrusted;
+matching text does not prove the value belongs to the intended table column.
+Every bundle remains
 `PENDING_MANUAL_VERIFICATION`; supplied timestamps do not establish the
 provider's historical publication time. It makes no model, brokerage, or paid
 API calls.

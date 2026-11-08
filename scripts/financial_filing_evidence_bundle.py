@@ -6,7 +6,9 @@ read PDF tables, verify claimed numbers, or provide investment advice.
 from datetime import date, datetime
 from decimal import Decimal, InvalidOperation
 import hashlib
+import os
 import re
+import stat
 from pathlib import Path
 from urllib.parse import urlsplit
 
@@ -22,6 +24,40 @@ PERIOD_BASES = {"current_quarter", "year_to_date", "period_end"}
 SCOPES = {"consolidated", "parent_company"}
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
 _DECIMAL = re.compile(r"^-?[0-9]+(?:\.[0-9]+)?$")
+MAX_PDF_BYTES = 20 * 1024 * 1024
+
+
+def _pdf_digest(path):
+    """Hash a bounded regular file without following a symlink at open time."""
+    flags = os.O_RDONLY | getattr(os, "O_BINARY", 0) | getattr(os, "O_NOFOLLOW", 0)
+    try:
+        fd = os.open(path, flags)
+    except OSError as exc:
+        raise ValueError("unable to open regular PDF without following symlinks") from exc
+    try:
+        info = os.fstat(fd)
+        if not stat.S_ISREG(info.st_mode) or not 8 <= info.st_size <= MAX_PDF_BYTES:
+            raise ValueError("PDF size or file type outside allowed range")
+        if not hasattr(os, "O_NOFOLLOW"):
+            before = os.stat(path, follow_symlinks=False)
+            if (not stat.S_ISREG(before.st_mode)
+                    or (before.st_dev, before.st_ino) != (info.st_dev, info.st_ino)):
+                raise ValueError("PDF path changed or is a symlink")
+        with os.fdopen(fd, "rb", closefd=False) as stream:
+            header = stream.read(5)
+            if header != b"%PDF-":
+                raise ValueError("local filing lacks PDF header")
+            hasher = hashlib.sha256()
+            hasher.update(header)
+            tail = header
+            while chunk := stream.read(65536):
+                hasher.update(chunk)
+                tail = (tail + chunk)[-2048:]
+            if b"%%EOF" not in tail:
+                raise ValueError("local filing lacks a PDF EOF marker")
+        return hasher.hexdigest()
+    finally:
+        os.close(fd)
 
 
 def _timestamp(value, field):
@@ -48,7 +84,7 @@ def _day(value, field):
     return parsed
 
 
-def _metric_claim(claim, symbol, digest, published_date, cutoff_date):
+def _metric_claim(claim, symbol, digest, published_date, cutoff_date, page_texts):
     if not isinstance(claim, dict) or claim.get("symbol") != symbol:
         raise ValueError("claim symbol mismatch")
     metric = claim.get("metric")
@@ -103,6 +139,14 @@ def _metric_claim(claim, symbol, digest, published_date, cutoff_date):
     excerpt = claim.get("excerpt")
     if not isinstance(excerpt, str) or not excerpt.strip() or len(excerpt) > 2000:
         raise ValueError("manual source excerpt required")
+    page_text = page_texts.get(page)
+    normalize = lambda text: "".join(text.split())
+    normalized_excerpt = normalize(excerpt)
+    if (not isinstance(page_text, str)
+            or normalized_excerpt not in normalize(page_text)
+            or METRIC_LABELS[metric] not in normalized_excerpt
+            or value.replace(",", "") not in normalized_excerpt.replace(",", "")):
+        raise ValueError("claim excerpt not found in parsed PDF page text")
     return {
         "symbol": symbol, "metric": metric, "metric_label": METRIC_LABELS[metric],
         "value": value, "unit": claim["unit"],
@@ -114,7 +158,8 @@ def _metric_claim(claim, symbol, digest, published_date, cutoff_date):
     }
 
 
-def build_filing_evidence_bundle(*, pdf_path, source, claims, symbol, analysis_cutoff):
+def build_filing_evidence_bundle(*, pdf_path, source, claims, symbol, analysis_cutoff,
+                                page_text_extractor=None):
     """Bind actual PDF bytes and user-entered claims to strict time semantics."""
     if not isinstance(symbol, str) or not re.fullmatch(r"\d{6}\.(SZ|SS)", symbol):
         raise ValueError("invalid A-share symbol")
@@ -132,6 +177,10 @@ def build_filing_evidence_bundle(*, pdf_path, source, claims, symbol, analysis_c
     if (parsed_url.scheme != "https" or not parsed_url.hostname
             or parsed_url.username or parsed_url.password):
         raise ValueError("source URL must be public HTTPS")
+    if source.get("provider") != "CNINFO":
+        raise ValueError("only CNINFO filing URLs are supported")
+    from scripts.disclosure_pdf_fetch import validate_cninfo_pdf_url
+    validate_cninfo_pdf_url(source["source_url"])
     published = _timestamp(source.get("published_at"), "published_at")
     retrieved = _timestamp(source.get("retrieved_at"), "retrieved_at")
     if published > retrieved:
@@ -142,22 +191,31 @@ def build_filing_evidence_bundle(*, pdf_path, source, claims, symbol, analysis_c
     if not isinstance(expected, str) or not _SHA256.fullmatch(expected):
         raise ValueError("invalid source SHA-256")
     path = Path(pdf_path)
-    if path.is_symlink() or not path.is_file():
-        raise ValueError("expected a regular local filing PDF")
-    with path.open("rb") as stream:
-        header = stream.read(5)
-        if header != b"%PDF-":
-            raise ValueError("local filing lacks PDF header")
-        hasher = hashlib.sha256()
-        hasher.update(header)
-        while chunk := stream.read(65536):
-            hasher.update(chunk)
-    digest = hasher.hexdigest()
+    digest = _pdf_digest(path)
     if digest != expected:
         raise ValueError("local PDF SHA-256 does not match source record")
     if not isinstance(claims, list) or not 1 <= len(claims) <= 100:
         raise ValueError("claims must contain 1 to 100 entries")
-    normalized = [_metric_claim(row, symbol, digest, published.date(), cutoff.date())
+    pages = sorted({row.get("page") for row in claims if isinstance(row, dict)
+                    and type(row.get("page")) is int})
+    if page_text_extractor is None:
+        from scripts.offline_pdf_page_text import extract_pages
+        page_text_extractor = extract_pages
+    try:
+        extracted = page_text_extractor(path, symbol, published.date().isoformat(), pages)
+    except Exception as exc:
+        raise ValueError("unable to extract requested filing pages") from exc
+    page_texts = {}
+    for item in extracted:
+        if (not isinstance(item, dict) or item.get("file_sha256") != digest
+                or type(item.get("page")) is not int or item["page"] not in pages
+                or not isinstance(item.get("text"), str)
+                or item["page"] in page_texts):
+            raise ValueError("invalid parsed PDF page evidence")
+        page_texts[item["page"]] = item["text"]
+    if set(page_texts) != set(pages):
+        raise ValueError("parsed PDF page evidence is incomplete")
+    normalized = [_metric_claim(row, symbol, digest, published.date(), cutoff.date(), page_texts)
                   for row in claims]
     identities = [(row["metric"], row["period_basis"], row["period_start"],
                    row["period_end"], row["unit"], row["consolidation_scope"], row["page"])

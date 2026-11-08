@@ -44,9 +44,15 @@ class FinancialFilingEvidenceBundleTests(unittest.TestCase):
         self.tmp.cleanup()
 
     def build(self, source_row=None, claim_row=None, cutoff="2026-10-31T23:59:59+08:00"):
+        selected_claim = claim_row or claim()
         return build_filing_evidence_bundle(
-            pdf_path=self.pdf, source=source_row or source(), claims=[claim_row or claim()],
+            pdf_path=self.pdf, source=source_row or source(), claims=[selected_claim],
             symbol="000776.SZ", analysis_cutoff=cutoff,
+            page_text_extractor=lambda path, ticker, announcement_date, pages: [
+                {"page": page, "file_sha256": DIGEST,
+                 "text": "header " + selected_claim["excerpt"] + " footer"}
+                for page in pages
+            ],
         )
 
     def test_end_to_end_bundle_preserves_unverified_boundaries(self):
@@ -71,6 +77,14 @@ class FinancialFilingEvidenceBundleTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "timezone"):
             self.build(source_row=source(published_at="2026-10-29T16:00:00"))
 
+    def test_accepts_equivalent_cross_timezone_cutoff_instant(self):
+        result = self.build(cutoff="2026-10-30T02:00:00Z")
+        self.assertEqual(result["status"], "PENDING_MANUAL_VERIFICATION")
+
+    def test_rejects_one_second_before_retrieval_in_cross_timezone_cutoff(self):
+        with self.assertRaisesRegex(ValueError, "retrieved after"):
+            self.build(cutoff="2026-10-30T01:59:59Z")
+
     def test_rejects_claim_after_disclosure_cutoff(self):
         with self.assertRaisesRegex(ValueError, "period is outside"):
             self.build(claim_row=claim(period_end="2026-12-31"))
@@ -94,11 +108,51 @@ class FinancialFilingEvidenceBundleTests(unittest.TestCase):
             build_filing_evidence_bundle(
                 pdf_path=self.pdf, source=source(), claims=[claim(), claim()],
                 symbol="000776.SZ", analysis_cutoff="2026-10-31T23:59:59+08:00",
+                page_text_extractor=lambda path, ticker, announcement_date, pages: [
+                    {"page": page, "file_sha256": DIGEST,
+                     "text": "header " + claim()["excerpt"] + " footer"}
+                    for page in pages
+                ],
             )
 
     def test_rejects_bad_symbol_and_untrusted_url_scheme(self):
         with self.assertRaisesRegex(ValueError, "source URL"):
             self.build(source_row=source(source_url="http://example.org/report.pdf"))
+
+    def test_rejects_cninfo_url_fragment_or_nondefault_port(self):
+        for url in (
+            "https://static.cninfo.com.cn:444/finalpage/sample.pdf",
+            "https://static.cninfo.com.cn/finalpage/sample.pdf#page=1",
+        ):
+            with self.subTest(url=url), self.assertRaises(ValueError):
+                self.build(source_row=source(source_url=url))
+
+    def test_rejects_excerpt_not_present_in_parsed_pdf_page(self):
+        selected = claim(excerpt="fake excerpt")
+        with self.assertRaisesRegex(ValueError, "not found in parsed PDF"):
+            build_filing_evidence_bundle(
+                pdf_path=self.pdf, source=source(), claims=[selected], symbol="000776.SZ",
+                analysis_cutoff="2026-10-31T23:59:59+08:00",
+                page_text_extractor=lambda *args: [{"page": 1, "file_sha256": DIGEST,
+                                                    "text": "actual extracted page text"}],
+            )
+
+    def test_rejects_claim_value_not_present_in_excerpt(self):
+        selected = claim(value="1.00")
+        with self.assertRaisesRegex(ValueError, "not found in parsed PDF"):
+            self.build(claim_row=selected)
+
+    def test_rejects_pdf_symlink(self):
+        link = Path(self.tmp.name) / "linked.pdf"
+        try:
+            link.symlink_to(self.pdf)
+        except (OSError, NotImplementedError):
+            self.skipTest("symlinks are unavailable")
+        with self.assertRaisesRegex(ValueError, "symlink"):
+            build_filing_evidence_bundle(
+                pdf_path=link, source=source(), claims=[claim()], symbol="000776.SZ",
+                analysis_cutoff="2026-10-31T23:59:59+08:00",
+            )
 
 
 if __name__ == "__main__":
