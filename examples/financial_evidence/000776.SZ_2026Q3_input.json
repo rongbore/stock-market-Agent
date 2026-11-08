@@ -1,0 +1,85 @@
+{
+  "symbol": "000776.SZ",
+  "analysis_cutoff": "2026-11-08T23:59:59+08:00",
+  "source": {
+    "symbol": "000776.SZ",
+    "provider": "CNINFO",
+    "title": "广发证券股份有限公司2026年第三季度报告",
+    "source_url": "https://static.cninfo.com.cn/finalpage/2026-10-30/1225643508.PDF",
+    "published_at": "2026-10-29T16:00:00+08:00",
+    "retrieved_at": "2026-11-08T14:13:56.457326+00:00",
+    "sha256": "c39ae456f1363f8031c4a93609368b5df2e9d4814c176245a52d05d6c74ed4d5"
+  },
+  "claims": [
+    {
+      "symbol": "000776.SZ",
+      "metric": "revenue",
+      "metric_label": "营业总收入",
+      "value": "37055611760.37",
+      "unit": "CNY",
+      "period_basis": "year_to_date",
+      "period_start": "2026-01-01",
+      "period_end": "2026-09-30",
+      "consolidation_scope": "consolidated",
+      "source_sha256": "c39ae456f1363f8031c4a93609368b5df2e9d4814c176245a52d05d6c74ed4d5",
+      "page": 1,
+      "excerpt": "营业总收入（元）10,172,696,394.72-5.51%37,055,611,760.3741.63%"
+    },
+    {
+      "symbol": "000776.SZ",
+      "metric": "revenue",
+      "metric_label": "营业总收入",
+      "value": "10172696394.72",
+      "unit": "CNY",
+      "period_basis": "current_quarter",
+      "period_start": "2026-07-01",
+      "period_end": "2026-09-30",
+      "consolidation_scope": "consolidated",
+      "source_sha256": "c39ae456f1363f8031c4a93609368b5df2e9d4814c176245a52d05d6c74ed4d5",
+      "page": 1,
+      "excerpt": "营业总收入（元）10,172,696,394.72-5.51%37,055,611,760.3741.63%"
+    },
+    {
+      "symbol": "000776.SZ",
+      "metric": "net_profit_attributable",
+      "metric_label": "归属于上市公司股东的净利润",
+      "value": "16027455391.99",
+      "unit": "CNY",
+      "period_basis": "year_to_date",
+      "period_start": "2026-01-01",
+      "period_end": "2026-09-30",
+      "consolidation_scope": "consolidated",
+      "source_sha256": "c39ae456f1363f8031c4a93609368b5df2e9d4814c176245a52d05d6c74ed4d5",
+      "page": 1,
+      "excerpt": "归属于上市公司股东的净利润（元）4,375,717,996.18-1.99%16,027,455,391.9946.58%"
+    },
+    {
+      "symbol": "000776.SZ",
+      "metric": "total_assets",
+      "metric_label": "总资产",
+      "value": "1131032154103.98",
+      "unit": "CNY",
+      "period_basis": "period_end",
+      "period_start": null,
+      "period_end": "2026-09-30",
+      "consolidation_scope": "consolidated",
+      "source_sha256": "c39ae456f1363f8031c4a93609368b5df2e9d4814c176245a52d05d6c74ed4d5",
+      "page": 1,
+      "excerpt": "总资产（元）1,131,032,154,103.98975,484,253,922.1315.95%"
+    },
+    {
+      "symbol": "000776.SZ",
+      "metric": "operating_cash_flow",
+      "metric_label": "经营活动产生的现金流量净额",
+      "value": "-8137823726.59",
+      "unit": "CNY",
+      "period_basis": "year_to_date",
+      "period_start": "2026-01-01",
+      "period_end": "2026-09-30",
+      "consolidation_scope": "consolidated",
+      "source_sha256": "c39ae456f1363f8031c4a93609368b5df2e9d4814c176245a52d05d6c74ed4d5",
+      "page": 1,
+      "excerpt": "经营活动产生的现金流量净额（元）---8,137,823,726.59-"
+    }
+  ]
+}

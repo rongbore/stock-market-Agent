@@ -3,11 +3,14 @@
 This is a provenance contract only. It does not authenticate the publisher,
 read PDF tables, verify claimed numbers, or provide investment advice.
 """
+import argparse
 from datetime import date, datetime
 from decimal import Decimal, InvalidOperation
 import hashlib
+import json
 import os
 import re
+import tempfile
 import stat
 from pathlib import Path
 from urllib.parse import urlsplit
@@ -242,3 +245,49 @@ def build_filing_evidence_bundle(*, pdf_path, source, claims, symbol, analysis_c
             "A timestamp supplied in the source record is not independently verified.",
         ],
     }
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(
+        description="Build a local, unverified evidence bundle for a CNINFO filing")
+    parser.add_argument("--input", required=True, help="JSON file with source and manual claims")
+    parser.add_argument("--pdf", required=True, help="Local official filing PDF")
+    parser.add_argument("--output", required=True, help="Output evidence bundle JSON")
+    args = parser.parse_args(argv)
+    input_path = Path(args.input)
+    if input_path.is_symlink() or not input_path.is_file() or input_path.stat().st_size > 1_000_000:
+        raise ValueError("input JSON must be a regular file no larger than 1 MB")
+    try:
+        payload = json.loads(input_path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+        raise ValueError("invalid input JSON") from exc
+    expected = {"symbol", "analysis_cutoff", "source", "claims"}
+    if not isinstance(payload, dict) or set(payload) != expected:
+        raise ValueError("input JSON fields do not match the evidence contract")
+    bundle = build_filing_evidence_bundle(
+        pdf_path=args.pdf, source=payload["source"], claims=payload["claims"],
+        symbol=payload["symbol"], analysis_cutoff=payload["analysis_cutoff"],
+    )
+    output = Path(args.output)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    if output.is_symlink():
+        raise ValueError("refusing symlink output path")
+    encoded = (json.dumps(bundle, ensure_ascii=False, indent=2) + "\n").encode("utf-8")
+    temporary = None
+    try:
+        with tempfile.NamedTemporaryFile("wb", dir=output.parent,
+                                         prefix=".filing-evidence-", suffix=".tmp",
+                                         delete=False) as stream:
+            temporary = stream.name
+            stream.write(encoded)
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(temporary, output)
+    finally:
+        if temporary and os.path.exists(temporary):
+            os.unlink(temporary)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
