@@ -6,6 +6,7 @@ SHA = "a" * 40
 REPO = "rongbore/stock-market-Agent"
 WORKFLOW_PATH = ".github/workflows/ai-pr-review-manual.yml"
 EVENT = "pull_request"
+ARTIFACT_DIGEST = "sha256:" + "a" * 64
 
 
 def run():
@@ -16,12 +17,14 @@ def run():
 
 def artifact():
     return dict(workflow_run_id=100, id=101, expired=False,
-                size_in_bytes=1024, name="ai-review-evidence")
+                size_in_bytes=1024, name="ai-review-evidence",
+                digest=ARTIFACT_DIGEST)
 
 
 def assess(r=None, a=None, **kw):
     args = dict(repo=REPO, expected_head_sha=SHA, expected_workflow_id=42,
                 expected_workflow_path=WORKFLOW_PATH, expected_event=EVENT,
+                downloaded_artifact_digest=ARTIFACT_DIGEST,
                 run=run() if r is None else r,
                 artifact=artifact() if a is None else a)
     args.update(kw)
@@ -54,6 +57,15 @@ class ProvenancePreflightTests(unittest.TestCase):
                 a = artifact()
                 a[field] = value
                 self.assertEqual(assess(a=a), "manual")
+
+    def test_artifact_digest_must_match_downloaded_bytes(self):
+        self.assertEqual(assess(downloaded_artifact_digest="sha256:" + "b" * 64), "manual")
+        for value in (None, "bad", "sha256:" + "A" * 64):
+            with self.subTest(value=value):
+                self.assertEqual(assess(downloaded_artifact_digest=value), "manual")
+        a = artifact()
+        del a["digest"]
+        self.assertEqual(assess(a=a), "manual")
 
     def test_missing_or_malformed_metadata_blocks(self):
         self.assertEqual(assess(r={}), "manual")

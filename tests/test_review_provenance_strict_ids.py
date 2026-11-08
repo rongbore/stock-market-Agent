@@ -3,6 +3,8 @@ import unittest
 
 from scripts.github_review_artifact_preflight import assess_provenance
 
+ARTIFACT_DIGEST = "sha256:" + "a" * 64
+
 
 class StrictWorkflowIdsTests(unittest.TestCase):
     def test_boolean_workflow_id_cannot_match_integer_one(self):
@@ -12,12 +14,14 @@ class StrictWorkflowIdsTests(unittest.TestCase):
                    head_repository_full_name="rongbore/stock-market-Agent", run_attempt=1,
                    status="completed", conclusion="success", id=1)
         artifact = dict(workflow_run_id=1, id=2, expired=False,
-                        size_in_bytes=1024, name="ai-review-evidence")
+                        size_in_bytes=1024, name="ai-review-evidence",
+                        digest=ARTIFACT_DIGEST)
         status, _ = assess_provenance(
             repo="rongbore/stock-market-Agent", expected_head_sha="a" * 40,
             expected_workflow_id=1,
             expected_workflow_path=".github/workflows/ai-pr-review-manual.yml",
-            expected_event="pull_request", run=run, artifact=artifact)
+            expected_event="pull_request", run=run, artifact=artifact,
+            downloaded_artifact_digest=ARTIFACT_DIGEST)
         self.assertEqual(status, "manual")
 
     def test_boolean_artifact_run_id_cannot_match_integer_one(self):
@@ -27,12 +31,14 @@ class StrictWorkflowIdsTests(unittest.TestCase):
                    head_repository_full_name="rongbore/stock-market-Agent", run_attempt=1,
                    status="completed", conclusion="success", id=1)
         artifact = dict(workflow_run_id=True, id=2, expired=False,
-                        size_in_bytes=1024, name="ai-review-evidence")
+                        size_in_bytes=1024, name="ai-review-evidence",
+                        digest=ARTIFACT_DIGEST)
         status, _ = assess_provenance(
             repo="rongbore/stock-market-Agent", expected_head_sha="a" * 40,
             expected_workflow_id=1,
             expected_workflow_path=".github/workflows/ai-pr-review-manual.yml",
-            expected_event="pull_request", run=run, artifact=artifact)
+            expected_event="pull_request", run=run, artifact=artifact,
+            downloaded_artifact_digest=ARTIFACT_DIGEST)
         self.assertEqual(status, "manual")
 
     def test_valid_integer_ids_remain_candidate_only(self):
@@ -42,12 +48,14 @@ class StrictWorkflowIdsTests(unittest.TestCase):
                    head_repository_full_name="rongbore/stock-market-Agent", run_attempt=1,
                    status="completed", conclusion="success", id=1)
         artifact = dict(workflow_run_id=1, id=2, expired=False,
-                        size_in_bytes=1024, name="ai-review-evidence")
+                        size_in_bytes=1024, name="ai-review-evidence",
+                        digest=ARTIFACT_DIGEST)
         status, _ = assess_provenance(
             repo="rongbore/stock-market-Agent", expected_head_sha="a" * 40,
             expected_workflow_id=1,
             expected_workflow_path=".github/workflows/ai-pr-review-manual.yml",
-            expected_event="pull_request", run=run, artifact=artifact)
+            expected_event="pull_request", run=run, artifact=artifact,
+            downloaded_artifact_digest=ARTIFACT_DIGEST)
         self.assertEqual(status, "candidate")
 
 
