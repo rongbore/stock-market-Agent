@@ -1,4 +1,5 @@
 from copy import deepcopy
+import hashlib
 import json
 from pathlib import Path
 import tempfile
@@ -61,6 +62,78 @@ class OfflineBatchRunnerTests(unittest.TestCase):
     def test_unknown_report_symbol_rejected(self):
         with self.assertRaises(ValueError):
             run_batch_plan(self.plan, {"../../x": report()})
+
+    def test_hashes_bind_exact_plan_and_inputs_without_mutation(self):
+        reports = {"000776.SZ": report(), "600519.SS": report("600519.SS")}
+        original = deepcopy((self.plan, reports))
+        one = run_batch_plan(self.plan, reports)
+        reversed_keys = {key: dict(reversed(list(value.items()))) for key, value in reversed(list(reports.items()))}
+        self.assertEqual(one, run_batch_plan(self.plan, reversed_keys))
+        self.assertEqual((self.plan, reports), original)
+        def digest(value):
+            return hashlib.sha256(json.dumps(value, sort_keys=True, ensure_ascii=True,
+                                            allow_nan=False, separators=(",", ":")).encode("ascii")).hexdigest()
+        self.assertEqual(one["plan_sha256"], digest(self.plan))
+        self.assertEqual(one["results"][0]["input_sha256"], digest(reports["000776.SZ"]))
+        self.assertFalse(one["source_verified"])
+        self.assertFalse(one["historical_point_in_time_verified"])
+        for changes in ({"prices": [10.0, 12.0]}, {"dates": ["2026-11-04", "2026-11-06"]},
+                        {"extra_evidence": "unverified"}, {"prices": [10, 11]}):
+            altered = {**reports, "000776.SZ": report(**changes)}
+            with self.subTest(changes=changes):
+                two = run_batch_plan(self.plan, altered)
+                self.assertNotEqual(one["results"][0]["input_sha256"], two["results"][0]["input_sha256"])
+                self.assertEqual(one["plan_sha256"], two["plan_sha256"])
+
+    def test_hashes_for_invalid_and_missing_inputs_remain_distinguishable(self):
+        failed = run_batch_plan(self.plan, {"000776.SZ": report("wrong")})["results"]
+        self.assertEqual(failed[0]["status"], "FAILED_INPUT_VALIDATION")
+        self.assertEqual(failed[0]["input_hash_status"], "canonical_json_sha256")
+        self.assertRegex(failed[0]["input_sha256"], r"^[a-f0-9]{64}$")
+        self.assertFalse(failed[0]["source_verified"])
+        self.assertEqual(failed[1]["input_hash_status"], "missing")
+        self.assertIsNone(failed[1]["input_sha256"])
+        supplied_null = run_batch_plan(self.plan, {"000776.SZ": None})["results"][0]
+        self.assertEqual(supplied_null["input_hash_status"], "canonical_json_sha256")
+        self.assertIsNotNone(supplied_null["input_sha256"])
+
+    def test_rejects_non_json_nonfinite_huge_and_deep_inputs_per_job(self):
+        deep = None
+        for _ in range(40):
+            deep = [deep]
+        cycle = []
+        cycle.append(cycle)
+        for value in ({"extra": {"x"}}, {"extra": (1, 2)}, {"extra": b"raw"},
+                      {"extra": {1: "not a string key"}}, {"extra": float("inf")},
+                      {"extra": float("nan")}, {"extra": 1 << 1025}, {"extra": deep},
+                      {"extra": cycle}, {"extra": [None] * 100001},
+                      {"extra": "a" * 3500000}):
+            with self.subTest(kind=type(value["extra"]).__name__):
+                reports = {"000776.SZ": report(**value), "600519.SS": report("600519.SS")}
+                result = run_batch_plan(self.plan, reports)
+                failed = result["results"][0]
+                self.assertEqual(failed["status"], "FAILED_INPUT_VALIDATION")
+                self.assertEqual(failed["input_hash_status"], "rejected_noncanonical_json")
+                self.assertIsNone(failed["input_sha256"])
+                self.assertEqual(result["succeeded_count"], 1)
+
+    def test_non_json_plan_rejected_safely(self):
+        plan = deepcopy(self.plan)
+        plan["extra"] = set()
+        with self.assertRaises(ValueError):
+            run_batch_plan(plan, {})
+
+    def test_cli_rejects_excessive_parser_depth_without_touching_output(self):
+        with tempfile.TemporaryDirectory() as directory:
+            plan_file = Path(directory) / "plan.json"
+            reports_file = Path(directory) / "reports.json"
+            output = Path(directory) / "out.json"
+            plan_file.write_text(json.dumps(self.plan))
+            reports_file.write_text("[" * 2000 + "0" + "]" * 2000)
+            output.write_text("preserve")
+            with self.assertRaises(ValueError):
+                main(["--plan", str(plan_file), "--reports", str(reports_file), "--output", str(output)])
+            self.assertEqual(output.read_text(), "preserve")
 
     def test_cli_outputs_only_one_bundle_and_preserves_inputs(self):
         with tempfile.TemporaryDirectory() as directory:

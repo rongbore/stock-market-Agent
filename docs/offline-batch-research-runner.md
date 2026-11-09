@@ -39,3 +39,33 @@ Only one JSON bundle is atomically written. Input overwrites and symbolic-link
 output targets are rejected. No per-job directories, network calls, models,
 paid APIs, schedules, trades or brokerage connections are created. Financial
 statements, source timestamps and point-in-time provenance remain unverified.
+
+## Deterministic integrity identifiers
+
+`plan_sha256` binds the complete validated deterministic plan, including its
+jobs, operation and proposed artifact paths. Each supplied trend input receives
+`input_sha256` before financial input validation, so an invalid symbol, date or
+price report still retains its integrity identifier when it is bounded JSON.
+Missing inputs have a null hash and `input_hash_status: missing`; rejected JSON
+has a null hash and `rejected_noncanonical_json`. A supplied JSON `null` is hashed
+and then fails report validation, distinguishing it from an absent input.
+
+The encoding `json_sorted_keys_ascii_compact_v1` uses Python JSON with sorted
+object keys, ASCII escapes, compact separators and nonfinite numbers forbidden.
+It binds the parsed JSON value, not the original file's spacing or key order.
+Integer and floating representations remain distinct. This is a versioned
+application encoding, not an RFC 8785 claim. All fields of each report, including
+unused metadata, participate in its hash. Results contain no current timestamps,
+and repeated identical inputs produce identical bundles without mutating inputs.
+
+Only exact JSON built-in types with string object keys are hashable. Bounds are
+32 container levels, 100,000 visited nodes, 1024-bit integers and a conservative
+20 MiB encoding budget per plan or report. Deep, cyclic, huge, nonfinite and
+non-JSON report inputs fail their own job without a hash; invalid plans fail the
+entire run. The CLI also converts excessive JSON parser depth to a validation
+failure and leaves an existing output intact.
+
+These hashes identify integrity only. They do not authenticate data publishers,
+validate prices or prove data existed at the analysis cutoff. Source and
+historical-point-in-time verification flags remain false. No hash operation
+fetches outside evidence or authorizes model, network or trading calls.
