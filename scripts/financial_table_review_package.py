@@ -25,6 +25,9 @@ def build_review_package(pdf_path, symbol, announcement_date, pages):
             "announcement_date_supplied_unverified": announcement_date,
             "file_sha256": digest, "pages": pages,
             "status": "PENDING_MANUAL_VERIFICATION",
+            "candidate_count": len(result["candidates"]),
+            "review_blockers": (["no_numeric_candidates"] if not result["candidates"] else [])
+                               + ["consolidation_scope", "manual_verification"],
             "candidates": result["candidates"],
             "official_origin_verified": False, "source_content_verified": False,
             "financial_meaning_verified": False, "column_ownership_verified": False,
