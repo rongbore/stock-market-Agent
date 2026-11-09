@@ -1,5 +1,6 @@
 """Conservative period hints from extracted table cells, never verified attribution."""
 import re
+from bisect import bisect_left
 
 from scripts.financial_pdf_geometry import inspect_spans
 
@@ -57,14 +58,13 @@ def table_period_hints(cells):
                 if right - left == 1:
                     return rows[left] if left < len(rows) else None
                 mid = (left + right) // 2
-                return (visit(node * 2 + 1, mid, right)
-                        or visit(node * 2, left, mid))
+                found = visit(node * 2 + 1, mid, right)
+                return found if found is not None else visit(node * 2, left, mid)
             return visit(1, 0, size)
 
         for cell in group:
             if not NUMBER.fullmatch(cell["text"]):
                 continue
-            from bisect import bisect_left
             row = latest_row(bisect_left(rows, cell["row_index"]),
                              cell["bbox"][1])
             center = (cell["bbox"][0] + cell["bbox"][2]) / 2
