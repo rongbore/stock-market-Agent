@@ -5,6 +5,20 @@ from types import MappingProxyType
 from scripts.backtest_data_contract import _day, build_backtest_dataset
 
 
+def sma_schedule(bars, window):
+    """Build close-only targets from already validated bars, with warm-up gaps."""
+    if type(window) is not int or not 1 <= window <= 100000:
+        raise ValueError("window must be an integer from 1 to 100000")
+    result = []
+    for index, bar in enumerate(bars):
+        target = None
+        if index + 1 >= window:
+            average = math.fsum(row["close"] / window for row in bars[index + 1 - window:index + 1])
+            target = 1 if bar["close"] > average else 0
+        result.append({"signal_date": bar["date"], "target_weight": target})
+    return result
+
+
 def run_strategy_signal(snapshot, *, evidence_as_of, expected_adjustment,
                         signal_date, min_history, strategy):
     """Validate a snapshot, then expose only completed bars through signal_date.

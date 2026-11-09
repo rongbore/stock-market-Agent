@@ -43,7 +43,9 @@ verification remains false even for a causal prefix.
 The interface makes no network/model calls and computes no orders, fills,
 commissions, slippage, dividends, returns, drawdown or performance. It does not
 check exchange-calendar completeness. T06 strategy execution and T07 strategy
-evaluation remain incomplete.
+evaluation remain incomplete. A separate bounded experimental next-open paper
+simulator is documented in [sma-paper-backtest.md](sma-paper-backtest.md); it does
+not change this signal-only interface or its historical-availability limitations.
 
 ```sh
 python -m unittest tests.test_backtest_data_contract tests.test_backtest_strategy_input -v
