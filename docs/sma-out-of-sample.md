@@ -52,9 +52,15 @@ Train and test share the same explicit costs, slippage and lot assumptions.
 Only unadjusted prices are accepted. Final positions remain marked at the
 segment's final close, with no forced liquidation or implicit exit fee. The
 returned experimental total returns are hypothetical, not verified performance
-or an investment recommendation. There is no buy-and-hold benchmark,
-annualization, Sharpe ratio, optimization or walk-forward re-fitting in this
-first evaluator. T07 remains incomplete.
+or an investment recommendation. A buy-and-hold benchmark now uses precisely
+the test bars and the same initial cash, lot and cost settings, with one
+predeclared purchase attempt at the first test open. The output includes
+nonannualized observed-period return and maximum drawdown for train, test and
+benchmark. The arithmetic comparison is SMA test return minus benchmark return;
+it is not a geometric relative return, alpha or risk-adjusted performance.
+See [paper-benchmark-risk.md](paper-benchmark-risk.md) for exact definitions.
+There is no annualization, Sharpe ratio, optimization or walk-forward re-fitting.
+T07 remains incomplete.
 
 Historical point-in-time and source verification remain false. Current snapshots
 are not proof of availability at simulated dates. Trading calendars, corporate

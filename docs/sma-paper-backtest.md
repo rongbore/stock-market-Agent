@@ -56,6 +56,12 @@ numbers; booleans are rejected. Internal accounting uses 40-digit Decimal
 arithmetic without currency quantization. JSON-compatible output uses floats.
 This is not an exact broker settlement/rounding model.
 
+The same execution/accounting engine also serves
+`run_buy_and_hold_paper_backtest`. That benchmark declares its purchase before
+the first observed open and attempts it exactly once; it never uses a same-day
+closing signal. A skipped purchase is not retried. See
+[paper-benchmark-risk.md](paper-benchmark-risk.md) for interval and metric details.
+
 No price-limit, suspension, auction, liquidity/partial-fill, exchange-calendar,
 dividend, corporate-action or odd-lot model is provided. Retrieved snapshots may
 not have been historically available at simulated dates. Source and historical
