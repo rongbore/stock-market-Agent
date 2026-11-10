@@ -1,0 +1,21 @@
+{
+  "schema_version": "0.1",
+  "data_kind": "SYNTHETIC",
+  "symbols": ["000776.SZ", "600519.SS", "000001.SZ"],
+  "analysis_date": "2026-11-08",
+  "reports": {
+    "000776.SZ": {
+      "symbol": "000776.SZ",
+      "dates": ["2026-11-05", "2026-11-06"],
+      "prices": [10.0, 11.0],
+      "numerical_agreement": false,
+      "fixture_notice": "SYNTHETIC invented prices for testing, not real market evidence"
+    },
+    "600519.SS": {
+      "symbol": "600519.SS",
+      "dates": ["2026-11-09"],
+      "prices": [100.0],
+      "fixture_notice": "SYNTHETIC intentionally future-dated input to demonstrate isolated failure"
+    }
+  }
+}
