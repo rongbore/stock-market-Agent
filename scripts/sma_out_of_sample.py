@@ -1,6 +1,7 @@
 """Fixed-parameter chronological SMA evaluation; no parameter search or PIT proof."""
 from scripts.backtest_data_contract import _day, build_backtest_dataset
-from scripts.sma_paper_backtest import MAX_BARS, run_sma_paper_backtest
+from scripts.paper_risk_metrics import paper_risk_metrics
+from scripts.sma_paper_backtest import MAX_BARS, run_buy_and_hold_paper_backtest, run_sma_paper_backtest
 
 
 def evaluate_sma_out_of_sample(snapshot, *, evidence_as_of, expected_adjustment,
@@ -49,6 +50,10 @@ def evaluate_sma_out_of_sample(snapshot, *, evidence_as_of, expected_adjustment,
                     sell_tax_bps=sell_tax_bps, slippage_bps=slippage_bps)
     train = run_sma_paper_backtest(train_snapshot, **settings)
     test = run_sma_paper_backtest(test_snapshot, execution_start_date=start, **settings)
+    benchmark_settings = {key: value for key, value in settings.items() if key != "window"}
+    benchmark = run_buy_and_hold_paper_backtest(subset(raw[first_test:]), **benchmark_settings)
+    train_metrics, test_metrics, benchmark_metrics = [paper_risk_metrics(run)
+                                                     for run in (train, test, benchmark)]
     return {
         "schema_version": "0.1", "symbol": dataset["symbol"],
         "status": "EXPERIMENTAL_CHRONOLOGICAL_EVALUATION_UNVERIFIED",
@@ -58,13 +63,22 @@ def evaluate_sma_out_of_sample(snapshot, *, evidence_as_of, expected_adjustment,
         "test_warmup_dates": [row["date"] for row in warmup],
         "test_account_policy": "fresh_cash_no_train_positions",
         "train": train, "test": test,
+        "benchmark": benchmark,
+        "metrics": {"train": train_metrics, "test": test_metrics, "benchmark": benchmark_metrics},
+        "comparison": {
+            "arithmetic_return_difference": (test_metrics["observed_period_return"]
+                                             - benchmark_metrics["observed_period_return"]),
+            "definition": "SMA test return minus buy-and-hold test return; not a geometric relative return",
+            "verified_performance": False,
+        },
         "source_content_verified": False, "historical_point_in_time_verified": False,
         "exchange_calendar_checked": False,
         "limitations": [
             "Caller fixes dates and window; prior test-informed selection cannot be detected.",
             "Test warmup uses training closes only; no training trades or returns are carried.",
             "First test open may execute the last training close signal.",
-            "No parameter optimization, buy-and-hold benchmark or risk-adjusted metrics.",
+            "No parameter optimization, annualization or risk-adjusted performance claims.",
+            "Buy-and-hold makes one first-test-open attempt; skipped attempts are not retried.",
             "Observed chronological separation is not proof of historical availability.",
             "Both runs retain the paper simulator's simplified execution and fee assumptions.",
         ],

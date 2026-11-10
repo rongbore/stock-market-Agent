@@ -24,6 +24,28 @@ def _amount(value, name, minimum, maximum):
 def run_sma_paper_backtest(snapshot, *, evidence_as_of, expected_adjustment, window,
                            initial_cash, board_lot_size, commission_bps, minimum_fee,
                            sell_tax_bps, slippage_bps, execution_start_date=None):
+    """Run causal SMA targets through the shared paper-execution accounting."""
+    return _run_paper_backtest(
+        snapshot, evidence_as_of=evidence_as_of, expected_adjustment=expected_adjustment,
+        window=window, initial_cash=initial_cash, board_lot_size=board_lot_size,
+        commission_bps=commission_bps, minimum_fee=minimum_fee, sell_tax_bps=sell_tax_bps,
+        slippage_bps=slippage_bps, execution_start_date=execution_start_date, mode="sma")
+
+
+def run_buy_and_hold_paper_backtest(snapshot, *, evidence_as_of, expected_adjustment,
+                                    initial_cash, board_lot_size, commission_bps,
+                                    minimum_fee, sell_tax_bps, slippage_bps):
+    """Attempt one predeclared purchase at first observed open; never force a sale."""
+    return _run_paper_backtest(
+        snapshot, evidence_as_of=evidence_as_of, expected_adjustment=expected_adjustment,
+        window=1, initial_cash=initial_cash, board_lot_size=board_lot_size,
+        commission_bps=commission_bps, minimum_fee=minimum_fee, sell_tax_bps=sell_tax_bps,
+        slippage_bps=slippage_bps, execution_start_date=None, mode="buy_and_hold")
+
+
+def _run_paper_backtest(snapshot, *, evidence_as_of, expected_adjustment, window,
+                        initial_cash, board_lot_size, commission_bps, minimum_fee,
+                        sell_tax_bps, slippage_bps, execution_start_date, mode):
     """Simulate one unadjusted symbol without borrowing or forced liquidation.
 
     Settings are mandatory assumptions, not inferred exchange or broker rules.
@@ -54,7 +76,8 @@ def run_sma_paper_backtest(snapshot, *, evidence_as_of, expected_adjustment, win
     for bar in bars:
         prices.append({key: _amount(bar[key], key, 0.000001, 10 ** 9)
                        for key in ("open", "high", "low", "close")})
-    schedule = sma_schedule(bars, window)
+    schedule = sma_schedule(bars, window) if mode == "sma" else [
+        {"signal_date": None, "target_weight": 1} for _ in bars]
     with localcontext() as context:
         context.prec = 40
         cash, shares = cash0, 0
@@ -64,7 +87,12 @@ def run_sma_paper_backtest(snapshot, *, evidence_as_of, expected_adjustment, win
             # Earlier bars are signal warmup only: no fills, fees or equity marks.
             if execution_start is not None and bar["date"] < execution_start:
                 continue
-            pending = schedule[index - 1] if index else None
+            if mode == "sma":
+                pending = schedule[index - 1] if index else None
+            else:
+                # Fixed benchmark decision is declared before the first open.
+                # If that one attempt is skipped there is no later retry.
+                pending = schedule[0] if index == 0 else None
             target = pending["target_weight"] if pending else None
             side = "buy" if target == 1 and shares == 0 else "sell" if target == 0 and shares > 0 else None
             if side and bar["volume"] == 0:
@@ -118,10 +146,12 @@ def run_sma_paper_backtest(snapshot, *, evidence_as_of, expected_adjustment, win
         return {
             "schema_version": "0.1", "symbol": dataset["symbol"],
             "status": "EXPERIMENTAL_PAPER_BACKTEST_UNVERIFIED",
-            "assumptions": {"window": window, "initial_cash": float(cash0),
+            "assumptions": {"strategy": mode, "window": window if mode == "sma" else None,
+                            "initial_cash": float(cash0),
                             "board_lot_size": board_lot_size, "commission_bps": commission_bps,
                             "minimum_fee": minimum_fee, "sell_tax_bps": sell_tax_bps,
-                            "slippage_bps": slippage_bps, "execution": "next_observed_bar_open",
+                            "slippage_bps": slippage_bps,
+                            "execution": "next_observed_bar_open" if mode == "sma" else "first_observed_bar_open_predeclared",
                             "adjustment": "unadjusted", "forced_liquidation": False,
                             "execution_start_date": execution_start,
                             "money_rounding": "decimal_calculation_without_currency_quantization"},
@@ -132,7 +162,7 @@ def run_sma_paper_backtest(snapshot, *, evidence_as_of, expected_adjustment, win
             "experimental_total_return": float(final_equity / cash0 - 1),
             "total_commission": float(total_commission), "total_sell_tax": float(total_tax),
             "total_slippage_cost": float(total_slippage),
-            "last_signal_has_no_next_bar": schedule[-1]["target_weight"] is not None,
+            "last_signal_has_no_next_bar": mode == "sma" and schedule[-1]["target_weight"] is not None,
             "source_content_verified": False, "historical_point_in_time_verified": False,
             "exchange_calendar_checked": False,
             "limitations": ["No proof of historical data availability or source authenticity.",
