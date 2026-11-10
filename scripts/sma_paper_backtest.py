@@ -2,7 +2,7 @@
 from decimal import Decimal, localcontext
 import math
 
-from scripts.backtest_data_contract import build_backtest_dataset
+from scripts.backtest_data_contract import _day, build_backtest_dataset
 from scripts.backtest_strategy_input import sma_schedule
 
 MAX_BARS = 2000
@@ -23,7 +23,7 @@ def _amount(value, name, minimum, maximum):
 
 def run_sma_paper_backtest(snapshot, *, evidence_as_of, expected_adjustment, window,
                            initial_cash, board_lot_size, commission_bps, minimum_fee,
-                           sell_tax_bps, slippage_bps):
+                           sell_tax_bps, slippage_bps, execution_start_date=None):
     """Simulate one unadjusted symbol without borrowing or forced liquidation.
 
     Settings are mandatory assumptions, not inferred exchange or broker rules.
@@ -45,6 +45,11 @@ def run_sma_paper_backtest(snapshot, *, evidence_as_of, expected_adjustment, win
     bars = dataset["bars"]
     if len(bars) > MAX_BARS:
         raise ValueError("paper simulation limited to 2000 bars")
+    execution_start = None
+    if execution_start_date is not None:
+        execution_start = _day(execution_start_date).isoformat()
+        if execution_start not in {bar["date"] for bar in bars}:
+            raise ValueError("execution_start_date must identify an observed bar")
     prices = []
     for bar in bars:
         prices.append({key: _amount(bar[key], key, 0.000001, 10 ** 9)
@@ -56,6 +61,9 @@ def run_sma_paper_backtest(snapshot, *, evidence_as_of, expected_adjustment, win
         fills, marks, skipped = [], [], []
         total_commission = total_tax = total_slippage = Decimal(0)
         for index, (bar, price) in enumerate(zip(bars, prices)):
+            # Earlier bars are signal warmup only: no fills, fees or equity marks.
+            if execution_start is not None and bar["date"] < execution_start:
+                continue
             pending = schedule[index - 1] if index else None
             target = pending["target_weight"] if pending else None
             side = "buy" if target == 1 and shares == 0 else "sell" if target == 0 and shares > 0 else None
@@ -115,6 +123,7 @@ def run_sma_paper_backtest(snapshot, *, evidence_as_of, expected_adjustment, win
                             "minimum_fee": minimum_fee, "sell_tax_bps": sell_tax_bps,
                             "slippage_bps": slippage_bps, "execution": "next_observed_bar_open",
                             "adjustment": "unadjusted", "forced_liquidation": False,
+                            "execution_start_date": execution_start,
                             "money_rounding": "decimal_calculation_without_currency_quantization"},
             "evidence_as_of": dataset["evidence_as_of"], "signals": schedule,
             "fills": fills, "skipped": skipped, "marks": marks,
