@@ -1,5 +1,6 @@
 """Conservative period hints from extracted table cells, never verified attribution."""
 import re
+from bisect import bisect_left
 
 from scripts.financial_pdf_geometry import inspect_spans
 
@@ -33,15 +34,42 @@ def table_period_hints(cells):
         groups.setdefault((cell["page"], cell["table_index"]), []).append(cell)
     candidates = []
     for group in groups.values():
+        # Index headers by row; each tree node stores the minimum bottom y.
+        # Query rightmost eligible row in O(log H), without scanning every header.
         headers = [c for c in group if c["text"] in HEADERS]
+        rows = sorted({h["row_index"] for h in headers})
+        by_row = {row: [] for row in rows}
+        for header in headers:
+            by_row[header["row_index"]].append(header)
+        size = 1
+        while size < len(rows):
+            size *= 2
+        tree = [float("inf")] * (2 * size)
+        for index, row in enumerate(rows):
+            tree[size + index] = min(h["bbox"][3] for h in by_row[row])
+        for index in range(size - 1, 0, -1):
+            tree[index] = min(tree[2 * index], tree[2 * index + 1])
+
+        def latest_row(limit, top):
+            # Search only header rows strictly earlier than the numeric row.
+            def visit(node, left, right):
+                if left >= limit or tree[node] > top:
+                    return None
+                if right - left == 1:
+                    return rows[left] if left < len(rows) else None
+                mid = (left + right) // 2
+                found = visit(node * 2 + 1, mid, right)
+                return found if found is not None else visit(node * 2, left, mid)
+            return visit(1, 0, size)
+
         for cell in group:
             if not NUMBER.fullmatch(cell["text"]):
                 continue
-            preceding = [h for h in headers if h["row_index"] < cell["row_index"]
-                         and h["bbox"][3] <= cell["bbox"][1]]
-            row = max((h["row_index"] for h in preceding), default=None)
+            row = latest_row(bisect_left(rows, cell["row_index"]),
+                             cell["bbox"][1])
             center = (cell["bbox"][0] + cell["bbox"][2]) / 2
-            matches = [h for h in preceding if h["row_index"] == row
+            matches = [h for h in by_row.get(row, ())
+                       if h["bbox"][3] <= cell["bbox"][1]
                        and h["bbox"][0] < center < h["bbox"][2]]
             header = matches[0] if len(matches) == 1 else None
             candidates.append({"cell": cell, "header_cell": header,
