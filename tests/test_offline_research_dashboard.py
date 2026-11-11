@@ -4,6 +4,7 @@ import hashlib
 from html import escape
 from html.parser import HTMLParser
 import json
+import importlib.util
 import os
 from pathlib import Path
 import subprocess
@@ -13,6 +14,8 @@ import unittest
 
 from scripts.offline_research_dashboard import CSS, build_dashboard
 from scripts.sma_evaluation_cli import build_evaluation_artifact
+from scripts.financial_review_pipeline import build_financial_review_artifact
+from tests.test_financial_table_review_integration import synthetic_table_pdf
 
 ROOT = Path(__file__).resolve().parents[1]
 BATCH = ROOT / "examples/batch_research/SYNTHETIC_offline_pipeline.json"
@@ -135,6 +138,17 @@ class OfflineDashboardTests(unittest.TestCase):
                 self.assertEqual(output.read_text(), "prior dashboard")
             self.assertEqual(sorted(p.name for p in Path(directory).iterdir()), ["config.json", "dashboard.html"])
 
+    def test_explicit_null_section_never_silently_disappears_with_another_valid_section(self):
+        with tempfile.TemporaryDirectory() as directory:
+            source, output = Path(directory) / "null.json", Path(directory) / "dashboard.html"
+            source.write_text("null")
+            output.write_text("prior dashboard")
+            for flag in ("--financial-config", "--evaluation-config", "--batch-config"):
+                valid = ("--evaluation-config", EVALUATION) if flag == "--batch-config" else ("--batch-config", BATCH)
+                with self.subTest(flag=flag):
+                    self.assertNotEqual(cli(output, *valid, flag, source).returncode, 0)
+                    self.assertEqual(output.read_text(), "prior dashboard")
+
     def test_true_cli_refuses_inputs_aliases_and_symlink_output(self):
         with tempfile.TemporaryDirectory() as directory:
             batch, evaluation = Path(directory) / "batch.json", Path(directory) / "evaluation.json"
@@ -153,3 +167,76 @@ class OfflineDashboardTests(unittest.TestCase):
             self.assertNotEqual(cli(link, "--batch-config", batch).returncode, 0)
             self.assertTrue(link.is_symlink())
             self.assertEqual(target.read_text(), "keep")
+
+
+@unittest.skipUnless(importlib.util.find_spec("pdfplumber"), "optional pdfplumber not installed")
+class FinancialDashboardTests(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.pdf = Path(self.tmp.name) / "private_input_name.pdf"
+        self.pdf.write_bytes(synthetic_table_pdf())
+        self.config = dict(schema_version="0.1", data_kind="SYNTHETIC", pdf_path=str(self.pdf),
+                           symbol="000776.SZ", announcement_date="2026-10-30", pages=[1], annotations=None)
+
+    def test_financial_rows_counts_hashes_scope_and_omitted_rows_are_explicit(self):
+        artifact = build_financial_review_artifact(self.pdf, "000776.SZ", "2026-10-30", [1])
+        html = build_dashboard(financial_config=self.config, max_financial_rows=1)
+        self.assertIn("数值候选<strong>3", html)
+        self.assertIn("待记录决定<strong>3", html)
+        self.assertIn("显示 1 项，省略 2 项", html)
+        self.assertIn(artifact["package"]["candidates"][0]["cell"]["text"], html)
+        self.assertIn(artifact["package"]["file_sha256"], html)
+        self.assertIn(artifact["validation"]["package_sha256"], html)
+        self.assertIn("consolidation_scope", html)
+        self.assertIn("未知 · 未核实", html)
+        self.assertIn("发布证据接受：否", html)
+        self.assertNotIn(str(self.pdf), html)
+        self.assertNotIn(self.pdf.name, html)
+
+    def test_bound_annotations_are_escaped_and_do_not_promote_acceptance(self):
+        artifact = build_financial_review_artifact(self.pdf, "000776.SZ", "2026-10-30", [1])
+        reviewer, note = '<img src="x" onerror="alert(1)">', '</td><script>alert(1)</script>'
+        self.config["annotations"] = {"file_sha256": artifact["package"]["file_sha256"],
+                                      "package_sha256": artifact["validation"]["package_sha256"],
+                                      "decisions": [{"candidate_index": 0, "decision": "accepted_by_reviewer",
+                                                     "reviewer": reviewer, "note": note}]}
+        html = build_dashboard(financial_config=self.config)
+        self.assertIn(escape(reviewer, quote=True), html)
+        self.assertIn(escape(note, quote=True), html)
+        self.assertIn("待记录决定<strong>2", html)
+        self.assertIn("已记录决定<strong>1", html)
+        self.assertIn("accepted_by_reviewer", html)
+        self.assertIn("发布证据接受：否", html)
+        self.assertFalse(set(tag for tag, attrs in Tags(html).tags) & {"script", "img"})
+
+    def test_exact_financial_config_schema_and_bounded_rows_reject_invalid_values(self):
+        for key in self.config:
+            changed = deepcopy(self.config)
+            del changed[key]
+            with self.subTest(key=key), self.assertRaises(ValueError):
+                build_dashboard(financial_config=changed)
+        changed = {**self.config, "package": {"release_evidence_accepted": True}}
+        with self.assertRaises(ValueError):
+            build_dashboard(financial_config=changed)
+        for maximum in (True, 0, -1, 501, 1.5):
+            with self.subTest(maximum=maximum), self.assertRaises(ValueError):
+                build_dashboard(financial_config=self.config, max_financial_rows=maximum)
+
+    def test_cli_invalid_annotations_cannot_replace_a_prior_page(self):
+        self.config["annotations"] = {"file_sha256": "0" * 64, "package_sha256": "1" * 64, "decisions": []}
+        source, output = Path(self.tmp.name) / "financial.json", Path(self.tmp.name) / "dashboard.html"
+        source.write_text(json.dumps(self.config))
+        output.write_text("prior dashboard")
+        self.assertNotEqual(cli(output, "--financial-config", source).returncode, 0)
+        self.assertEqual(output.read_text(), "prior dashboard")
+
+    def test_no_numeric_candidates_is_not_shown_as_completed_financial_verification(self):
+        self.pdf.write_bytes(synthetic_table_pdf([
+            ("", "本报告期", "年初至报告期末"),
+            ("营业总收入（元）", "-", "-"), ("总资产（元）", "-", "-")]))
+        html = build_dashboard(financial_config=self.config)
+        self.assertIn("no_numeric_candidates", html)
+        self.assertIn("数值候选<strong>0", html)
+        self.assertIn("不代表报表没有财务数据或复核已经完成", html)
+        self.assertIn("发布证据接受：否", html)

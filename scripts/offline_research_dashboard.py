@@ -8,6 +8,8 @@ from pathlib import Path
 import tempfile
 
 from scripts.offline_batch_pipeline import build_pipeline
+from scripts.offline_batch_research_runner import _canonical_json_bytes
+from scripts.financial_review_pipeline import build_financial_review_artifact
 from scripts.sma_evaluation_cli import _load_config, build_evaluation_artifact
 
 MAX_HTML_BYTES = 2 * 1024 * 1024
@@ -16,6 +18,7 @@ LABELS = {"SYNTHETIC": "合成测试数据 · 不是实际行情或已核实绩�
           "UNVERIFIED_LOCAL": "本地输入 · 来源与历史可用性未核验"}
 STATUSES = {"COMPLETED_UNVERIFIED": "已生成摘要 · 未核验", "MISSING_INPUT": "缺少输入",
             "FAILED_INPUT_VALIDATION": "输入校验失败"}
+FINANCIAL_FIELDS = {"schema_version", "data_kind", "pdf_path", "symbol", "announcement_date", "pages", "annotations"}
 
 
 def _text(value):
@@ -117,15 +120,80 @@ def _evaluation_panel(config):
             f'结果载荷 SHA-256：{artifact["artifact_payload_sha256"]}</p></details></section>')
 
 
-def build_dashboard(*, batch_config=None, evaluation_config=None):
-    """Accept raw configs only, rebuilding both sections with existing validators."""
-    if batch_config is None and evaluation_config is None:
-        raise ValueError("at least one raw batch or evaluation config is required")
+def _validate_financial_config(config):
+    _canonical_json_bytes(config)
+    if type(config) is not dict or set(config) != FINANCIAL_FIELDS:
+        raise ValueError("financial config requires exact explicit fields")
+    if (config["schema_version"] != "0.1" or type(config["data_kind"]) is not str
+            or config["data_kind"] not in LABELS):
+        raise ValueError("unsupported financial config version or data_kind")
+    path = config["pdf_path"]
+    if type(path) is not str or not path.strip() or len(path) > 4096 or "\x00" in path:
+        raise ValueError("financial pdf_path must be an explicit bounded path")
+    if (type(config["pages"]) is not list or not 1 <= len(config["pages"]) <= 20
+            or any(type(page) is not int or not 1 <= page <= 10000 for page in config["pages"])
+            or len(set(config["pages"])) != len(config["pages"])):
+        raise ValueError("invalid financial pages")
+    if config["annotations"] is not None and type(config["annotations"]) is not dict:
+        raise ValueError("financial annotations must be an object or null")
+
+
+def _financial_panel(config, max_rows):
+    _validate_financial_config(config)
+    artifact = build_financial_review_artifact(
+        config["pdf_path"], config["symbol"], config["announcement_date"], config["pages"],
+        annotations=config["annotations"], max_rows=max_rows)
+    package, review, validation = artifact["package"], artifact["review_record"], artifact["validation"]
+    rows = []
+    for index, candidate in enumerate(package["candidates"][:max_rows]):
+        cell, decision = candidate["cell"], review["decisions"][index]
+        position = "/".join(str(cell[key]) for key in ("page", "table_index", "row_index", "column_index"))
+        status = {"pending_manual_review": "待记录复核决定", "accepted_by_reviewer": "调用方记录接受",
+                  "rejected_by_reviewer": "调用方记录拒绝"}[decision["decision"]]
+        note = ""
+        if decision.get("reviewer"):
+            note = f'<small>审核人声明：{_text(decision["reviewer"])}；备注：{_text(decision["note"])}</small>'
+        hints = [candidate[key + "_hint_unverified"] for key in ("metric", "unit", "period")]
+        hint_cells = "".join(f'<td>{_text(value if value is not None else "未知")}</td>' for value in hints)
+        rows.append(f'<tr><td>{index}</td><td>{_text(cell["text"])}</td><td>{_text(position)}</td>'
+                    + hint_cells + '<td>未知 · 未核实</td>'
+                    f'<td>{_text(", ".join(candidate["review_blockers"]))}</td><td>{_text(status)}'
+                    f'<small>{_text(decision["decision"])}</small>{note}</td></tr>')
+    omitted = package["candidate_count"] - len(rows)
+    no_numeric = ('<p class="notice">未提取到数值候选：no_numeric_candidates。暂无可复核数值证据，'
+                  '不代表报表没有财务数据或复核已经完成。</p>') if not package["candidate_count"] else ""
+    return (f'<section class="panel"><h2>财报证据复核</h2><p class="muted">{_text(package["symbol"])}'
+            f' · 公告日期（调用方声明）{_text(package["announcement_date_supplied_unverified"])}</p>'
+            f'<div class="notice">{_text(LABELS[config["data_kind"]])}。仅供查看原始 PDF 与表格证据；'
+            '结构校验通过不代表数值、来源、期间或合并口径已核实。</div>'
+            f'<div class="stats"><div class="stat">数值候选<strong>{package["candidate_count"]}</strong></div>'
+            f'<div class="stat">待记录决定<strong>{review["pending_count"]}</strong></div>'
+            f'<div class="stat">已记录决定<strong>{review["decided_count"]}</strong></div></div>'
+            + no_numeric + '<p>合并口径始终未知；原始阻断项全部保留。审核人身份未经认证，接受记录不构成核验或发布授权。</p>'
+            f'<p class="muted">结构状态：{_text("通过（仅结构）" if validation["structure_valid"] else "未通过")}；'
+            f'财务核验：未完成；发布证据接受：否。包级阻断项：{_text(", ".join(package["review_blockers"]))}。</p>'
+            '<div class="scroll"><table><thead><tr><th>候选</th><th>原始数值</th><th>页/表/行/列</th>'
+            '<th>指标提示</th><th>单位提示</th><th>期间提示</th><th>合并口径</th><th>阻断项</th><th>复核记录</th>'
+            f'</tr></thead><tbody>{"".join(rows)}</tbody></table></div>'
+            f'<p class="muted">显示 {len(rows)} 项，省略 {omitted} 项；总数与待记录数量包含所有候选。'
+            '页码从 1 开始，表/行/列从 0 开始。</p>'
+            f'<details><summary>查看 PDF 与复核包指纹</summary><p class="hash">PDF SHA-256：{package["file_sha256"]}'
+            f'<br>复核包 SHA-256：{validation["package_sha256"]}</p></details></section>')
+
+
+def build_dashboard(*, batch_config=None, evaluation_config=None, financial_config=None, max_financial_rows=20):
+    """Accept raw configs only, rebuilding all selected sections with existing validators."""
+    if batch_config is None and evaluation_config is None and financial_config is None:
+        raise ValueError("at least one raw batch, evaluation or financial config is required")
+    if type(max_financial_rows) is not int or not 1 <= max_financial_rows <= 500:
+        raise ValueError("max_financial_rows must be from 1 to 500")
     sections = []
     if batch_config is not None:
         sections.append(_batch_panel(batch_config))
     if evaluation_config is not None:
         sections.append(_evaluation_panel(evaluation_config))
+    if financial_config is not None:
+        sections.append(_financial_panel(financial_config, max_financial_rows))
     style_hash = base64.b64encode(hashlib.sha256(CSS.encode()).digest()).decode("ascii")
     policy = (f"default-src 'none'; style-src 'sha256-{style_hash}'; script-src 'none'; "
               "object-src 'none'; base-uri 'none'; form-action 'none'; font-src 'none'; connect-src 'none'")
@@ -134,7 +202,7 @@ def build_dashboard(*, batch_config=None, evaluation_config=None):
             '<meta name="viewport" content="width=device-width,initial-scale=1">'
             '<title>股票辅脑 · 离线研究面板</title>'
             f'<style>{CSS}</style></head><body><main><header><div class="eyebrow">股票辅脑 / RESEARCH WORKSPACE</div>'
-            '<h1>研究任务与样本外评估</h1><span class="pill">本地只读 · 无网络请求</span>'
+            '<h1>研究任务、评估与财报复核</h1><span class="pill">本地只读 · 无网络请求</span>'
             '<p class="muted">从原始配置重新校验与计算；展示历史研究材料和实验性纸面结果。</p></header>'
             + "".join(sections) + '<footer><strong>核验边界：</strong>来源、历史时点与绩效均未核验。'
             '未建模交易日历缺口、公司行动、涨跌停、停牌、流动性或真实成交约束。'
@@ -148,17 +216,33 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--batch-config")
     parser.add_argument("--evaluation-config")
+    parser.add_argument("--financial-config")
+    parser.add_argument("--max-financial-rows", type=int, default=20)
     parser.add_argument("--output", required=True)
     args = parser.parse_args(argv)
-    if not args.batch_config and not args.evaluation_config:
-        parser.error("at least one of --batch-config or --evaluation-config is required")
-    sources = [Path(value) for value in (args.batch_config, args.evaluation_config) if value]
+    if not args.batch_config and not args.evaluation_config and not args.financial_config:
+        parser.error("at least one section config is required")
+    sources = [Path(value) for value in (args.batch_config, args.evaluation_config, args.financial_config) if value]
     output = Path(args.output)
     if output.is_symlink() or any(output.resolve() == source.resolve()
             or (output.exists() and os.path.samefile(source, output)) for source in sources):
         raise ValueError("dashboard cannot overwrite an input or target a symbolic link")
-    html = build_dashboard(batch_config=_load_config(args.batch_config) if args.batch_config else None,
-                           evaluation_config=_load_config(args.evaluation_config) if args.evaluation_config else None)
+    batch = _load_config(args.batch_config) if args.batch_config else None
+    evaluation = _load_config(args.evaluation_config) if args.evaluation_config else None
+    for selected, config in ((args.batch_config, batch), (args.evaluation_config, evaluation)):
+        if selected and type(config) is not dict:
+            raise ValueError("selected section config must be an object, not null")
+    financial = _load_config(args.financial_config) if args.financial_config else None
+    if args.financial_config:
+        _validate_financial_config(financial)
+        pdf = Path(financial["pdf_path"])
+        if not pdf.is_absolute():
+            pdf = Path(args.financial_config).resolve().parent / pdf
+        financial = {**financial, "pdf_path": str(pdf)}
+        if output.resolve() == pdf.resolve() or (output.exists() and os.path.samefile(pdf, output)):
+            raise ValueError("dashboard cannot overwrite its financial PDF")
+    html = build_dashboard(batch_config=batch, evaluation_config=evaluation,
+                           financial_config=financial, max_financial_rows=args.max_financial_rows)
     output.parent.mkdir(parents=True, exist_ok=True)
     temporary = None
     try:
