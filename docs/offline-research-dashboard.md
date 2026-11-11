@@ -1,5 +1,29 @@
 # Local read-only research dashboard (T10 prototype)
 
+## Reproducible three-panel demo
+
+Install the optional PDF parser, then run from the repository root:
+
+```sh
+python -m pip install 'pdfplumber>=0.11,<0.13'
+python -m scripts.offline_research_dashboard --batch-config examples/batch_research/SYNTHETIC_offline_pipeline.json --evaluation-config examples/backtest/SYNTHETIC_sma_oos_config.json --financial-config examples/financial_review/SYNTHETIC_dashboard_config.json --output SYNTHETIC_dashboard.html
+```
+
+Open `SYNTHETIC_dashboard.html` in a local browser that permits local files. The
+page has batch, paper-evaluation and financial-review panels. Batch input deliberately
+demonstrates one successful brief and two missing/invalid inputs; the PDF contributes
+three financial numeric candidates, all pending review. Configured expenses and
+prices are invented demonstration assumptions, not actual market or broker data.
+
+The committed `examples/financial_review/SYNTHETIC_table.pdf` is a generated Chinese
+table with a visible `合成测试数据` label. It is not a downloaded issuer filing.
+Its config declares `SYNTHETIC`, uses a path relative to that config and includes
+no reviewer assertions. Tests compare the entire PDF to its deterministic generator
+and run this three-panel CLI twice, checking byte-identical HTML without mocking.
+Successful generation does not establish browser layout or real-data acceptance.
+
+## Individual sections
+
 Generate one self-contained HTML page from the two **SYNTHETIC** raw fixtures:
 
 ```sh
