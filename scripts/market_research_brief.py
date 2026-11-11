@@ -22,17 +22,18 @@ def build_brief(report):
         raise ValueError("dates must be unique and ascending")
     if any(isinstance(v, bool) or not isinstance(v, (int, float)) or not math.isfinite(v) or v <= 0 for v in prices):
         raise ValueError("invalid price evidence")
-    agreement = report.get("numerical_agreement") is True
+    single_source = report.get("price_basis") == "single_source_close"
+    agreement = report.get("numerical_agreement") is True and not single_source
     change = (prices[-1] / prices[0] - 1) * 100 if len(prices) > 1 else None
     direction = ("上涨" if change > 0 else "下跌" if change < 0 else "持平") if change is not None else "无法判断"
     facts = [
-        f"观察区间：{dates[0]} 至 {dates[-1]}，共有{len(dates)}个共同日期",
-        f"最后一个共同日期的收盘价均值：{prices[-1]:.3f}元/股",
+        f"观察区间：{dates[0]} 至 {dates[-1]}，共有{len(dates)}个" + ("单源日期" if single_source else "共同日期"),
+        ("最后一个日期的单源收盘价：" if single_source else "最后一个共同日期的收盘价均值：") + f"{prices[-1]:.3f}元/股",
     ]
     if change is not None:
         facts.append(f"观察期价格{direction}，变化{change:+.2f}%")
     else:
-        facts.append("仅有一个共同日期，无法计算区间涨跌幅")
+        facts.append("仅有一个" + ("单源日期" if single_source else "共同日期") + "，无法计算区间涨跌幅")
     if agreement:
         facts.append("所附比较结果标记双源数值一致；不代表交易所认证")
     else:
