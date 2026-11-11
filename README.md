@@ -1,6 +1,9 @@
 # stock-market-Agent
 股票辅脑
 
+本地 Dashboard 的一条命令三面板合成示例见 [离线研究面板](docs/offline-research-dashboard.md)。
+示例包含批量任务、纸面回测和财报待复核材料，不使用真实行情或财报。
+
 已有离线功能的运行入口、合成示例与验收边界见 [离线功能运行指南](docs/offline-workflows.md)。
 
 ## GitHub 上运行 TradingAgents

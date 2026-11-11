@@ -1,0 +1,11 @@
+{
+  "schema_version": "0.1",
+  "data_kind": "SYNTHETIC",
+  "pdf_path": "SYNTHETIC_table.pdf",
+  "symbol": "000776.SZ",
+  "announcement_date": "2026-10-30",
+  "pages": [
+    1
+  ],
+  "annotations": null
+}
