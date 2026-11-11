@@ -1,6 +1,8 @@
 # stock-market-Agent
 股票辅脑
 
+已有离线功能的运行入口、合成示例与验收边界见 [离线功能运行指南](docs/offline-workflows.md)。
+
 ## GitHub 上运行 TradingAgents
 
 使用 GitHub Actions 手动分析股票，调用 DeepSeek，生成中文 HTML 和 Markdown 报告。默认 NVDA，可改为 `600519.SS`、`000001.SZ`、`0700.HK` 等 Yahoo Finance 股票代码。只生成研究报告，不连接券商或提交交易。
