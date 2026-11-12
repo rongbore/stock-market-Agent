@@ -64,13 +64,16 @@ def main(argv=None):
     output = Path(args.output)
     if output.exists() or output.is_symlink():
         raise FileExistsError("collection output must be a new file")
-    artifact = collect_market_research(args.symbol, args.start_date, args.end_date, args.upstream)
-    encoded = _canonical_json_bytes(artifact) + b"\n"
+    # Preflight the destination before any opt-in network request. Creating a
+    # temporary file tests actual write access rather than permission bits alone.
     output.parent.mkdir(parents=True, exist_ok=True)
     temporary = None
     try:
         with tempfile.NamedTemporaryFile(mode="wb", dir=output.parent, delete=False) as stream:
             temporary = Path(stream.name)
+        artifact = collect_market_research(args.symbol, args.start_date, args.end_date, args.upstream)
+        encoded = _canonical_json_bytes(artifact) + b"\n"
+        with temporary.open("wb") as stream:
             stream.write(encoded)
         # Exclusive creation preserves existing evidence, including a concurrent writer.
         os.link(temporary, output)
