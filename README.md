@@ -51,7 +51,7 @@ Actions 工作流需位于默认分支才能在网页手动触发。仓库或组
 
 ### AKShare 双来源行情验收与中文证据报告（只读）
 
-仓库的 **Actions → AKShare dual-upstream crosscheck** 可手动运行（`workflow_dispatch`），默认以 `000776.SZ` 为研究样本；也设置了每周三 02:20 UTC 的定时验收。定时运行自动使用最近 21 个自然日至昨日的日期窗口，手动运行可覆盖代码与起止日期。定时触发可能受 GitHub Actions 调度延迟影响，首次实际定时运行仍须核验。
+仓库的 **Actions → AKShare dual-upstream crosscheck** 可手动运行（`workflow_dispatch`），默认以 `000776.SZ` 为研究样本；也设置了每周三 02:20 UTC 的定时验收。未指定日期的推送、定时及手动运行均按北京时间使用截至昨日的最近 21 个自然日，不再回退到固定 10 月窗口。历史回放须同时填写起止日期，范围不得倒置、跨度不得超过 366 天，结束日必须早于北京时间当天。日期校验在安装可选采集依赖前运行；该窗口不是交易日历认证，也不保证数据源会返回每个日期。定时触发可能受 GitHub Actions 调度延迟影响。
 
 该工作流通过 AKShare 分别尝试东方财富和新浪的历史日线接口，比较 OHLCV（成交量按显式单位归一化）。在双来源均成功时生成 `daily_crosscheck_report.json`；无论采集是否成功，只要诊断文件已生成，就尝试生成 `dual_source_evidence_unverified.md`。Artifacts 同时保存诊断与可用的快照，保留 3 天。
 
