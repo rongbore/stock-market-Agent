@@ -1,0 +1,62 @@
+{
+  "schema_version": "0.1",
+  "run_id": 43176698108,
+  "artifact_id": 13924008809,
+  "job_id": 131042560358,
+  "run_url": "https://github.com/rongbore/stock-market-Agent/actions/runs/43176698108",
+  "artifact_zip_sha256": "42b93d16c5553c7f45c9db9b6d0ee59c35983567eed48d7c541caeb903463491",
+  "symbol": "000776.SZ",
+  "requested_start": "2026-10-01",
+  "requested_end": "2026-10-30",
+  "observed_start": "2026-10-08",
+  "observed_end": "2026-10-30",
+  "evidence_as_of": "2026-11-12T07:38:26+00:00",
+  "comparison": {
+    "shared_dates": 17,
+    "differences_within_configured_tolerances": 0,
+    "price_tolerance_cny": 0.011,
+    "volume_relative_tolerance": 0.001
+  },
+  "replay": [
+    {
+      "upstream": "eastmoney",
+      "snapshot_file_sha256": "4ff2998e902f2a0db33873f93dc5ae26965e1bc214b045e78ec6f06e207cc13c",
+      "rows": 17,
+      "research_success": 1,
+      "dashboard_bytes": 4197,
+      "train_bars": 9,
+      "test_bars": 8,
+      "source_verified": false,
+      "historical_point_in_time_verified": false
+    },
+    {
+      "upstream": "sina",
+      "snapshot_file_sha256": "8c412e5821ddc3cbc2336cabf09518657712e0fc491b3ab1f6a304460002e2fe",
+      "rows": 17,
+      "research_success": 1,
+      "dashboard_bytes": 4197,
+      "train_bars": 9,
+      "test_bars": 8,
+      "source_verified": false,
+      "historical_point_in_time_verified": false
+    }
+  ],
+  "paper_assumptions": {
+    "train_end": "2026-10-20",
+    "test_start": "2026-10-21",
+    "window": 3,
+    "initial_cash": 10000,
+    "board_lot_size": 100,
+    "commission_bps": 3,
+    "minimum_fee": 5,
+    "sell_tax_bps": 5,
+    "slippage_bps": 5,
+    "adjustment": "unadjusted"
+  },
+  "source_content_verified": false,
+  "historical_point_in_time_verified": false,
+  "exchange_calendar_checked": false,
+  "financial_filing_accuracy_accepted": false,
+  "browser_visual_checked": false,
+  "scope": "Actual Actions-collected vendor snapshots replayed locally; not official authenticity, complete-calendar or historical-availability acceptance."
+}
