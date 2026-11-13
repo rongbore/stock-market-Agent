@@ -70,3 +70,52 @@ class CollectionEntryTests(unittest.TestCase):
             with self.assertRaises(FileExistsError):
                 main(args)
             self.assertEqual(output.read_bytes(), original)
+
+    def test_output_preflight_failure_never_calls_network_provider(self):
+        with tempfile.TemporaryDirectory() as folder:
+            output = Path(folder)/"result.json"
+            args = ["--symbol", "000776.SZ", "--start-date", "2026-11-02",
+                    "--end-date", "2026-11-06", "--upstream", "eastmoney",
+                    "--allow-network", "--output", str(output)]
+            with patch("scripts.collect_market_research.tempfile.NamedTemporaryFile",
+                       side_effect=PermissionError("destination unavailable")):
+                with patch("scripts.collect_market_research.fetch_a_share_daily") as provider:
+                    with self.assertRaises(PermissionError):
+                        main(args)
+                    provider.assert_not_called()
+            self.assertFalse(output.exists())
+
+    def test_exclusive_link_failure_cleans_temporary_file(self):
+        with tempfile.TemporaryDirectory() as folder:
+            output = Path(folder)/"result.json"
+            args = ["--symbol", "000776.SZ", "--start-date", "2026-11-02",
+                    "--end-date", "2026-11-06", "--upstream", "eastmoney",
+                    "--allow-network", "--output", str(output)]
+            with patch("scripts.collect_market_research.fetch_a_share_daily",
+                       side_effect=RuntimeError("offline")):
+                with patch("scripts.collect_market_research.os.link",
+                           side_effect=OSError("hard links unsupported")):
+                    with self.assertRaises(OSError):
+                        main(args)
+            self.assertEqual(list(Path(folder).iterdir()), [])
+
+    def test_concurrent_output_winner_is_not_overwritten_and_temp_is_removed(self):
+        with tempfile.TemporaryDirectory() as folder:
+            output = Path(folder) / "result.json"
+            args = ["--symbol", "000776.SZ", "--start-date", "2026-11-02",
+                    "--end-date", "2026-11-06", "--upstream", "eastmoney",
+                    "--allow-network", "--output", str(output)]
+            winner = b'{"owner":"concurrent-writer"}\\n'
+
+            def competing_writer(source, destination):
+                Path(destination).write_bytes(winner)
+                raise FileExistsError("another writer published first")
+
+            with patch("scripts.collect_market_research.fetch_a_share_daily",
+                       side_effect=RuntimeError("offline")):
+                with patch("scripts.collect_market_research.os.link",
+                           side_effect=competing_writer):
+                    with self.assertRaises(FileExistsError):
+                        main(args)
+            self.assertEqual(output.read_bytes(), winner)
+            self.assertEqual(list(Path(folder).iterdir()), [output])
