@@ -28,3 +28,27 @@ is inherited from AKShare; this wrapper adds no time-bound transport guarantee.
 Tests inject synthetic provider responses or failures and exercise the actual
 offline stages. They are not successful live-source acceptance. Live collection,
 financial accuracy and historical availability require a separate real-data run.
+
+## Explicit calendar coverage gate
+
+Optionally pass `--calendar local-calendar.json`. The calendar must declare the
+exact requested window, exchange suffix (`SZ` or `SS`), a source label, and sorted,
+unique session dates in that window. For example, this is a **synthetic** input,
+not an official exchange calendar:
+
+```json
+{"schema_version":"0.1","exchange":"SZ","start_date":"2026-11-02","end_date":"2026-11-03","source":"SYNTHETIC example only","sessions":["2026-11-02","2026-11-03"]}
+```
+
+Malformed calendars fail before network collection. The CLI rejects duplicate JSON
+keys and inputs over 64 KiB. Missing or unexpected snapshot dates produce a
+`calendar_date_mismatch` diagnostic, exit code 2, and no research or dashboard.
+The diagnostic includes exact missing/unexpected dates and the canonical calendar
+SHA-256. A suspension can cause a missing session too; review the evidence rather
+than inserting or synthesizing bars. Empty calendars cannot accept nonempty data.
+
+A match means only that dates agree with the caller-supplied calendar. The result
+keeps `exchange_calendar_verified: false`; the source label confers no authority.
+No official calendar is downloaded, no weekend/holiday inference is made, and
+source authenticity or historical availability is not established. Omitting the
+option preserves the existing flow and does not assert any coverage check.
