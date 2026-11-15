@@ -52,3 +52,6 @@ keeps `exchange_calendar_verified: false`; the source label confers no authority
 No official calendar is downloaded, no weekend/holiday inference is made, and
 source authenticity or historical availability is not established. Omitting the
 option preserves the existing flow and does not assert any coverage check.
+
+For existing snapshots, use the [offline calendar acceptance CLI](offline-calendar-acceptance.md)
+to save a reproducible hash-bound coverage record without collecting data again.
