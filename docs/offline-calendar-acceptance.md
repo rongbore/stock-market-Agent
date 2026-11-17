@@ -69,4 +69,38 @@ artifact. No raw exception or provider response is embedded in the record.
 The deterministic record contains canonical JSON SHA-256 hashes of config,
 snapshot, calendar and artifact payload (excluding its own hash). It stores no
 raw prices. Hashes bind content, not authenticity. All verification flags stay
-false. No collection, research generation or trading is performed by this CLI.
+false. Default mode performs no collection, research generation or trading.
+The opt-in research mode below remains fully offline and performs no trading.
+
+
+## Generate research only after recomputed acceptance
+
+Use the same raw config with an explicit option:
+
+```sh
+python -m scripts.calendar_acceptance_cli --input acceptance-config.json --output accepted-research.json --include-research
+```
+
+This recomputes acceptance from the supplied snapshot and calendar; it does not
+accept a saved `MATCH` record as authorization. On `MATCH`, the same snapshot,
+evidence cutoff, adjustment and data declaration feed the snapshot adapter,
+single-symbol research pipeline and HTML dashboard. The analysis date is the
+snapshot's declared window end. The returned `batch_config` records the identical
+snapshot SHA-256 as the nested acceptance record.
+
+Successful output has `status: RESEARCH_GENERATED_UNVERIFIED`, nested `acceptance`,
+`batch_config`, `research` and `dashboard_html`, plus an outer payload hash. Exit
+code is 0. This mode embeds derived prices and HTML and is larger than the default
+acceptance-only record. The dashboard retains its existing synthetic/unverified
+labels; it does not independently display or certify calendar coverage. Review the
+nested acceptance record in the JSON alongside the dashboard.
+
+A calendar disagreement returns exit 2 with `REVIEW_REQUIRED` and nested acceptance
+only; no downstream research or dashboard is generated. Invalid data, a failed
+research brief or dashboard construction error raises an error before output
+publication. Existing/concurrently created output remains protected. Default
+acceptance-only behavior and output format are unchanged.
+
+This is an offline integration test mechanism, not a release gate or an official
+data certification. Synthetic fixture success does not satisfy the real-source
+requirements in the [v0.2 release evidence gate](v02-release-evidence-gate.md).

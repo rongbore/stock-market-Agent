@@ -47,6 +47,33 @@ def build_calendar_acceptance(config):
     return {**payload, "artifact_payload_sha256": _sha(payload)}
 
 
+def build_calendar_gated_research(config):
+    """Recompute acceptance from raw input before allowing offline research."""
+    acceptance = build_calendar_acceptance(config)
+    payload = {"schema_version": "0.1", "status": "REVIEW_REQUIRED",
+               "acceptance": acceptance, "source_content_verified": False,
+               "historical_point_in_time_verified": False, "exchange_calendar_verified": False,
+               "hash_encoding": "json_sorted_keys_ascii_compact_v1"}
+    if acceptance["status"] == "MATCH":
+        from scripts.snapshot_research_config import build_snapshot_research_config
+        from scripts.offline_batch_pipeline import build_pipeline
+        from scripts.offline_research_dashboard import build_dashboard
+
+        snapshot = config["snapshot"]
+        batch_config = build_snapshot_research_config({
+            "schema_version": "0.1", "data_kind": config["data_kind"],
+            "analysis_date": snapshot["end_date"], "evidence_as_of": config["evidence_as_of"],
+            "expected_adjustment": config["expected_adjustment"],
+            "snapshots": {snapshot["symbol"]: snapshot}})
+        research = build_pipeline(batch_config)
+        if research["bundle"]["succeeded_count"] != 1:
+            raise ValueError("research did not produce the required single-symbol brief")
+        dashboard = build_dashboard(batch_config=batch_config)
+        payload.update(status="RESEARCH_GENERATED_UNVERIFIED", batch_config=batch_config,
+                       research=research, dashboard_html=dashboard)
+    return {**payload, "artifact_payload_sha256": _sha(payload)}
+
+
 def _load(path):
     flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_NONBLOCK", 0) | getattr(os, "O_BINARY", 0)
     descriptor = os.open(path, flags)
@@ -67,11 +94,14 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--input", required=True)
     parser.add_argument("--output", required=True)
+    parser.add_argument("--include-research", action="store_true",
+                        help="generate offline research only after recomputed date acceptance")
     args = parser.parse_args(argv)
     output = Path(args.output)
     if output.exists() or output.is_symlink():
         raise FileExistsError("acceptance output must be a new file")
-    artifact = build_calendar_acceptance(_load(args.input))
+    config = _load(args.input)
+    artifact = build_calendar_gated_research(config) if args.include_research else build_calendar_acceptance(config)
     encoded = _canonical_json_bytes(artifact) + b"\n"
     output.parent.mkdir(parents=True, exist_ok=True)
     temporary = None
@@ -83,7 +113,7 @@ def main(argv=None):
     finally:
         if temporary is not None:
             temporary.unlink(missing_ok=True)
-    return 0 if artifact["status"] == "MATCH" else 2
+    return 0 if artifact["status"] in ("MATCH", "RESEARCH_GENERATED_UNVERIFIED") else 2
 
 
 if __name__ == "__main__":
