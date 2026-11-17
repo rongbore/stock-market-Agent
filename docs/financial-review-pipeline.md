@@ -28,3 +28,25 @@ are caller assertions; even accepted decisions never remove verification blocker
 Run `python -m unittest tests.test_financial_review_pipeline -v` for real-parser
 end-to-end checks using clearly synthetic Chinese PDF tables. These checks do not
 constitute actual issuer-report accuracy acceptance.
+
+## Explicit annual header hints
+
+The artifact additionally contains `annual_header_hints_unverified`, separate from
+the strict review package and its existing annotation hash. Exact `19xx年` /
+`20xx年` and `年末` labels may provide an integer year and an `annual` / `year_end`
+basis hint. Explicit `调整前` / `调整后` child rectangles provide a restatement hint
+only when the entire numeric rectangle belongs to exactly one header chain.
+Absent sublabels mean unknown restatement basis. The latest year block is used;
+unknown intervening text in the numeric column is a barrier. No cross-page or
+cross-table matching or center-only fallback is used. Quarterly labels remain
+unsupported by this annual hint module.
+
+Hint candidates retain number/header cell coordinates. These are unverified
+geometry hints, not normalized financial periods or accepted claims. They do not
+clear existing `period`, consolidation-scope or manual-review blockers and do not
+alter reviewer annotations. The Markdown report still presents the existing
+strict package; inspect the extra JSON section for annual hints.
+
+The pipeline performs an additional bounded table extraction and verifies its PDF
+hash against the original package and a final file digest. This adds parser work;
+changes to the PDF fail the whole artifact. No network or model call is added.

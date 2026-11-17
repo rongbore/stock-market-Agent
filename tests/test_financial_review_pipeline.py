@@ -72,6 +72,20 @@ class ReviewPipelineTests(unittest.TestCase):
             main(self.args(self.pdf))
         self.assertEqual(self.pdf.read_bytes(), original)
 
+    def test_annual_hints_are_separate_and_do_not_clear_period_blockers(self):
+        self.pdf.write_bytes(synthetic_table_pdf([
+            ("", "2025年", "2024年"),
+            ("营业总收入（元）", "100.00", "80.00"),
+            ("总资产（元）", "200.00", "180.00")]))
+        result = build_financial_review_artifact(self.pdf, "000776.SZ", "2026-10-30", [1])
+        annual = result["annual_header_hints_unverified"]
+        self.assertEqual(annual["hint_count"], 4)
+        self.assertEqual([c["year_hint_unverified"] for c in annual["candidates"]], [2025, 2024, 2025, 2024])
+        for candidate in result["package"]["candidates"]:
+            self.assertIsNone(candidate["period_hint_unverified"])
+            self.assertIn("period", candidate["review_blockers"])
+        self.assertFalse(result["release_evidence_accepted"])
+
     def test_repeated_runs_are_deterministic(self):
         one = build_financial_review_artifact(self.pdf, "000776.SZ", "2026-10-30", [1])
         two = build_financial_review_artifact(self.pdf, "000776.SZ", "2026-10-30", [1])
