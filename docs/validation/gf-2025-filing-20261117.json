@@ -1,0 +1,58 @@
+{
+  "schema_version": "0.1",
+  "status": "REAL_PDF_REPLAY_BLOCKED",
+  "candidate_sha": "9e65ccb6f307eb7ffbc66960f268cb4fc1ec10a6",
+  "symbol": "000776.SZ",
+  "document_title": "广发证券股份有限公司2025年度报告全文",
+  "source_url": "https://static.cninfo.com.cn/finalpage/2026-03-31/1225060422.PDF",
+  "announcement_date_supplied_unverified": "2026-03-31",
+  "retrieved_at": "2026-11-17T08:22:05.072724+00:00",
+  "raw_pdf_sha256": "36bd16395730b08b270110f34c986e58e17ea3445a91cd8431319a6a22d1da31",
+  "raw_pdf_size_bytes": 5759571,
+  "pdf_page_count": 292,
+  "sampled_pages": [
+    19,
+    20,
+    21
+  ],
+  "python_version": "3.12.14",
+  "pdfplumber_version": "0.11.9",
+  "review_artifact_raw_sha256": "c5ba97541332b751c670b26c0700a57fcb91b88628bcacde2972bf99dd763de5",
+  "review_package_sha256": "f26dcc0bea4c5cc0cb16ca925e155ab355725e4ee8fb07b7cb15d904b7eaa1a8",
+  "structure_valid": true,
+  "candidate_count": 139,
+  "candidate_count_by_page": {
+    "19": 44,
+    "20": 33,
+    "21": 62
+  },
+  "metric_hint_count": 21,
+  "unit_hint_count": 21,
+  "period_hint_count": 0,
+  "candidate_blocker_counts": {
+    "period": 139,
+    "consolidation_scope": 139,
+    "manual_verification": 139,
+    "metric": 118,
+    "unit": 118
+  },
+  "pending_review_count": 139,
+  "visual_inspection": {
+    "page": 19,
+    "method": "pdftoppm PNG rendering inspected by assistant",
+    "observation": "Multi-row year headers, restatement subcolumns and merged cells; annual revenue label/value cell visible. No authenticated human review recorded."
+  },
+  "source_content_verified": false,
+  "official_origin_verified": false,
+  "historical_point_in_time_verified": false,
+  "financial_meaning_verified": false,
+  "release_evidence_accepted": false,
+  "blockers": [
+    "annual_and_restatement_header_attribution_not_supported",
+    "consolidation_scope_unverified",
+    "manual_financial_review_pending",
+    "publication_timestamp_and_historical_availability_unverified",
+    "official_origin_not_independently_authenticated"
+  ],
+  "raw_pdf_committed": false
+}

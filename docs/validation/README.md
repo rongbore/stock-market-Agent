@@ -11,3 +11,9 @@
 每项均有并列 JSON 记录，保存运行／产物编号、原始文件哈希、容差与未核验标志。
 原始行情没有重新发布；Actions 产物会过期，应在有权访问的环境中保留摘要一致的原件。
 新记录不会把历史记录改写为“最新行情”或“已认证数据”。
+
+## Real filing PDF replay
+
+- [GF Securities 2025 annual filing replay, 2026-11-17](gf-2025-filing-20261117.md):
+  actual CNINFO download and pages 19–21 through the financial-review pipeline;
+  139 numeric candidates, no period hints, release evidence remains blocked.
