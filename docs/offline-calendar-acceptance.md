@@ -104,3 +104,6 @@ acceptance-only behavior and output format are unchanged.
 This is an offline integration test mechanism, not a release gate or an official
 data certification. Synthetic fixture success does not satisfy the real-source
 requirements in the [v0.2 release evidence gate](v02-release-evidence-gate.md).
+
+To export the generated page, Chinese summary and acceptance evidence as directly
+viewable files, use the [offline research ZIP exporter](offline-research-package.md).
