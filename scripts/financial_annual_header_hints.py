@@ -8,6 +8,34 @@ YEAR = re.compile(r"((?:19|20)[0-9]{2})年(末)?")
 RESTATEMENT = {"调整前": "before_adjustment", "调整后": "after_adjustment"}
 
 
+def _partition_child(header, children, row_numbers, target):
+    """Require an explicit two-cell tiling, never extrapolate header widths."""
+    if len(children) != 2 or {c["text"] for c in children} != set(RESTATEMENT):
+        return None
+    siblings = sorted([n for n in row_numbers
+                       if header["bbox"][0] <= n["bbox"][0] < n["bbox"][2] <= header["bbox"][2]],
+                      key=lambda n: n["bbox"][0])
+    if len(siblings) != 2:
+        return None
+    left, right = siblings
+    if (abs(left["bbox"][0] - header["bbox"][0]) > 1e-6
+            or abs(left["bbox"][2] - right["bbox"][0]) > 1e-6
+            or abs(right["bbox"][2] - header["bbox"][2]) > 1e-6
+            or left["bbox"][1] != right["bbox"][1] or left["bbox"][3] != right["bbox"][3]):
+        return None
+    if children[0]["bbox"][1] != children[1]["bbox"][1] or children[0]["bbox"][3] != children[1]["bbox"][3]:
+        return None
+    labels = []
+    for number in siblings:
+        matches = [h for h in children
+                   if number["bbox"][0] <= h["bbox"][0] < h["bbox"][2] <= number["bbox"][2]
+                   and header["bbox"][3] <= h["bbox"][1] and h["bbox"][3] <= number["bbox"][1]]
+        if len(matches) != 1:
+            return None
+        labels.append(matches[0])
+    return (labels[siblings.index(target)], siblings) if target in siblings else None
+
+
 def annual_header_hints(cells):
     """Use latest year block, full horizontal containment and explicit subheaders."""
     validated = table_period_hints(cells)  # Existing bounded position/geometry checks.
@@ -19,9 +47,11 @@ def annual_header_hints(cells):
             normalized = {**cell, "text": "".join(cell["text"].split())}
             groups.setdefault((cell["page"], cell["table_index"]), []).append(normalized)
     numbers = {}
+    row_numbers = {}
     for candidate in validated["candidates"]:
         cell = candidate["cell"]
         numbers.setdefault((cell["page"], cell["table_index"]), []).append(cell)
+        row_numbers.setdefault((cell["page"], cell["table_index"], cell["row_index"]), []).append(cell)
     result = []
     for key, group in groups.items():
         by_row = {}
@@ -42,7 +72,7 @@ def annual_header_hints(cells):
         for cell in numbers.get(key, []):
             hint = {"cell": cell, "year_hint_unverified": None, "basis_hint_unverified": None,
                     "restatement_hint_unverified": None, "year_header_cell": None,
-                    "restatement_header_cell": None, "reason": "missing_or_ambiguous_year_header",
+                    "restatement_header_cell": None, "partition_cells_unverified": [], "reason": "missing_or_ambiguous_year_header",
                     "column_ownership_verified": False, "financial_meaning_verified": False}
             index = bisect_left(year_rows, cell["row_index"]) - 1
             if index < 0:
@@ -69,22 +99,28 @@ def annual_header_hints(cells):
                 children = [h for h in by_row[sub_rows[sub_index]] if h["text"] in RESTATEMENT
                             and h["bbox"][0] < header["bbox"][2] and h["bbox"][2] > header["bbox"][0]]
             child = None
+            partition_used = False
             if children:
                 matches = [h for h in children
                            if header["bbox"][0] <= h["bbox"][0] < h["bbox"][2] <= header["bbox"][2]
                            and header["bbox"][3] <= h["bbox"][1] and h["bbox"][3] <= cell["bbox"][1]
                            and h["bbox"][0] <= cell["bbox"][0] < cell["bbox"][2] <= h["bbox"][2]]
-                if len(matches) != 1:
-                    hint["reason"] = "missing_or_ambiguous_restatement_header"
-                    result.append(hint)
-                    continue
-                child = matches[0]
+                if len(matches) == 1:
+                    child = matches[0]
+                else:
+                    partition = _partition_child(header, children, row_numbers[(key[0], key[1], cell["row_index"])], cell)
+                    if partition is None:
+                        hint["reason"] = "missing_or_ambiguous_restatement_header"
+                        result.append(hint)
+                        continue
+                    child, hint["partition_cells_unverified"] = partition
+                    partition_used = True
             match = YEAR.fullmatch(header["text"])
             hint.update(year_hint_unverified=int(match[1]),
                         basis_hint_unverified="year_end" if match[2] else "annual",
                         restatement_hint_unverified=RESTATEMENT[child["text"]] if child else None,
                         year_header_cell=header, restatement_header_cell=child,
-                        reason="explicit_year_header_chain_unverified")
+                        reason="explicit_restatement_row_partition_unverified" if partition_used else "explicit_year_header_chain_unverified")
             result.append(hint)
     return {"schema_version": "0.1", "candidates": result,
             "hint_count": sum(c["year_hint_unverified"] is not None for c in result),

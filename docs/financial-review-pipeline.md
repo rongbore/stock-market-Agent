@@ -50,3 +50,14 @@ strict package; inspect the extra JSON section for annual hints.
 The pipeline performs an additional bounded table extraction and verifies its PDF
 hash against the original package and a final file digest. This adds parser work;
 changes to the PDF fail the whole artifact. No network or model call is added.
+
+When restatement labels occupy narrower rectangles than values, an additional
+explicit row-partition rule can produce hints: exactly two numeric rectangles
+must tile the entire parent year width with no gap or overlap (coordinate equality
+tolerance 1e-6 PDF points), share row top/bottom, and each fully contain exactly
+one of a unique same-row before/after label pair. No midpoint, nearest-center or
+width extrapolation is used. The two number rectangles are retained in
+`partition_cells_unverified`, with reason
+`explicit_restatement_row_partition_unverified`. Missing halves, ambiguous labels
+or three-column layouts do not use this rule. This still supplies hints only and
+does not clear any financial-review blocker.

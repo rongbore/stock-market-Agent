@@ -50,3 +50,35 @@ class AnnualHeaderTests(unittest.TestCase):
         for data in ([c,c],[cell('10',500,0,10,90)], [{**c,'bbox':[90,1,10,2]}]):
             with self.assertRaises(ValueError):
                 annual_header_hints(data)
+
+class NarrowRestatementHeaderTests(unittest.TestCase):
+    def fixture(self):
+        return [cell('2024年',0,0,0,200),cell('调整前',1,0,20,80),
+                cell('调整后',1,1,120,180),cell('100.00',2,0,0,100),cell('99.00',2,1,100,200)]
+
+    def test_two_number_rectangles_tile_year_with_unique_narrow_labels(self):
+        r=annual_header_hints(self.fixture())
+        self.assertEqual(r['hint_count'],2)
+        self.assertEqual([c['restatement_hint_unverified'] for c in r['candidates']],
+                         ['before_adjustment','after_adjustment'])
+        self.assertTrue(all(c['reason']=='explicit_restatement_row_partition_unverified' for c in r['candidates']))
+        self.assertEqual(len(r['candidates'][0]['partition_cells_unverified']),2)
+        self.assertFalse(r['column_ownership_verified'])
+
+    def test_gaps_overlap_missing_half_and_parent_edge_mismatch_block(self):
+        for index,box in ((3,[1,40,100,50]),(3,[0,40,99,50]),(3,[0,40,101,50]),(4,[101,40,200,50])):
+            cells=self.fixture();cells[index]['bbox']=box
+            self.assertEqual(annual_header_hints(cells)['hint_count'],0)
+        cells=self.fixture();cells.pop()
+        self.assertEqual(annual_header_hints(cells)['hint_count'],0)
+
+    def test_straddling_duplicate_or_crossing_labels_block(self):
+        for box in ([80,20,120,30],[-10,20,80,30],[20,39,80,45]):
+            cells=self.fixture();cells[1]['bbox']=box
+            self.assertEqual(annual_header_hints(cells)['hint_count'],0)
+        cells=self.fixture();cells[2]['text']='调整前'
+        self.assertEqual(annual_header_hints(cells)['hint_count'],0)
+
+    def test_three_value_columns_cannot_use_two_column_partition(self):
+        cells=self.fixture()[:3]+[cell('10',2,0,0,60),cell('20',2,1,60,130),cell('30',2,2,130,200)]
+        self.assertEqual(annual_header_hints(cells)['hint_count'],0)
