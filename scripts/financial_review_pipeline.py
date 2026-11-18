@@ -6,6 +6,8 @@ from pathlib import Path
 import tempfile
 
 from scripts.financial_filing_evidence_bundle import _pdf_digest
+from scripts.financial_annual_header_hints import annual_header_hints
+from scripts.offline_pdf_table_cells import extract_table_cells
 from scripts.financial_table_package_validation import validate_table_review_package
 from scripts.financial_table_review_annotations import record_table_reviews, review_package_sha256
 from scripts.financial_table_review_package import build_review_package
@@ -22,11 +24,16 @@ def build_financial_review_artifact(pdf_path, symbol, announcement_date, pages,
         annotations = {"file_sha256": package["file_sha256"], "package_sha256": digest, "decisions": []}
     record = record_table_reviews(package, annotations)
     report = render_review_markdown(package, annotations, max_rows=max_rows)
+    annual_cells = extract_table_cells(pdf_path, symbol, announcement_date, pages)
+    if annual_cells["file_sha256"] != package["file_sha256"]:
+        raise ValueError("PDF changed before annual header extraction")
+    annual = annual_header_hints(annual_cells["cells"])
     if _pdf_digest(pdf_path) != package["file_sha256"]:
         raise ValueError("PDF changed before review artifact completed")
     return {"schema_version": "0.1",
             "status": "REVIEW_MATERIALS_READY_UNVERIFIED" if package["candidate_count"] else "NO_NUMERIC_EVIDENCE",
             "package": package, "validation": validation,
+            "annual_header_hints_unverified": annual,
             "review_record": {key: value for key, value in record.items() if key != "package"},
             "report_markdown": report, "release_evidence_accepted": False,
             "official_origin_verified": False, "financial_meaning_verified": False,

@@ -1,0 +1,27 @@
+{
+  "schema_version": "0.1",
+  "base_sha": "d78be43dee0bd413065a2b0b84ec7abaeb59c9a7",
+  "source_url": "https://static.cninfo.com.cn/finalpage/2026-03-31/1225060422.PDF",
+  "retrieved_at": "2026-11-17T14:29:11.799395+00:00",
+  "raw_pdf_sha256": "36bd16395730b08b270110f34c986e58e17ea3445a91cd8431319a6a22d1da31",
+  "sampled_pages": [
+    19,
+    20,
+    21
+  ],
+  "candidate_count": 139,
+  "annual_hint_count": 16,
+  "annual_hint_count_by_page": {
+    "19": 16
+  },
+  "annual_hint_reason_counts": {
+    "explicit_year_header_chain_unverified": 16,
+    "missing_or_ambiguous_restatement_header": 28,
+    "missing_or_ambiguous_year_header": 95
+  },
+  "strict_period_hint_count": 0,
+  "strict_package_sha256": "f26dcc0bea4c5cc0cb16ca925e155ab355725e4ee8fb07b7cb15d904b7eaa1a8",
+  "review_artifact_raw_sha256": "4d1e670caf91cb85e022d07a680ac9ec0c1a3c7d25bb91e6f9148196fa2a57ad",
+  "financial_meaning_verified": false,
+  "release_evidence_accepted": false
+}

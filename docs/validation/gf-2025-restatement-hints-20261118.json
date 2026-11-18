@@ -1,0 +1,34 @@
+{
+  "schema_version": "0.1",
+  "parent_pr_head_sha": "0b471f576142efb1f530f03ec25f845352222c71",
+  "source_url": "https://static.cninfo.com.cn/finalpage/2026-03-31/1225060422.PDF",
+  "retrieved_at": "2026-11-18T06:19:40.647041+00:00",
+  "raw_pdf_sha256": "36bd16395730b08b270110f34c986e58e17ea3445a91cd8431319a6a22d1da31",
+  "sampled_pages": [
+    19,
+    20,
+    21
+  ],
+  "candidate_count": 139,
+  "annual_hint_count": 44,
+  "prior_annual_hint_count": 16,
+  "annual_hint_reason_counts": {
+    "explicit_year_header_chain_unverified": 16,
+    "explicit_restatement_row_partition_unverified": 28,
+    "missing_or_ambiguous_year_header": 95
+  },
+  "restatement_hint_counts": {
+    "before_adjustment": 14,
+    "after_adjustment": 14
+  },
+  "strict_package_sha256": "f26dcc0bea4c5cc0cb16ca925e155ab355725e4ee8fb07b7cb15d904b7eaa1a8",
+  "review_artifact_raw_sha256": "a411ac3568584f6ffb0948e91a158950350da063df1733b83aa91f5b7a56d762",
+  "strict_period_hint_count": 0,
+  "release_evidence_accepted": false,
+  "financial_meaning_verified": false,
+  "independent_review_regressions": [
+    "nested_conflicting_child_labels_blocked",
+    "mixed_quarter_and_numeric_header_blocks_old_year",
+    "same_row_year_and_quarter_context_blocks_annual_hint"
+  ]
+}
