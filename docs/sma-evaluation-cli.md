@@ -85,3 +85,44 @@ broker settlement remain unverified/unmodeled. Read
 ```sh
 python -m unittest tests.test_sma_evaluation_cli -v
 ```
+
+## Optional caller-supplied calendar gate
+
+To require date coverage before generating a paper evaluation, provide a separate
+local calendar JSON:
+
+```sh
+python -m scripts.sma_evaluation_cli --input examples/backtest/SYNTHETIC_sma_oos_config.json --calendar local-calendar.json --output /tmp/SYNTHETIC_calendar_gated_evaluation.json
+```
+
+The calendar uses the [explicit collection calendar format](collect-market-research.md#explicit-calendar-coverage-gate):
+exact `schema_version`, `exchange`, `start_date`, `end_date`, `source` and
+`sessions` fields. It must declare the snapshot's exact request window and
+exchange suffix, with unique ascending session dates. The existing bounded
+regular-file JSON loader rejects duplicate keys. No calendar is downloaded or
+inferred from weekdays.
+
+The raw snapshot's prices, units, order, source flags and evidence cutoff are
+validated through the existing backtest data contract **before** date comparison.
+A missing or unexpected date blocks the evaluator, exits nonzero and publishes
+no new result; any previous output is preserved. Suspensions can cause gaps too:
+review evidence rather than filling bars or editing calendars to force a pass.
+Use the separate offline calendar acceptance CLI for a detailed date diagnostic.
+Input/calendar files cannot be overwritten through identical paths, resolved
+aliases or existing hard links, and symbolic-link outputs are rejected.
+
+On a match the evaluation mathematics and execution assumptions are unchanged.
+The artifact adds `calendar_coverage`, including the canonical calendar SHA-256,
+and `calendar_gate_input_sha256`, the canonical SHA-256 of
+`{"config": <original config>, "calendar": <supplied calendar>}`. The existing
+`config_input_sha256` still covers the original four-key config only; the outer
+payload hash covers the new gate evidence too. No runtime path/timestamp is
+added, so identical inputs remain deterministic.
+
+A matching date set only agrees with the **caller-supplied, unverified** calendar.
+`exchange_calendar_verified` remains false within coverage, and source, PIT and
+performance verification remain false. Constructing sessions from the same
+snapshot is suitable only for a synthetic mechanism test; it is circular and
+cannot establish actual completeness. Omitting `--calendar` preserves the prior
+output format and behavior and makes no coverage claim. This option does not
+change the lower-level SMA evaluator or certify tradability/official calendars.

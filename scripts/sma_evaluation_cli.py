@@ -7,6 +7,8 @@ from pathlib import Path
 import stat
 import tempfile
 
+from scripts.backtest_data_contract import build_backtest_dataset
+from scripts.market_calendar_coverage import check_calendar_coverage
 from scripts.offline_batch_research_runner import MAX_INPUT_BYTES, _canonical_json_bytes
 from scripts.sma_out_of_sample import evaluate_sma_out_of_sample
 
@@ -22,7 +24,7 @@ LABELS = {"SYNTHETIC": "SYNTHETIC TEST DATA: not actual market data or verified 
 MAX_CONFIG_BARS = 500
 
 
-def build_evaluation_artifact(config):
+def build_evaluation_artifact(config, *, calendar=None):
     """Enforce exact config keys; call existing evaluation with no financial changes."""
     encoded_input = _canonical_json_bytes(config)
     if type(config) is not dict or set(config) != CONFIG_FIELDS:
@@ -40,6 +42,15 @@ def build_evaluation_artifact(config):
         raise ValueError("akshare_version must be a bounded explicit string")
     if type(snapshot["records"]) is not list or not 1 <= len(snapshot["records"]) <= MAX_CONFIG_BARS:
         raise ValueError("evaluation CLI supports 1 to 500 inline daily bars")
+    coverage = None
+    if calendar is not None:
+        # Validate raw bars before comparing dates; a calendar cannot excuse bad
+        # units, prices, ordering, verification flags or evidence timing.
+        build_backtest_dataset(snapshot, evidence_as_of=settings["evidence_as_of"],
+                               expected_adjustment=settings["expected_adjustment"])
+        coverage = check_calendar_coverage(calendar, snapshot)
+        if coverage["status"] != "MATCH":
+            raise ValueError("calendar coverage mismatch; evaluation blocked")
     evaluation = evaluate_sma_out_of_sample(snapshot, **settings)
     payload = {"schema_version": "0.1", "data_kind_supplied_unverified": config["data_kind"],
                "data_declaration": LABELS[config["data_kind"]],
@@ -48,6 +59,10 @@ def build_evaluation_artifact(config):
                "settings": dict(settings), "evaluation": evaluation,
                "source_content_verified": False, "historical_point_in_time_verified": False,
                "verified_performance": False, "is_trading_advice": False}
+    if coverage is not None:
+        payload["calendar_coverage"] = coverage
+        payload["calendar_gate_input_sha256"] = hashlib.sha256(
+            _canonical_json_bytes({"config": config, "calendar": calendar})).hexdigest()
     return {**payload, "artifact_payload_sha256": hashlib.sha256(_canonical_json_bytes(payload)).hexdigest()}
 
 
@@ -81,12 +96,18 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--input", required=True, help="Explicit inline snapshot, settings and data declaration")
     parser.add_argument("--output", required=True)
+    parser.add_argument("--calendar", help="Optional local calendar JSON; date mismatch blocks evaluation")
     args = parser.parse_args(argv)
     source, output = Path(args.input), Path(args.output)
-    if (output.is_symlink() or source.resolve() == output.resolve()
-            or (output.exists() and os.path.samefile(source, output))):
-        raise ValueError("output must not overwrite config or target a symbolic link")
-    artifact = build_evaluation_artifact(_load_config(source))
+    sources = [source] + ([Path(args.calendar)] if args.calendar else [])
+    if (output.is_symlink() or any(source.resolve() == output.resolve() for source in sources)
+            or (output.exists() and any(os.path.samefile(source, output) for source in sources))):
+        raise ValueError("output must not overwrite config/calendar or target a symbolic link")
+    config = _load_config(source)
+    calendar = _load_config(args.calendar) if args.calendar else None
+    if args.calendar and type(calendar) is not dict:
+        raise ValueError("calendar JSON must be an object")
+    artifact = build_evaluation_artifact(config, calendar=calendar)
     encoded = _canonical_json_bytes(artifact) + b"\n"
     # All validation and serialization finish before an existing output is touched.
     output.parent.mkdir(parents=True, exist_ok=True)
