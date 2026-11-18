@@ -1,6 +1,9 @@
 # stock-market-Agent
 股票辅脑
 
+先体验现有功能：查看[中文离线快速开始](docs/offline-quickstart-zh.md)，使用明确标记的合成数据运行行情验收、纸面评估和批量研究。
+多股票结果可用[批量研究 ZIP 导出](docs/batch-research-package.md)生成统一索引；打开解压后的 `index.html` 查看成功结果及失败诊断。
+
 本地 Dashboard 的一条命令三面板合成示例见 [离线研究面板](docs/offline-research-dashboard.md)。
 示例包含批量任务、纸面回测和财报待复核材料，不使用真实行情或财报。
 
