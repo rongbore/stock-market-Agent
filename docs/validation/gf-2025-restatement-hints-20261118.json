@@ -25,5 +25,10 @@
   "review_artifact_raw_sha256": "a411ac3568584f6ffb0948e91a158950350da063df1733b83aa91f5b7a56d762",
   "strict_period_hint_count": 0,
   "release_evidence_accepted": false,
-  "financial_meaning_verified": false
+  "financial_meaning_verified": false,
+  "independent_review_regressions": [
+    "nested_conflicting_child_labels_blocked",
+    "mixed_quarter_and_numeric_header_blocks_old_year",
+    "same_row_year_and_quarter_context_blocks_annual_hint"
+  ]
 }

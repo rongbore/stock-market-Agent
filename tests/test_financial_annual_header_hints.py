@@ -82,3 +82,24 @@ class NarrowRestatementHeaderTests(unittest.TestCase):
     def test_three_value_columns_cannot_use_two_column_partition(self):
         cells=self.fixture()[:3]+[cell('10',2,0,0,60),cell('20',2,1,60,130),cell('30',2,2,130,200)]
         self.assertEqual(annual_header_hints(cells)['hint_count'],0)
+
+
+class IndependentReviewRegressionTests(unittest.TestCase):
+    def test_nested_conflicting_child_labels_cannot_choose_wider_label(self):
+        r=annual_header_hints([cell('2024年',0,0,0,200),cell('调整前',1,0,0,100),
+                               cell('调整后',1,1,20,80),cell('10',2,0,0,100)])
+        self.assertEqual(r['hint_count'],0)
+        self.assertEqual(r['candidates'][0]['reason'],'missing_or_ambiguous_restatement_header')
+
+    def test_quarter_header_with_bare_year_blocks_old_year_even_on_header_row(self):
+        r=annual_header_hints([cell('2024年',0,0,0,200),cell('第一季度',1,0,0,100),
+                               cell('2025',1,1,100,200),cell('10',2,0,0,100)])
+        self.assertEqual(r['hint_count'],0)
+        self.assertTrue(all(c['year_hint_unverified'] is None for c in r['candidates']))
+
+
+class SameRowPeriodConflictTests(unittest.TestCase):
+    def test_same_row_year_and_quarter_headers_block_annual_attribution(self):
+        r=annual_header_hints([cell('2025年',0,0,0,200),cell('第一季度',0,1,0,100),
+                               cell('100',1,0,0,100)])
+        self.assertEqual(r['hint_count'],0)

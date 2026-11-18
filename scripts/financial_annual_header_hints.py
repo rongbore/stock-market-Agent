@@ -6,6 +6,9 @@ from scripts.financial_table_period_hints import NUMBER, table_period_hints
 
 YEAR = re.compile(r"((?:19|20)[0-9]{2})年(末)?")
 RESTATEMENT = {"调整前": "before_adjustment", "调整后": "after_adjustment"}
+UNSUPPORTED_PERIOD_HEADERS = {"第一季度", "第二季度", "第三季度", "第四季度",
+                              "本报告期", "年初至报告期末", "本报告期末", "上年度末",
+                              "本期金额", "上期金额", "期末余额", "期初余额"}
 
 
 def _partition_child(header, children, row_numbers, target):
@@ -61,10 +64,11 @@ def annual_header_hints(cells):
         # Pure text rows with unknown content are section barriers. Never carry
         # a prior annual header through quarterly or other unrecognized headers.
         barriers = sorted(row for row, items in by_row.items()
-                          if any(c["text"] for c in items)
-                          and not any(NUMBER.fullmatch(c["text"]) for c in items)
-                          and not any(YEAR.fullmatch(c["text"]) for c in items)
-                          and any(c["text"] and c["text"] not in RESTATEMENT and c["text"] != "项目" for c in items))
+                          if any(c["text"] in UNSUPPORTED_PERIOD_HEADERS for c in items)
+                          or (any(c["text"] for c in items)
+                              and not any(NUMBER.fullmatch(c["text"]) for c in items)
+                              and not any(YEAR.fullmatch(c["text"]) for c in items)
+                              and any(c["text"] and c["text"] not in RESTATEMENT and c["text"] != "项目" for c in items)))
         barrier_boxes = {row: (min(c["bbox"][0] for c in by_row[row] if c["text"]),
                                max(c["bbox"][2] for c in by_row[row] if c["text"])) for row in barriers}
         sub_rows = sorted(row for row, items in by_row.items()
@@ -75,11 +79,11 @@ def annual_header_hints(cells):
                     "restatement_header_cell": None, "partition_cells_unverified": [], "reason": "missing_or_ambiguous_year_header",
                     "column_ownership_verified": False, "financial_meaning_verified": False}
             index = bisect_left(year_rows, cell["row_index"]) - 1
-            if index < 0:
+            if index < 0 or cell["row_index"] in barrier_boxes:
                 result.append(hint)
                 continue
             row = year_rows[index]
-            intervening = barriers[bisect_left(barriers, row + 1):bisect_left(barriers, cell["row_index"])]
+            intervening = barriers[bisect_left(barriers, row):bisect_left(barriers, cell["row_index"])]
             if any(barrier_boxes[b][0] < cell["bbox"][2] and barrier_boxes[b][1] > cell["bbox"][0]
                    for b in intervening):
                 result.append(hint)
@@ -105,7 +109,9 @@ def annual_header_hints(cells):
                            if header["bbox"][0] <= h["bbox"][0] < h["bbox"][2] <= header["bbox"][2]
                            and header["bbox"][3] <= h["bbox"][1] and h["bbox"][3] <= cell["bbox"][1]
                            and h["bbox"][0] <= cell["bbox"][0] < cell["bbox"][2] <= h["bbox"][2]]
-                if len(matches) == 1:
+                competing = [h for h in children if h["bbox"][0] < cell["bbox"][2]
+                             and h["bbox"][2] > cell["bbox"][0]]
+                if len(matches) == 1 and len(competing) == 1:
                     child = matches[0]
                 else:
                     partition = _partition_child(header, children, row_numbers[(key[0], key[1], cell["row_index"])], cell)
