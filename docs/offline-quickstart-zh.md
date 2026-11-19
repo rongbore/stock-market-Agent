@@ -72,3 +72,15 @@ python -m scripts.batch_research_package --input examples/offline_quickstart/SYN
 此混合示例同样预期退出码 2。解压后打开 `index.html`：一项提供研究页面，
 其余两项只提供诊断。无需从 JSON 手动提取 HTML。校验清单位于
 `manifest.json`；查看[批量研究包说明](batch-research-package.md)了解文件结构。
+
+
+## 6. 用文件清单替代内联快照
+
+```sh
+python -m scripts.local_snapshot_batch --input examples/local_snapshot_batch/SYNTHETIC_manifest.json --output results/quickstart/local-snapshot-batch.zip
+```
+
+清单引用同目录的快照与日历文件，而非复制整段数据。此合成示例故意包含一项
+缺失日期，预期退出码 2、1 项生成和 1 项日期待核查。解压后打开 `index.html`。
+实际文件用 `UNVERIFIED_LOCAL` 声明并显式填写证据截止时间；不会自动联网获取、
+认证来源或补造缺失数据。参见[文件输入说明](local-snapshot-batch.md)。

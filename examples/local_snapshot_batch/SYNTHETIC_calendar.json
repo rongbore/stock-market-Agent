@@ -1,0 +1,14 @@
+{
+  "schema_version": "0.1",
+  "exchange": "SZ",
+  "start_date": "2026-11-02",
+  "end_date": "2026-11-06",
+  "source": "SYNTHETIC fixture session list; copied from invented bars, NOT independent or official calendar evidence",
+  "sessions": [
+    "2026-11-02",
+    "2026-11-03",
+    "2026-11-04",
+    "2026-11-05",
+    "2026-11-06"
+  ]
+}
