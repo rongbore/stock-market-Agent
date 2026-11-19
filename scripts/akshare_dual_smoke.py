@@ -9,7 +9,7 @@ from scripts.akshare_sina_provider import fetch_sina_daily
 from scripts.akshare_crosscheck import compare
 
 
-FETCH_ERRORS = (ValueError, TypeError, KeyError, RuntimeError,
+FETCH_ERRORS = (ValueError, TypeError, KeyError, RuntimeError, AttributeError,
                 ConnectionError, TimeoutError, OSError)
 
 
@@ -35,6 +35,8 @@ def _safe_error(exc):
         return "operating_system_or_network", "request_connection"
     if "HTTPError" in request_types:
         return "operating_system_or_network", "http"
+    if isinstance(exc, AttributeError):
+        return "runtime_or_dependency", "interface_unavailable"
     if isinstance(exc, (ConnectionError, TimeoutError)):
         return "connection_or_timeout", "connection_or_timeout"
     if isinstance(exc, (TypeError, KeyError, ValueError)):

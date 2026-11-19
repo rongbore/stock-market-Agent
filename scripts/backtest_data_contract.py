@@ -5,8 +5,8 @@ import math
 from scripts.akshare_provider import _symbol
 
 ADJUSTMENTS = {"unadjusted": "", "forward_adjusted": "qfq", "backward_adjusted": "hfq"}
-UPSTREAMS = {"eastmoney": ("stock_zh_a_hist", "lots_100_shares", 100),
-             "sina": ("stock_zh_a_daily", "shares", 1)}
+UPSTREAMS = {"eastmoney": (("stock_zh_a_hist", "stock_zh_a_hist_em"), "lots_100_shares", 100),
+             "sina": (("stock_zh_a_daily", "stock_zh_a_daily_sina", "stock_zh_a_hist_sina"), "shares", 1)}
 SHANGHAI = timezone(timedelta(hours=8))
 ROW_KEYS = {"date", "open", "high", "low", "close", "volume"}
 
@@ -52,8 +52,9 @@ def build_backtest_dataset(snapshot, *, evidence_as_of, expected_adjustment):
     upstream = snapshot.get("upstream")
     if not isinstance(upstream, str) or upstream not in UPSTREAMS:
         raise ValueError("unsupported upstream")
-    interface, volume_unit, multiplier = UPSTREAMS[upstream]
-    if (snapshot.get("interface") != interface or snapshot.get("volume_unit") != volume_unit
+    interfaces, volume_unit, multiplier = UPSTREAMS[upstream]
+    interface = snapshot.get("interface")
+    if (interface not in interfaces or snapshot.get("volume_unit") != volume_unit
             or snapshot.get("price_unit") != "CNY_per_share"):
         raise ValueError("source interface or units mismatch")
     symbol = snapshot.get("symbol")

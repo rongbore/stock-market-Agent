@@ -11,7 +11,7 @@ def check_snapshot(snapshot):
     rows = snapshot.get("records")
     if not isinstance(rows, list) or not rows:
         return {"status": "failed", "errors": ["records must be nonempty"], "record_count": 0}
-    if snapshot.get("source") != "akshare" or snapshot.get("interface") != "stock_zh_a_hist":
+    if snapshot.get("source") != "akshare" or snapshot.get("interface") not in ("stock_zh_a_hist", "stock_zh_a_hist_em"):
         errors.append("unexpected source or interface")
     if snapshot.get("adjust") not in ("", "qfq", "hfq"):
         errors.append("invalid adjustment mode")

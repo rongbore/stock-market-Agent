@@ -33,6 +33,19 @@ def _client(client):
     return akshare
 
 
+def _daily_interface(client, names):
+    """Select only documented names; do not retry another API after a call fails."""
+    for name in names:
+        try:
+            function = getattr(client, name)
+        except AttributeError:
+            continue
+        if not callable(function):
+            raise RuntimeError("AKShare daily interface is not callable")
+        return name, function
+    raise RuntimeError("supported AKShare daily interface unavailable")
+
+
 def _records(frame, required):
     if not hasattr(frame, "to_dict"):
         raise ValueError("AKShare returned unexpected data type")
@@ -81,9 +94,9 @@ def fetch_a_share_daily(symbol, start_date, end_date, *, adjust="", client=None)
     if adjust not in ("", "qfq", "hfq"):
         raise ValueError("adjust must be '', qfq or hfq")
     ak = _client(client)
-    frame = ak.stock_zh_a_hist(symbol=code, period="daily",
-                               start_date=start.strftime("%Y%m%d"),
-                               end_date=end.strftime("%Y%m%d"), adjust=adjust)
+    interface, fetch = _daily_interface(ak, ("stock_zh_a_hist_em", "stock_zh_a_hist"))
+    frame = fetch(symbol=code, period="daily", start_date=start.strftime("%Y%m%d"),
+                  end_date=end.strftime("%Y%m%d"), adjust=adjust)
     rows = _records(frame, ("日期", "开盘", "收盘", "最高", "最低", "成交量"))
     result = []
     seen = set()
@@ -100,7 +113,7 @@ def fetch_a_share_daily(symbol, start_date, end_date, *, adjust="", client=None)
         result.append(item)
     result.sort(key=lambda r: r["date"])
     return {"schema_version": "0.1", "symbol": symbol, "source": "akshare",
-            "upstream": "eastmoney", "interface": "stock_zh_a_hist",
+            "upstream": "eastmoney", "interface": interface,
             "akshare_version": str(getattr(ak, "__version__", "unknown")),
             "adjust": adjust, "volume_unit": "lots_100_shares",
             "price_unit": "CNY_per_share", "start_date": start_date, "end_date": end_date,
