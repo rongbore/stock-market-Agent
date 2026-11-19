@@ -17,7 +17,7 @@ class Frame:
 
 class AKShareProviderTests(unittest.TestCase):
     def test_daily_offline(self):
-        client = Mock()
+        client = Mock(spec=["stock_zh_a_hist", "stock_zh_a_disclosure_report_cninfo"])
         client.stock_zh_a_hist.return_value = Frame([
             {"日期": "2026-10-29", "开盘": 15, "收盘": 16,
              "最高": 17, "最低": 14, "成交量": 1000}])
@@ -30,7 +30,7 @@ class AKShareProviderTests(unittest.TestCase):
             end_date="20261030", adjust="")
 
     def test_disclosures_offline(self):
-        client = Mock()
+        client = Mock(spec=["stock_zh_a_hist", "stock_zh_a_disclosure_report_cninfo"])
         client.stock_zh_a_disclosure_report_cninfo.return_value = Frame(
             [{"代码": "000776", "公告标题": "SYNTHETIC", "公告时间": "2026-10-29"}])
         result = fetch_cninfo_disclosure_index(
@@ -39,7 +39,7 @@ class AKShareProviderTests(unittest.TestCase):
         self.assertFalse(result["source_content_verified"])
 
     def test_disclosures_reject_missing_or_wrong_data(self):
-        client = Mock()
+        client = Mock(spec=["stock_zh_a_hist", "stock_zh_a_disclosure_report_cninfo"])
         for rows in (
             [],
             [{"代码": "000777", "公告标题": "SYNTHETIC", "公告时间": "2026-10-29"}],
@@ -62,7 +62,7 @@ class AKShareProviderTests(unittest.TestCase):
     def test_reject_bad_ohlc_and_duplicate_dates(self):
         bad = {"日期": "2026-10-29", "开盘": 15, "收盘": 16,
                "最高": 14, "最低": 13, "成交量": 1000}
-        client = Mock()
+        client = Mock(spec=["stock_zh_a_hist", "stock_zh_a_disclosure_report_cninfo"])
         client.stock_zh_a_hist.return_value = Frame([bad])
         with self.assertRaises(ValueError):
             fetch_a_share_daily("000776.SZ", "2026-10-01", "2026-10-30", client=client)
@@ -72,7 +72,7 @@ class AKShareProviderTests(unittest.TestCase):
             fetch_a_share_daily("000776.SZ", "2026-10-01", "2026-10-30", client=client)
 
     def test_reject_noncanonical_date_strings(self):
-        client = Mock()
+        client = Mock(spec=["stock_zh_a_hist", "stock_zh_a_disclosure_report_cninfo"])
         client.stock_zh_a_hist.return_value = Frame([
             {"日期": "2026-10-29garbage", "开盘": 15, "收盘": 16,
              "最高": 17, "最低": 14, "成交量": 1000}])

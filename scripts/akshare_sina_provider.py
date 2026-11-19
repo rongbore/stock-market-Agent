@@ -1,11 +1,11 @@
 """Optional Sina-backed A-share daily history via AKShare (read-only).
 
-Uses stock_zh_a_daily; availability, adjustment semantics and units are
+Uses documented current/legacy daily interfaces; adjustment semantics and units are
 checked at runtime. The resulting snapshot is not exchange-authenticated.
 """
 from datetime import datetime, timezone
 
-from scripts.akshare_provider import _client, _dates, _iso, _number, _records, _symbol
+from scripts.akshare_provider import _client, _daily_interface, _dates, _iso, _number, _records, _symbol
 
 
 def fetch_sina_daily(symbol, start_date, end_date, *, adjust="", client=None):
@@ -15,12 +15,12 @@ def fetch_sina_daily(symbol, start_date, end_date, *, adjust="", client=None):
         raise ValueError("unsupported adjustment")
     prefix = "sz" if symbol.endswith(".SZ") else "sh"
     ak = _client(client)
-    frame = ak.stock_zh_a_daily(
-        symbol=prefix + code,
-        start_date=start.strftime("%Y%m%d"),
-        end_date=end.strftime("%Y%m%d"),
-        adjust=adjust,
-    )
+    interface, fetch = _daily_interface(ak, ("stock_zh_a_hist_sina", "stock_zh_a_daily_sina", "stock_zh_a_daily"))
+    kwargs = {"symbol": prefix + code, "start_date": start.strftime("%Y%m%d"),
+              "end_date": end.strftime("%Y%m%d"), "adjust": adjust}
+    if interface == "stock_zh_a_hist_sina":
+        kwargs["period"] = "daily"
+    frame = fetch(**kwargs)
     rows = _records(frame, ("date", "open", "high", "low", "close", "volume"))
     seen = set()
     records = []
@@ -39,7 +39,7 @@ def fetch_sina_daily(symbol, start_date, end_date, *, adjust="", client=None):
     return {
         "schema_version": "0.1", "symbol": symbol,
         "source": "akshare", "upstream": "sina",
-        "interface": "stock_zh_a_daily",
+        "interface": interface,
         "akshare_version": str(getattr(ak, "__version__", "unknown")),
         "adjust": adjust, "price_unit": "CNY_per_share",
         "volume_unit": "shares",

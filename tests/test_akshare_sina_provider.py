@@ -13,7 +13,7 @@ class Frame:
 
 class SinaProviderTests(unittest.TestCase):
     def test_symbol_mapping_and_share_volume(self):
-        ak = Mock()
+        ak = Mock(spec=["stock_zh_a_daily"])
         ak.__version__ = "test"
         ak.stock_zh_a_daily.return_value = Frame()
         result = fetch_sina_daily("000776.SZ", "2026-10-01", "2026-10-30", client=ak)
@@ -26,7 +26,7 @@ class SinaProviderTests(unittest.TestCase):
         class DuplicateFrame:
             def to_dict(self, orient):
                 return Frame().to_dict(orient) * 2
-        ak = Mock()
+        ak = Mock(spec=["stock_zh_a_daily"])
         ak.stock_zh_a_daily.return_value = DuplicateFrame()
         with self.assertRaises(ValueError):
             fetch_sina_daily("000776.SZ", "2026-10-01", "2026-10-30", client=ak)
