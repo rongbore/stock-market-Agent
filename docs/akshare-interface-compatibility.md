@@ -49,3 +49,19 @@ no fallback after a failed call, and continuing the other source with sanitized
 diagnostics. They are not fresh successful upstream acceptance. A separate
 read-only live run must establish current endpoint availability; new source
 contracts outside these exact names remain unsupported.
+
+## Provider exception isolation and rate limits
+
+The dual-source fetch boundary also handles optional AKShare provider exceptions
+that are not subclasses of the older built-in exception tuple. Fixed diagnostics
+are written and the other source is still attempted; raw messages are not copied.
+Process cancellation such as `KeyboardInterrupt` and `SystemExit` still propagates.
+
+AKShare's documented `RateLimitError` / `Push2RateLimitError` signals are identified
+through their known provider classes before Requests connection classification.
+They emit `rate_limit` and are **not retried**. Ordinary transient Requests/built-in
+connection failures retain the existing bounded retry policy. This does not bypass
+upstream limits or establish provider availability. See the
+[official FAQ](https://akshare.akfamily.xyz/faq.html) and the installed AKShare
+`exceptions` / `utils.http` classes. Tests simulate their exception hierarchies;
+no successful live request or limit recovery is claimed by these checks.
