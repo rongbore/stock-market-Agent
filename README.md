@@ -1,6 +1,8 @@
 # stock-market-Agent
 股票辅脑
 
+最少配置运行：[快捷研究命令](docs/quick-market-research.md)，显式允许联网后获取供应商日历、行情和研究 ZIP；全部来源仍标未核验。
+
 真实行情入口：[批量采集到研究页面](docs/collect-batch-research.md)，显式选择数据源和日历后，一条命令生成可查看的 ZIP。
 
 先体验现有功能：查看[中文离线快速开始](docs/offline-quickstart-zh.md)，使用明确标记的合成数据运行行情验收、纸面评估和批量研究。
