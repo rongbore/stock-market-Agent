@@ -2,6 +2,7 @@
 import argparse
 from datetime import datetime, timezone
 import hashlib
+import json
 from io import BytesIO
 import os
 from pathlib import Path
@@ -11,7 +12,7 @@ from zipfile import ZIP_STORED, ZipFile, ZipInfo
 from scripts.akshare_provider import _dates, _symbol, fetch_a_share_daily
 from scripts.akshare_sina_provider import fetch_sina_daily
 from scripts.backtest_data_contract import build_backtest_dataset
-from scripts.batch_research_package import build_batch_research_package
+from scripts.batch_research_package import _index, build_batch_research_package
 from scripts.calendar_acceptance_cli import _load
 from scripts.market_calendar_coverage import validate_calendar
 from scripts.market_date_window import resolve_market_window
@@ -80,7 +81,8 @@ def build_collected_batch_package(request, *, allow_network=False, fetcher=None,
                 snapshots["collected/" + symbol + ".snapshot.json"] = _canonical_json_bytes(snapshot) + b"\n"
                 entry.update(status="COLLECTED_UNVERIFIED", reason=None, snapshot_sha256=_sha(snapshot),
                              retrieved_at=dataset["provenance"]["retrieved_at"],
-                             interface=dataset["provenance"]["interface"], record_count=len(dataset["bars"]))
+                             interface=dataset["provenance"]["interface"], record_count=len(dataset["bars"]),
+                             observed_start=dataset["bars"][0]["date"], observed_end=dataset["bars"][-1]["date"])
             except Exception:
                 snapshot = None
         entry["evidence_as_of"] = cutoff
@@ -98,6 +100,8 @@ def build_collected_batch_package(request, *, allow_network=False, fetcher=None,
                                 "Provider timeout/retry behavior is inherited; no transport deadline is added."]}
     with ZipFile(BytesIO(base_bytes)) as archive:
         files = {name: archive.read(name) for name in archive.namelist() if name != "manifest.json"}
+    batch = json.loads(files["batch-result.json"])
+    files["index.html"] = _index(batch, collection=metadata).encode("utf-8")
     files.update(snapshots)
     files["collection.json"] = _canonical_json_bytes(metadata) + b"\n"
     manifest = {**manifest, "collection_request_sha256": _sha(request),

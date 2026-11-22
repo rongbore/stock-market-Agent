@@ -1,6 +1,7 @@
 """Opt-in vendor-calendar preparation and single-source collection to research ZIP."""
 import argparse
 import hashlib
+import json
 from io import BytesIO
 import os
 from pathlib import Path
@@ -8,6 +9,7 @@ import tempfile
 from zipfile import ZIP_STORED, ZipFile, ZipInfo
 
 from scripts.akshare_provider import _symbol
+from scripts.batch_research_package import _index
 from scripts.collect_batch_research import MAX_ITEMS, build_collected_batch_package, validate_collection_request
 from scripts.market_calendar_provider import fetch_sina_calendar
 from scripts.market_date_window import resolve_market_window
@@ -47,6 +49,9 @@ def build_quick_research_package(symbols, upstream, *, start_date=None, end_date
                        "limitations": ["Vendor sessions are reused for SZ/SS as an unverified caller assumption.",
                                        "Calendar retrieval is separate from prices; source independence is not established.",
                                        "No suspension, official publication or historical availability certification."]}
+    files["index.html"] = _index(json.loads(files["batch-result.json"]),
+                                 collection=json.loads(files["collection.json"]),
+                                 calendar_source=calendar_record).encode("utf-8")
     files["calendar-source.json"] = _canonical_json_bytes(calendar_record) + b"\n"
     manifest = {**manifest, "calendar_source_file": "calendar-source.json",
                 "files": [{"path": name, "size_bytes": len(data), "sha256": hashlib.sha256(data).hexdigest()}
