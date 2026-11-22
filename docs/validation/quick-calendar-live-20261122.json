@@ -1,0 +1,102 @@
+{
+  "schema_version": "0.1",
+  "base_sha": "a31c17fd702fbbe6c28ce040fd48c1afe97b8df2",
+  "akshare_version": "1.20.65",
+  "cli_exit": 0,
+  "status": "ALL_RESEARCH_GENERATED_UNVERIFIED",
+  "generated_count": 2,
+  "calendar_blocked_count": 0,
+  "failed_count": 0,
+  "calendar_source": {
+    "exchange_calendar_verified": false,
+    "independent_source_verified": false,
+    "limitations": [
+      "Vendor sessions are reused for SZ/SS as an unverified caller assumption.",
+      "Calendar retrieval is separate from prices; source independence is not established.",
+      "No suspension, official publication or historical availability certification."
+    ],
+    "schema_version": "0.1",
+    "sessions": [
+      "2026-11-02",
+      "2026-11-03",
+      "2026-11-04",
+      "2026-11-05",
+      "2026-11-06"
+    ],
+    "symbols": [
+      "000001.SZ",
+      "000776.SZ"
+    ],
+    "vendor_metadata_supplied_unverified": {
+      "akshare_version": "1.20.65",
+      "exchange_calendar_verified": false,
+      "full_date_count": 8797,
+      "full_date_list_sha256": "f6c5474c46aeae51259a415a708dc71101aee47cdccee0809af451411e804b32",
+      "historical_point_in_time_verified": false,
+      "independent_source_verified": false,
+      "interface": "calendar_trade_date_hist_sina",
+      "limitations": [
+        "A provider date list is not an official or independently verified exchange calendar.",
+        "The observed first/last dates only bracket the window; missing interior sessions remain possible.",
+        "Reusing this single list for SS/SZ is a caller assumption, not verified exchange alignment.",
+        "Provider timeout behavior is inherited; no unsupported timeout parameter is passed."
+      ],
+      "observed_end": "2026-12-31",
+      "observed_start": "1990-12-19",
+      "requested_end": "2026-11-06",
+      "requested_start": "2026-11-02",
+      "retrieved_at": "2026-11-22T14:29:16.690822+00:00",
+      "schema_version": "0.1",
+      "source": "akshare",
+      "source_content_verified": false,
+      "source_url": "https://finance.sina.com.cn/realstock/company/klc_td_sh.txt",
+      "upstream": "sina",
+      "window_session_count": 5
+    },
+    "window": {
+      "end_date": "2026-11-06",
+      "exchange_calendar_checked": false,
+      "mode": "explicit_history",
+      "start_date": "2026-11-02",
+      "timezone": "Asia/Shanghai"
+    }
+  },
+  "collection_items": [
+    {
+      "calendar_sha256": "1795f24f1f92cace71e04086bdd1945a72d572da36730b0b3ea00193516d22fa",
+      "evidence_as_of": "2026-11-22T14:29:29.447104+00:00",
+      "exchange_calendar_verified": false,
+      "historical_point_in_time_verified": false,
+      "interface": "stock_zh_a_hist_sina",
+      "reason": null,
+      "record_count": 5,
+      "retrieved_at": "2026-11-22T14:29:29.447091+00:00",
+      "snapshot_sha256": "fc0d4d8f4fb84ce0e3fccaea456fc3006b98e25652c03c95b5e6fc52c52bff9f",
+      "source_content_verified": false,
+      "status": "COLLECTED_UNVERIFIED",
+      "symbol": "000001.SZ"
+    },
+    {
+      "calendar_sha256": "1795f24f1f92cace71e04086bdd1945a72d572da36730b0b3ea00193516d22fa",
+      "evidence_as_of": "2026-11-22T14:29:41.585686+00:00",
+      "exchange_calendar_verified": false,
+      "historical_point_in_time_verified": false,
+      "interface": "stock_zh_a_hist_sina",
+      "reason": null,
+      "record_count": 5,
+      "retrieved_at": "2026-11-22T14:29:41.585671+00:00",
+      "snapshot_sha256": "5b151439e07cd2bd23e0da1dc08c766435d3e9086180d0af2d27fbd49ecb0da1",
+      "source_content_verified": false,
+      "status": "COLLECTED_UNVERIFIED",
+      "symbol": "000776.SZ"
+    }
+  ],
+  "zip_sha256": "05433c84209563485e172de3f774cabbfbc5aacb9b7fac03f287781cbfff1c20",
+  "zip_size_bytes": 51774,
+  "zip_integrity_checked": true,
+  "source_content_verified": false,
+  "historical_point_in_time_verified": false,
+  "independent_calendar_verified": false,
+  "cross_source_numerical_agreement": false,
+  "release_evidence_accepted": false
+}
