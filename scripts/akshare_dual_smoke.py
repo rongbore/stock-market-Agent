@@ -21,6 +21,12 @@ def _write(folder, filename, data):
 
 def _safe_error(exc):
     """Return fixed labels only: no exception message, URL or remote response."""
+    # AKShare Push2 rate-limit errors also inherit requests.ConnectionError.
+    # Identify the documented provider signal before generic transport classes.
+    provider_types = {cls.__name__ for cls in type(exc).__mro__
+                      if cls.__module__ in ("akshare.exceptions", "akshare.utils.http")}
+    if provider_types.intersection({"RateLimitError", "Push2RateLimitError"}):
+        return "operating_system_or_network", "rate_limit"
     # Requests' ConnectionError/ProxyError inherit OSError in some versions.
     # The previous broad OSError handler hid this distinction entirely.
     request_types = {cls.__name__ for cls in type(exc).__mro__
@@ -89,7 +95,10 @@ def run(symbol, start_date, end_date, folder, *, eastmoney=fetch_a_share_daily,
                     diag[f"{provider}_status"] = "success"
                     snapshots[provider] = snapshot
                     break
-                except FETCH_ERRORS as exc:
+                except Exception as exc:
+                    # Optional AKShare versions define provider exceptions outside
+                    # our legacy tuple. Keep one source failure isolated; process
+                    # cancellation (BaseException) must still propagate.
                     category, kind = _safe_error(exc)
                     transient = (category == "connection_or_timeout" or kind in
                                  ("request_connection", "proxy"))

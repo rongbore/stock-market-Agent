@@ -1,0 +1,96 @@
+{
+  "schema_version": "0.1",
+  "tested_base_sha": "9a60f59bbcac315fccb7869924498408a7b2ffdd",
+  "akshare_version": "1.20.65",
+  "cli_exit": 0,
+  "request": {
+    "end_date": "2026-11-06",
+    "items": [
+      {
+        "calendar": {
+          "end_date": "2026-11-06",
+          "exchange": "SZ",
+          "schema_version": "0.1",
+          "sessions": [
+            "2026-11-02",
+            "2026-11-03",
+            "2026-11-04",
+            "2026-11-05",
+            "2026-11-06"
+          ],
+          "source": "CALLER SUPPLIED REPLAY SESSIONS; not independently verified official calendar",
+          "start_date": "2026-11-02"
+        },
+        "symbol": "000776.SZ"
+      },
+      {
+        "calendar": {
+          "end_date": "2026-11-06",
+          "exchange": "SZ",
+          "schema_version": "0.1",
+          "sessions": [
+            "2026-11-02",
+            "2026-11-03",
+            "2026-11-04",
+            "2026-11-05",
+            "2026-11-06"
+          ],
+          "source": "CALLER SUPPLIED REPLAY SESSIONS; not independently verified official calendar",
+          "start_date": "2026-11-02"
+        },
+        "symbol": "000001.SZ"
+      }
+    ],
+    "schema_version": "0.1",
+    "start_date": "2026-11-02",
+    "upstream": "sina"
+  },
+  "status": "ALL_RESEARCH_GENERATED_UNVERIFIED",
+  "generated_count": 2,
+  "calendar_blocked_count": 0,
+  "failed_count": 0,
+  "collection_items": [
+    {
+      "calendar_sha256": "dd1c86cfd44134549c0f320314be75b97b8d254493c4749ca930e37f83443101",
+      "evidence_as_of": "2026-11-22T14:16:31.219814+00:00",
+      "exchange_calendar_verified": false,
+      "historical_point_in_time_verified": false,
+      "interface": "stock_zh_a_hist_sina",
+      "reason": null,
+      "record_count": 5,
+      "retrieved_at": "2026-11-22T14:16:31.219785+00:00",
+      "snapshot_sha256": "9c026342b4bb05111f2603d0cf5430ae810d6861341f5377d6fe4c037530580e",
+      "source_content_verified": false,
+      "status": "COLLECTED_UNVERIFIED",
+      "symbol": "000001.SZ"
+    },
+    {
+      "calendar_sha256": "dd1c86cfd44134549c0f320314be75b97b8d254493c4749ca930e37f83443101",
+      "evidence_as_of": "2026-11-22T14:16:42.924136+00:00",
+      "exchange_calendar_verified": false,
+      "historical_point_in_time_verified": false,
+      "interface": "stock_zh_a_hist_sina",
+      "reason": null,
+      "record_count": 5,
+      "retrieved_at": "2026-11-22T14:16:42.924115+00:00",
+      "snapshot_sha256": "3fe417096c449a7ece83338235124c27124a7da5da1711aeb193da40fd20962a",
+      "source_content_verified": false,
+      "status": "COLLECTED_UNVERIFIED",
+      "symbol": "000776.SZ"
+    }
+  ],
+  "zip_sha256": "6a5d7ac22f6ed5f186b3d43023d9bb9b1df1874fb9606d0a5a6cab07aeb31a23",
+  "zip_size_bytes": 49629,
+  "zip_integrity_checked": true,
+  "raw_vendor_rows_committed": false,
+  "source_content_verified": false,
+  "historical_point_in_time_verified": false,
+  "independent_calendar_verified": false,
+  "cross_source_numerical_agreement": false,
+  "release_evidence_accepted": false,
+  "limitations": [
+    "Single Sina source only; no successful Eastmoney comparison.",
+    "Calendar sessions are caller-supplied replay dates, not independently authenticated exchange sessions.",
+    "Successful generation does not certify prices, financial meaning or historical availability."
+  ]
+}

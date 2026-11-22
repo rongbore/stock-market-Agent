@@ -1,6 +1,8 @@
 # stock-market-Agent
 股票辅脑
 
+真实行情入口：[批量采集到研究页面](docs/collect-batch-research.md)，显式选择数据源和日历后，一条命令生成可查看的 ZIP。
+
 先体验现有功能：查看[中文离线快速开始](docs/offline-quickstart-zh.md)，使用明确标记的合成数据运行行情验收、纸面评估和批量研究。
 多股票结果可用[批量研究 ZIP 导出](docs/batch-research-package.md)生成统一索引；打开解压后的 `index.html` 查看成功结果及失败诊断。
 已有快照文件可通过[本地文件清单](docs/local-snapshot-batch.md)直接生成批量研究包，无须手工拼接大段 JSON。
