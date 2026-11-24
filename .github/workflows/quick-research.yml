@@ -58,6 +58,7 @@ jobs:
           path: |
             research-output/research.zip
             research-output/verification.json
+            research-output/action-result.json
           if-no-files-found: warn
           retention-days: 7
       - name: Preserve incomplete or failed run status
