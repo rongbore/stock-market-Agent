@@ -19,6 +19,15 @@ python -m scripts.quick_market_research --symbols 000776.SZ --upstream sina --st
 `collection.json`、标准化快照和原有证据仍在包内；`manifest.json` 按最终导出字节重算。
 日历不来自行情返回行，不再要求手工复制每只股票的日历。
 
+转存后可在解压前执行：
+
+```sh
+python -m scripts.verify_research_package --input research.zip
+```
+
+该命令只读、离线检查文件集合、大小和 SHA-256；成功不证明来源或研究结论可信。
+输出与退出码见[研究包完整性校验](verify-research-package.md)。
+
 ## 必须保留的边界
 
 - `--allow-network` 是显式只读请求开关；不调用付费模型或券商。
