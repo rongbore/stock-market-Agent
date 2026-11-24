@@ -25,6 +25,7 @@ class QuickResearchActionTests(unittest.TestCase):
         self.summary = Path(self.temporary.name) / 'summary.md'
         self.action_output = Path(self.temporary.name) / 'action-output.txt'
         self.success, _ = build_batch_research_package(batch(job()))
+        self.success_pair, _ = build_batch_research_package(batch(job(), job("600519.SS")))
         invalid = job('600519.SS')
         invalid['config'] = None
         self.partial, _ = build_batch_research_package(batch(job(), invalid))
@@ -48,23 +49,25 @@ class QuickResearchActionTests(unittest.TestCase):
         return build
 
     def test_valid_env_explicit_safe_argv_and_success_artifacts(self):
-        code, output, quick = self.run_action(self.builder(self.success), {'RESEARCH_SYMBOLS': '000776.SZ，600519.SS'})
+        code, output, quick = self.run_action(self.builder(self.success_pair), {'RESEARCH_SYMBOLS': '000776.SZ，600519.SS'})
         self.assertEqual(code, 0)
         argv = quick.call_args.args[0]
         self.assertEqual(argv[:4], ['--symbols', '000776.SZ', '600519.SS', '--upstream'])
         self.assertIn('--allow-network', argv)
         self.assertEqual(argv[-2:], ['--output', str(self.directory / 'research.zip')])
-        self.assertEqual((self.directory / 'research.zip').read_bytes(), self.success)
+        self.assertEqual((self.directory / 'research.zip').read_bytes(), self.success_pair)
         verification = json.loads((self.directory / 'verification.json').read_text())
         self.assertTrue(verification['integrity_verified'])
         self.assertFalse(verification['source_content_verified'])
-        self.assertIn('总任务：1；已生成：1；日期待核查：0；失败：0', output)
+        self.assertIn('总任务：2；已生成：2；日期待核查：0；失败：0', output)
         self.assertIn('独立来源已核验：否', output)
         self.assertEqual(self.summary.read_text(), output)
+        self.assertNotIn('rerun_request', json.loads((self.directory / 'action-result.json').read_text()))
+        self.assertNotIn('Run workflow', output)
         self.assertEqual(self.action_output.read_text(), 'artifacts_ready=true\n')
 
     def test_whitespace_symbols_and_omitted_dates_resolve_before_call(self):
-        code, _, quick = self.run_action(self.builder(self.success), {
+        code, _, quick = self.run_action(self.builder(self.success_pair), {
             'RESEARCH_SYMBOLS': '000776.SZ\n600519.SS', 'RESEARCH_START_DATE': '', 'RESEARCH_END_DATE': ''})
         self.assertEqual(code, 0)
         argv = quick.call_args.args[0]
@@ -90,11 +93,18 @@ class QuickResearchActionTests(unittest.TestCase):
                 self.assertNotIn('SECRET', output)
 
     def test_partial_package_is_verified_preserved_and_returns_two(self):
-        code, output, _ = self.run_action(self.builder(self.partial, 2))
+        code, output, _ = self.run_action(self.builder(self.partial, 2), {"RESEARCH_SYMBOLS": "000776.SZ,600519.SS"})
         self.assertEqual(code, 2)
         self.assertEqual((self.directory / 'research.zip').read_bytes(), self.partial)
         self.assertTrue(json.loads((self.directory / 'verification.json').read_text())['integrity_verified'])
         self.assertIn('总任务：2；已生成：1；日期待核查：0；失败：1', output)
+        action = json.loads((self.directory / 'action-result.json').read_text())
+        self.assertEqual(action['rerun_request'], {'schema_version': '0.1', 'symbols': ['600519.SS'],
+            'upstream': 'eastmoney', 'start_date': '2026-11-02', 'end_date': '2026-11-06',
+            'manual_only': True, 'calendar_review_required': False})
+        self.assertIn('| symbols | 600519.SS |', output)
+        self.assertNotIn('| symbols | 000776.SZ', output)
+        self.assertIn('同窗口手动重跑不保证修复', output)
 
     def test_inconsistent_all_status_cannot_make_partial_package_green(self):
         with ZipFile(BytesIO(self.partial)) as archive:
@@ -106,7 +116,7 @@ class QuickResearchActionTests(unittest.TestCase):
         with ZipFile(stream, 'w') as archive:
             for name, data in files.items():
                 archive.writestr(name, data)
-        code, output, _ = self.run_action(self.builder(stream.getvalue(), 0))
+        code, output, _ = self.run_action(self.builder(stream.getvalue(), 0), {"RESEARCH_SYMBOLS": "000776.SZ,600519.SS"})
         self.assertEqual(code, 2)
         self.assertTrue((self.directory / 'research.zip').exists())
         self.assertTrue(json.loads((self.directory / 'verification.json').read_text())['integrity_verified'])
@@ -133,6 +143,8 @@ class QuickResearchActionTests(unittest.TestCase):
         self.assertEqual(code, 2)
         self.assertFalse((self.directory / 'research.zip').exists())
         self.assertIn('完整性校验失败', output)
+        self.assertNotIn('rerun_request', json.loads((self.directory / 'action-result.json').read_text()))
+        self.assertNotIn('Run workflow', output)
         self.assertFalse(json.loads((self.directory / 'verification.json').read_text())['integrity_verified'])
 
     def test_exception_after_creating_package_does_not_publish(self):
@@ -206,6 +218,8 @@ class QuickResearchActionTests(unittest.TestCase):
                 self.assertEqual(action['status'], 'ACTION_FAILED')
                 self.assertEqual(action['stage'], 'execution')
                 self.assertFalse(verification['integrity_verified'])
+                self.assertNotIn('rerun_request', action)
+                self.assertNotIn('Run workflow', output)
                 self.assertNotIn('integrity_verified', action)
                 self.assertNotIn('SECRET', output + json.dumps(action) + json.dumps(verification))
                 self.assertTrue(all(value is False for key, value in action.items() if key.endswith('_verified')))
@@ -225,7 +239,7 @@ class QuickResearchActionTests(unittest.TestCase):
             return snapshot
         encoded, _ = build_collected_batch_package(request('000776.SZ', '000001.SZ', '600519.SS'),
             allow_network=True, fetcher=prices, now=NOW)
-        code, output, _ = self.run_action(self.builder(encoded, 2))
+        code, output, _ = self.run_action(self.builder(encoded, 2), {"RESEARCH_SYMBOLS": "000776.SZ,000001.SZ,600519.SS"})
         self.assertEqual(code, 2)
         action = json.loads((self.directory / 'action-result.json').read_text())
         self.assertEqual(action['status'], 'ACTION_PARTIAL_UNVERIFIED')
@@ -238,6 +252,9 @@ class QuickResearchActionTests(unittest.TestCase):
         self.assertIn('| 000001.SZ | 日期待核查 | 返回日期与提供的日历不一致；缺失日期：1；额外日期：0 |', output)
         self.assertIn('| 600519.SS | 输入或生成失败 | 供应商采集失败，未取得可用数据 |', output)
         self.assertNotIn('SECRET', output + json.dumps(action))
+        self.assertEqual(action['rerun_request']['symbols'], ['000001.SZ', '600519.SS'])
+        self.assertTrue(action['rerun_request']['calendar_review_required'])
+        self.assertIn('请先核查日历与实际数据', output)
         self.assertNotIn('integrity_verified', action)
         self.assertTrue(json.loads((self.directory / 'verification.json').read_text())['integrity_verified'])
 
@@ -304,3 +321,29 @@ class QuickResearchActionTests(unittest.TestCase):
         self.assertEqual(action['reason'], 'validation_failed')
         self.assertTrue(json.loads((self.directory / 'verification.json').read_text())['integrity_verified'])
         self.assertEqual(self.action_output.read_text(), 'artifacts_ready=true\n')
+
+    def test_rerun_retains_resolved_actual_window_and_original_source(self):
+        resolved = {'start_date': '2026-09-01', 'end_date': '2026-09-21'}
+        with patch('scripts.quick_research_action.resolve_market_window', return_value=resolved):
+            code, output, quick = self.run_action(self.builder(self.partial, 2), {
+                'RESEARCH_SYMBOLS': '600519.SS,000776.SZ', 'RESEARCH_UPSTREAM': 'sina',
+                'RESEARCH_START_DATE': '', 'RESEARCH_END_DATE': ''})
+        self.assertEqual(code, 2)
+        quick.assert_called_once()
+        argv = quick.call_args.args[0]
+        rerun = json.loads((self.directory / 'action-result.json').read_text())['rerun_request']
+        self.assertEqual(rerun['start_date'], argv[argv.index('--start-date') + 1])
+        self.assertEqual(rerun['end_date'], argv[argv.index('--end-date') + 1])
+        self.assertEqual((rerun['start_date'], rerun['end_date']), ('2026-09-01', '2026-09-21'))
+        self.assertEqual(rerun['upstream'], 'sina')
+        self.assertIn('| upstream | sina |', output)
+
+    def test_wrong_stock_package_is_rejected_without_rerun_advice(self):
+        code, output, quick = self.run_action(self.builder(self.success), {'RESEARCH_SYMBOLS': '600519.SS'})
+        self.assertEqual(code, 2)
+        quick.assert_called_once()
+        action = json.loads((self.directory / 'action-result.json').read_text())
+        self.assertEqual((action['stage'], action['reason']), ('result_summary', 'validation_failed'))
+        self.assertNotIn('rerun_request', action)
+        self.assertNotIn('Run workflow', output)
+        self.assertFalse((self.directory / 'research.zip').exists())

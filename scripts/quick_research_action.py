@@ -89,6 +89,28 @@ def _item_results(batch, collection):
     return items
 
 
+def _rerun_request(items, upstream, window):
+    pending = [item for item in items if item["status"] in ("FAILED_INPUT_OR_GENERATION", "REVIEW_REQUIRED")]
+    if not pending:
+        return None
+    return {"schema_version": "0.1", "symbols": sorted({item["symbol"] for item in pending}),
+            "upstream": upstream, "start_date": window["start_date"], "end_date": window["end_date"],
+            "manual_only": True,
+            "calendar_review_required": any(item["status"] == "REVIEW_REQUIRED" for item in pending)}
+
+
+def _rerun_summary(request):
+    text = "\n\n如需手动重跑，可复制以下 Run workflow 表单字段：\n\n"
+    text += "| 字段 | 值 |\n| --- | --- |\n"
+    text += "| symbols | " + ",".join(request["symbols"]) + " |\n"
+    for key in ("upstream", "start_date", "end_date"):
+        text += "| " + key + " | " + request[key] + " |\n"
+    if request["calendar_review_required"]:
+        text += "\n日期待核查项目请先核查日历与实际数据。"
+    text += "\n同窗口手动重跑不保证修复；不会自动重试或切换数据源。\n"
+    return text
+
+
 def _research_summary(manifest, items):
     text = (f'总任务：{manifest["item_count"]}；已生成：{manifest["generated_count"]}；'
             f'日期待核查：{manifest["calendar_blocked_count"]}；失败：{manifest["failed_count"]}。'
@@ -198,6 +220,8 @@ def main():
                     collection = (json.loads(archive.read("collection.json"))
                                   if "collection.json" in archive.namelist() else None)
                 items = _item_results(batch, collection)
+                if {item["symbol"] for item in items} != set(symbols):
+                    raise ValueError("action item symbols disagree with request")
                 expected_counts = {"RESEARCH_GENERATED_UNVERIFIED": manifest["generated_count"],
                                    "REVIEW_REQUIRED": manifest["calendar_blocked_count"],
                                    "FAILED_INPUT_OR_GENERATION": manifest["failed_count"]}
@@ -214,6 +238,10 @@ def main():
                                ("item_count", "generated_count", "calendar_blocked_count", "failed_count")})
                 action["items"] = items
                 message = _research_summary(manifest, items)
+                rerun = _rerun_request(items, upstream, window)
+                if rerun is not None:
+                    action["rerun_request"] = rerun
+                    message += _rerun_summary(rerun)
                 if complete:
                     exit_code = 0
             else:
