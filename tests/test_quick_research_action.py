@@ -1,11 +1,12 @@
 import contextlib
-from io import StringIO
+from io import BytesIO, StringIO
 import json
 import os
 from pathlib import Path
 import tempfile
 import unittest
 from unittest.mock import patch
+from zipfile import ZipFile
 
 from scripts.batch_research_package import build_batch_research_package
 from scripts.quick_research_action import main
@@ -94,6 +95,23 @@ class QuickResearchActionTests(unittest.TestCase):
         self.assertEqual((self.directory / 'research.zip').read_bytes(), self.partial)
         self.assertTrue(json.loads((self.directory / 'verification.json').read_text())['integrity_verified'])
         self.assertIn('总任务：2；已生成：1；日期待核查：0；失败：1', output)
+
+    def test_inconsistent_all_status_cannot_make_partial_package_green(self):
+        with ZipFile(BytesIO(self.partial)) as archive:
+            files = {name: archive.read(name) for name in archive.namelist()}
+        manifest = json.loads(files['manifest.json'])
+        manifest['status'] = 'ALL_RESEARCH_GENERATED_UNVERIFIED'
+        files['manifest.json'] = json.dumps(manifest).encode()
+        stream = BytesIO()
+        with ZipFile(stream, 'w') as archive:
+            for name, data in files.items():
+                archive.writestr(name, data)
+        code, output, _ = self.run_action(self.builder(stream.getvalue(), 0))
+        self.assertEqual(code, 2)
+        self.assertTrue((self.directory / 'research.zip').exists())
+        self.assertTrue(json.loads((self.directory / 'verification.json').read_text())['integrity_verified'])
+        self.assertIn('总任务：2；已生成：1；日期待核查：0；失败：1', output)
+        self.assertEqual(self.action_output.read_text(), 'artifacts_ready=true\n')
 
     def test_no_package_and_adapter_exception_emit_safe_failure(self):
         def fail(argv):

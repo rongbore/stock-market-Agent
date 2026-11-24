@@ -105,7 +105,9 @@ def main():
                 message = (f'总任务：{manifest["item_count"]}；已生成：{manifest["generated_count"]}；'
                            f'日期待核查：{manifest["calendar_blocked_count"]}；失败：{manifest["failed_count"]}。'
                            '文件完整性通过；研究与来源仍未核验。')
-                if quick_exit == 0 and manifest["status"] == "ALL_RESEARCH_GENERATED_UNVERIFIED":
+                if (quick_exit == 0 and manifest["status"] == "ALL_RESEARCH_GENERATED_UNVERIFIED"
+                        and manifest["generated_count"] == manifest["item_count"]
+                        and manifest["calendar_blocked_count"] == manifest["failed_count"] == 0):
                     exit_code = 0
             else:
                 message = "研究包完整性校验失败，本次研究包不予发布。"
