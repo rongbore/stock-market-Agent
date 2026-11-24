@@ -8,7 +8,9 @@
 4. 两个日期同时留空时，使用北京时间截至昨日的最近 21 个自然日；也可同时填写历史起止日期，窗口最多 366 天，结束日必须早于北京时间当天。
 5. 点击 **Run workflow** 即允许本次只读获取公开供应商日历和行情。运行结束后，查看摘要并下载 **Artifacts → quick-research-运行编号**。
 
-下载的 artifact 内包含 `research.zip` 和 `verification.json`（有产物时）。先解压 artifact，再解压 `research.zip`，打开其中的 `index.html` 查看研究页面、采集来源和日期诊断。artifact 保留 7 天。
+下载的 artifact 内包含 `research.zip`（生成且校验通过时）、`verification.json` 和 `action-result.json`。先解压 artifact，再解压 `research.zip`，打开其中的 `index.html` 查看研究页面、采集来源和日期诊断。artifact 保留 7 天。
+
+运行摘要直接显示逐股处理结果；`action-result.json` 保存本次运行的固定原因码、中文消息、计数和逐股结果。依赖不可用、输入或生成校验失败、执行或输出失败会分别标记，但不会输出原始异常内容。此运行结果与 `verification.json` 的文件完整性结论分别记录；没有 ZIP 的失败诊断不代表已生成研究。
 
 导出后自动运行[离线完整性校验](verify-research-package.md)。校验失败的 ZIP 不作为 `research.zip` 上传，验证结果仍可用于排查。完整性通过仅说明 ZIP 与自带清单一致，不证明来源、日历或研究结论真实。
 

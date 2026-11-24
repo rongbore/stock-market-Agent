@@ -126,6 +126,7 @@ class QuickResearchActionTests(unittest.TestCase):
                 self.assertFalse((self.directory / 'research.zip').exists())
                 self.assertFalse(json.loads((self.directory / 'verification.json').read_text())['integrity_verified'])
                 (self.directory / 'verification.json').unlink()
+                (self.directory / 'action-result.json').unlink()
 
     def test_invalid_package_is_not_available_for_upload(self):
         code, output, _ = self.run_action(self.builder(b'not a zip'))
@@ -187,3 +188,119 @@ class QuickResearchActionTests(unittest.TestCase):
         self.assertEqual(code, 2)
         self.assertNotIn('SECRET', output)
         self.assertFalse(self.action_output.exists())
+
+    def test_classified_exceptions_never_save_or_echo_raw_secrets(self):
+        for exception, reason in ((ImportError('SECRET'), 'dependency_unavailable'),
+                                  (OSError('SECRET'), 'output_or_execution_failed'),
+                                  (ValueError('SECRET'), 'validation_failed'),
+                                  (RuntimeError('SECRET'), 'research_execution_failed')):
+            with self.subTest(reason=reason):
+                def fail(argv):
+                    print('SECRET provider body')
+                    raise exception
+                code, output, _ = self.run_action(fail)
+                self.assertEqual(code, 2)
+                action = json.loads((self.directory / 'action-result.json').read_text())
+                verification = json.loads((self.directory / 'verification.json').read_text())
+                self.assertEqual(action['reason'], reason)
+                self.assertEqual(action['status'], 'ACTION_FAILED')
+                self.assertEqual(action['stage'], 'execution')
+                self.assertFalse(verification['integrity_verified'])
+                self.assertNotIn('integrity_verified', action)
+                self.assertNotIn('SECRET', output + json.dumps(action) + json.dumps(verification))
+                self.assertTrue(all(value is False for key, value in action.items() if key.endswith('_verified')))
+                self.assertIn('artifacts_ready=true', self.action_output.read_text())
+                for path in self.directory.iterdir():
+                    path.unlink()
+
+    def test_partial_items_use_fixed_reasons_and_counts_without_raw_text(self):
+        from tests.test_collect_batch_research import NOW, fetched, request
+        from scripts.collect_batch_research import build_collected_batch_package
+        def prices(symbol, *args, **kwargs):
+            if symbol == '600519.SS':
+                raise RuntimeError('SECRET')
+            snapshot = fetched(symbol)
+            if symbol == '000001.SZ':
+                snapshot['records'].pop(1)
+            return snapshot
+        encoded, _ = build_collected_batch_package(request('000776.SZ', '000001.SZ', '600519.SS'),
+            allow_network=True, fetcher=prices, now=NOW)
+        code, output, _ = self.run_action(self.builder(encoded, 2))
+        self.assertEqual(code, 2)
+        action = json.loads((self.directory / 'action-result.json').read_text())
+        self.assertEqual(action['status'], 'ACTION_PARTIAL_UNVERIFIED')
+        self.assertEqual(action['stage'], 'completed')
+        self.assertEqual((action['item_count'], action['generated_count'], action['calendar_blocked_count'], action['failed_count']), (3, 1, 1, 1))
+        items = {item['symbol']: item for item in action['items']}
+        self.assertEqual(items['600519.SS']['reason'], 'collection_failed')
+        self.assertEqual(items['000001.SZ']['missing_date_count'], 1)
+        self.assertEqual(items['000001.SZ']['unexpected_date_count'], 0)
+        self.assertIn('| 000001.SZ | 日期待核查 | 返回日期与提供的日历不一致；缺失日期：1；额外日期：0 |', output)
+        self.assertIn('| 600519.SS | 输入或生成失败 | 供应商采集失败，未取得可用数据 |', output)
+        self.assertNotIn('SECRET', output + json.dumps(action))
+        self.assertNotIn('integrity_verified', action)
+        self.assertTrue(json.loads((self.directory / 'verification.json').read_text())['integrity_verified'])
+
+    def test_action_result_save_failure_never_emits_ready_or_publishes_zip(self):
+        original = Path.open
+        def deny_result(path, *args, **kwargs):
+            if path.name == 'action-result.json':
+                raise PermissionError('SECRET')
+            return original(path, *args, **kwargs)
+        with patch.object(Path, 'open', deny_result):
+            code, output, _ = self.run_action(self.builder(self.success))
+        self.assertEqual(code, 2)
+        self.assertFalse((self.directory / 'research.zip').exists())
+        self.assertFalse(self.action_output.exists())
+        self.assertNotIn('SECRET', output)
+
+    def test_unsafe_item_metadata_cannot_inject_markdown_in_actions_summary(self):
+        with ZipFile(BytesIO(self.success)) as archive:
+            files = {name: archive.read(name) for name in archive.namelist()}
+        raw = json.loads(files['batch-result.json'])
+        raw['results'][0]['reason'] = 'SECRET | injected\n## Heading'
+        files['batch-result.json'] = json.dumps(raw).encode()
+        import hashlib
+        manifest = json.loads(files['manifest.json'])
+        for entry in manifest['files']:
+            if entry['path'] == 'batch-result.json':
+                entry['size_bytes'] = len(files[entry['path']])
+                entry['sha256'] = hashlib.sha256(files[entry['path']]).hexdigest()
+        files['manifest.json'] = json.dumps(manifest).encode()
+        encoded = BytesIO()
+        with ZipFile(encoded, 'w') as archive:
+            for name, data in files.items():
+                archive.writestr(name, data)
+        code, output, _ = self.run_action(self.builder(encoded.getvalue()))
+        self.assertEqual(code, 0)
+        action = json.loads((self.directory / 'action-result.json').read_text())
+        self.assertEqual(action['items'][0]['reason'], 'unknown')
+        self.assertNotIn('SECRET', output + json.dumps(action))
+        self.assertNotIn('## Heading', output)
+
+    def test_item_status_counts_disagreeing_with_manifest_cannot_make_action_green(self):
+        import hashlib
+        with ZipFile(BytesIO(self.success)) as archive:
+            files = {name: archive.read(name) for name in archive.namelist()}
+        batch_result = json.loads(files['batch-result.json'])
+        batch_result['results'][0]['status'] = 'FAILED_INPUT_OR_GENERATION'
+        files['batch-result.json'] = json.dumps(batch_result).encode()
+        manifest = json.loads(files['manifest.json'])
+        for entry in manifest['files']:
+            if entry['path'] == 'batch-result.json':
+                entry.update(size_bytes=len(files[entry['path']]),
+                             sha256=hashlib.sha256(files[entry['path']]).hexdigest())
+        files['manifest.json'] = json.dumps(manifest).encode()
+        encoded = BytesIO()
+        with ZipFile(encoded, 'w') as archive:
+            for name, data in files.items():
+                archive.writestr(name, data)
+        code, output, _ = self.run_action(self.builder(encoded.getvalue()))
+        self.assertEqual(code, 2)
+        self.assertFalse((self.directory / 'research.zip').exists())
+        action = json.loads((self.directory / 'action-result.json').read_text())
+        self.assertEqual(action['status'], 'ACTION_FAILED')
+        self.assertEqual(action['stage'], 'result_summary')
+        self.assertEqual(action['reason'], 'validation_failed')
+        self.assertTrue(json.loads((self.directory / 'verification.json').read_text())['integrity_verified'])
+        self.assertEqual(self.action_output.read_text(), 'artifacts_ready=true\n')
