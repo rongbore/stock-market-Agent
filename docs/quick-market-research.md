@@ -1,5 +1,7 @@
 # 快捷研究：无需手工准备日历 JSON
 
+不方便在本地安装依赖时，可使用 [GitHub Actions 网页入口](quick-research-actions.md)。
+
 安装可选行情依赖后，从仓库根目录运行：
 
 ```sh
