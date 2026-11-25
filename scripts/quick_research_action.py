@@ -159,8 +159,15 @@ def _failure_verification():
             "limitation": "仅校验字节完整性，不认证来源或金融内容。"}
 
 
-def _summary(message):
-    text = "## 本次研究结果\n\n" + message + "\n\n" + SOURCE_NOTICE + "\n"
+def _summary(message, request=None):
+    text = "## 本次研究结果\n\n" + message + "\n\n"
+    if request is not None:
+        text += "### 本次请求\n\n| 字段 | 值 |\n| --- | --- |\n"
+        text += "| symbols | " + ",".join(request["symbols"]) + " |\n"
+        for key in ("upstream", "start_date", "end_date"):
+            text += "| " + key + " | " + request[key] + " |\n"
+        text += "\n"
+    text += SOURCE_NOTICE + "\n"
     print(text, end="")
     destination = os.environ.get("GITHUB_STEP_SUMMARY")
     if destination:
@@ -194,6 +201,8 @@ def main():
     except OSError:
         _summary("无法准备本次输出目录；本次未运行采集。")
         return 2
+    request = {"symbols": sorted(symbols), "upstream": upstream,
+               "start_date": window["start_date"], "end_date": window["end_date"]}
     package = directory / "research.zip"
     verification_path = directory / "verification.json"
     action_path = directory / "action-result.json"
@@ -250,6 +259,7 @@ def main():
     except (Exception, SystemExit) as error:
         action = _action_result(_exception_reason(error), stage)
         message = action["message"]
+    action["request"] = request
     try:
         if action["status"] == "ACTION_FAILED" and not _remove_package(package):
             raise OSError("cannot remove failed package")
@@ -268,7 +278,7 @@ def main():
         _remove_package(package)
         message = "无法发布本次完整性结果，本次研究包不予发布。"
         exit_code = 2
-    _summary(message)
+    _summary(message, request=request)
     return exit_code
 
 
