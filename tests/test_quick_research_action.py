@@ -90,6 +90,7 @@ class QuickResearchActionTests(unittest.TestCase):
                 self.assertEqual(code, 2)
                 quick.assert_not_called()
                 self.assertFalse(self.directory.exists())
+                self.assertNotIn('### 本次请求', output)
                 self.assertNotIn('SECRET', output)
 
     def test_partial_package_is_verified_preserved_and_returns_two(self):
@@ -103,7 +104,7 @@ class QuickResearchActionTests(unittest.TestCase):
             'upstream': 'eastmoney', 'start_date': '2026-11-02', 'end_date': '2026-11-06',
             'manual_only': True, 'calendar_review_required': False})
         self.assertIn('| symbols | 600519.SS |', output)
-        self.assertNotIn('| symbols | 000776.SZ', output)
+        self.assertNotIn('| symbols | 000776.SZ', output.split('### 本次请求')[0])
         self.assertIn('同窗口手动重跑不保证修复', output)
 
     def test_inconsistent_all_status_cannot_make_partial_package_green(self):
@@ -143,6 +144,10 @@ class QuickResearchActionTests(unittest.TestCase):
         self.assertEqual(code, 2)
         self.assertFalse((self.directory / 'research.zip').exists())
         self.assertIn('完整性校验失败', output)
+        self.assertEqual(json.loads((self.directory / 'action-result.json').read_text())['request'],
+                         {'symbols': ['000776.SZ'], 'upstream': 'eastmoney',
+                          'start_date': '2026-11-02', 'end_date': '2026-11-06'})
+        self.assertIn('| end_date | 2026-11-06 |', output)
         self.assertNotIn('rerun_request', json.loads((self.directory / 'action-result.json').read_text()))
         self.assertNotIn('Run workflow', output)
         self.assertFalse(json.loads((self.directory / 'verification.json').read_text())['integrity_verified'])
@@ -163,6 +168,7 @@ class QuickResearchActionTests(unittest.TestCase):
         self.assertEqual(code, 2)
         quick.assert_not_called()
         self.assertIn('输出目录必须全新或为空', output)
+        self.assertNotIn('### 本次请求', output)
         self.assertEqual(stale.read_bytes(), b'old evidence')
         self.assertFalse((self.directory / 'verification.json').exists())
         self.assertFalse(self.action_output.exists())
@@ -347,3 +353,40 @@ class QuickResearchActionTests(unittest.TestCase):
         self.assertNotIn('rerun_request', action)
         self.assertNotIn('Run workflow', output)
         self.assertFalse((self.directory / 'research.zip').exists())
+
+    def test_resolved_request_matches_quick_argv_result_and_success_summary(self):
+        resolved = {'start_date': '2026-09-01', 'end_date': '2026-09-21'}
+        with patch('scripts.quick_research_action.resolve_market_window', return_value=resolved):
+            code, output, quick = self.run_action(self.builder(self.success_pair), {
+                'RESEARCH_SYMBOLS': '600519.SS,000776.SZ', 'RESEARCH_UPSTREAM': 'sina',
+                'RESEARCH_START_DATE': '', 'RESEARCH_END_DATE': ''})
+        self.assertEqual(code, 0)
+        quick.assert_called_once()
+        argv = quick.call_args.args[0]
+        request = json.loads((self.directory / 'action-result.json').read_text())['request']
+        self.assertEqual(request, {'symbols': ['000776.SZ', '600519.SS'], 'upstream': 'sina',
+                                  'start_date': '2026-09-01', 'end_date': '2026-09-21'})
+        self.assertEqual(request['start_date'], argv[argv.index('--start-date') + 1])
+        self.assertEqual(request['end_date'], argv[argv.index('--end-date') + 1])
+        self.assertEqual(request['upstream'], argv[argv.index('--upstream') + 1])
+        self.assertIn('### 本次请求', output)
+        self.assertIn('| symbols | 000776.SZ,600519.SS |', output)
+        for key in ('upstream', 'start_date', 'end_date'):
+            self.assertIn('| ' + key + ' | ' + request[key] + ' |', output)
+        self.assertEqual(self.summary.read_text(), output)
+        self.assertNotIn('rerun_request', json.loads((self.directory / 'action-result.json').read_text()))
+
+    def test_execution_failure_retains_only_validated_request(self):
+        def fail(argv):
+            raise ImportError('SECRET dependency details')
+        code, output, quick = self.run_action(fail, {'RESEARCH_SYMBOLS': '600519.SS,000776.SZ'})
+        self.assertEqual(code, 2)
+        quick.assert_called_once()
+        action = json.loads((self.directory / 'action-result.json').read_text())
+        self.assertEqual(action['reason'], 'dependency_unavailable')
+        self.assertEqual(action['request'], {'symbols': ['000776.SZ', '600519.SS'], 'upstream': 'eastmoney',
+                                             'start_date': '2026-11-02', 'end_date': '2026-11-06'})
+        self.assertIn('| symbols | 000776.SZ,600519.SS |', output)
+        self.assertIn('| start_date | 2026-11-02 |', output)
+        self.assertNotIn('SECRET', output + json.dumps(action))
+        self.assertNotIn('rerun_request', action)
