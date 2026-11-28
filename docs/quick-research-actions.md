@@ -10,6 +10,8 @@
 
 下载的 artifact 内包含 `research.zip`（生成且校验通过时）、`verification.json` 和 `action-result.json`。先解压 artifact，再解压 `research.zip`，打开其中的 `index.html` 查看研究页面、采集来源和日期诊断。artifact 保留 7 天。
 
+运行摘要和 `action-result.json` 的 `package` 字段记录内层 `research.zip` 的文件大小及 SHA-256。转存后可在 Windows PowerShell 中运行 `Get-FileHash .\research.zip -Algorithm SHA256`，与原运行摘要的值核对。
+
 运行摘要直接显示逐股处理结果；`action-result.json` 保存本次运行的固定原因码、中文消息、计数和逐股结果。依赖不可用、输入或生成校验失败、执行或输出失败会分别标记，但不会输出原始异常内容。此运行结果与 `verification.json` 的文件完整性结论分别记录；没有 ZIP 的失败诊断不代表已生成研究。
 
 通过输入校验并准备好本次输出目录后，摘要及 `action-result.json` 的 `request` 字段会记录本次股票列表、显式行情源和实际起止日期；原输入留空的日期会显示为解析后的具体日期。即使后续采集或校验失败，也会保留该请求记录，方便核对本次运行窗口。无效输入或拒绝复用旧目录时不会生成新的请求产物。

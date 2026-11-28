@@ -1,5 +1,6 @@
 """Environment-only entry point for manually dispatched research Actions."""
 from contextlib import redirect_stderr, redirect_stdout
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -251,6 +252,12 @@ def main():
                 if rerun is not None:
                     action["rerun_request"] = rerun
                     message += _rerun_summary(rerun)
+                with package.open("rb") as stream:
+                    size = stream.seek(0, os.SEEK_END)
+                    stream.seek(0)
+                    digest = hashlib.file_digest(stream, "sha256").hexdigest()
+                action["package"] = {"filename": package.name, "size_bytes": size, "sha256": digest}
+                message += f"\n\n研究包 `research.zip`（{size} 字节）的 SHA-256 为 `{digest}`。"
                 if complete:
                     exit_code = 0
             else:
