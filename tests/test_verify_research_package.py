@@ -73,6 +73,27 @@ class VerifyResearchPackageTests(unittest.TestCase):
                 self.assertFalse(result['source_content_verified'])
                 self.assertFalse(result['independent_source_verified'])
 
+    def test_cli_expected_digest_distinguishes_original_from_repacked_zip(self):
+        digest = hashlib.sha256(self.encoded).hexdigest()
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / 'research.zip'
+            for data, expected, code, reason in (
+                (self.encoded, digest.upper(), 0, None),
+                (self.archive(), digest, 2, 'archive_hash_mismatch'),
+                (self.encoded, 'short', 2, 'invalid_expected_sha256'),
+            ):
+                with self.subTest(reason=reason):
+                    path.write_bytes(data)
+                    self.assertTrue(verify_research_package(path)['integrity_verified'])
+                    output = StringIO()
+                    with contextlib.redirect_stdout(output):
+                        result_code = main(['--input', str(path), '--expected-sha256', expected])
+                    self.assertEqual(result_code, code)
+                    result = json.loads(output.getvalue())
+                    self.assertEqual(result['reason'], reason)
+                    self.assertEqual(result['integrity_verified'], code == 0)
+                    self.assertEqual(result.get('archive_sha256_matched', False), code == 0)
+
     def test_tampered_size_hash_missing_and_extra_members(self):
         for data, reason in ((b'x', 'size_mismatch'), (b'x' * len(self.files['index.html']), 'hash_mismatch')):
             files = dict(self.files)

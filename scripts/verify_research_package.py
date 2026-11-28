@@ -30,6 +30,8 @@ MESSAGES = {
     "path_set_mismatch": "包内文件集合与校验清单不一致。",
     "size_mismatch": "文件字节数与校验清单不一致。",
     "hash_mismatch": "文件 SHA-256 与校验清单不一致。",
+    "invalid_expected_sha256": "预期 SHA-256 必须是 64 位十六进制字符。",
+    "archive_hash_mismatch": "整个 ZIP 的 SHA-256 与预期值不一致。",
 }
 
 
@@ -133,11 +135,22 @@ def _preflight_directory(stream, archive_size):
     stream.seek(0)
 
 
-def _verify(path):
+def _verify(path, expected_sha256):
     with Path(path).open("rb") as stream:
         stream.seek(0, 2)
         archive_size = stream.tell()
         _require(archive_size <= MAX_ARCHIVE_BYTES, "limit_exceeded")
+        if expected_sha256 is not None:
+            stream.seek(0)
+            digest = hashlib.sha256()
+            remaining = archive_size
+            while remaining:
+                chunk = stream.read(min(CHUNK_BYTES, remaining))
+                _require(bool(chunk), "archive_hash_mismatch")
+                digest.update(chunk)
+                remaining -= len(chunk)
+            _require(not stream.read(1) and digest.hexdigest() == expected_sha256.lower(),
+                     "archive_hash_mismatch")
         _preflight_directory(stream, archive_size)
         with ZipFile(stream) as archive:
             infos = archive.infolist()
@@ -166,7 +179,7 @@ def _verify(path):
             return len(entries), checked_bytes
 
 
-def verify_research_package(path):
+def verify_research_package(path, *, expected_sha256=None):
     """Return a JSON-compatible integrity result; never trust source verification labels."""
     result = {"schema_version": "0.1", "status": "INVALID_PACKAGE", "integrity_verified": False,
               "source_content_verified": False, "historical_point_in_time_verified": False,
@@ -174,7 +187,10 @@ def verify_research_package(path):
               "checked_file_count": 0, "checked_bytes": 0,
               "limitation": "仅校验文件与包内清单的字节一致性；不认证来源、金融内容或清单真实性。"}
     try:
-        count, size = _verify(path)
+        if expected_sha256 is not None:
+            _require(isinstance(expected_sha256, str) and re.fullmatch(r"[0-9a-fA-F]{64}", expected_sha256),
+                     "invalid_expected_sha256")
+        count, size = _verify(path, expected_sha256)
     except PackageError as error:
         result.update(reason=str(error), message=MESSAGES[str(error)])
     except (OSError, BadZipFile, RuntimeError, NotImplementedError, EOFError, ValueError, zlib.error):
@@ -183,14 +199,17 @@ def verify_research_package(path):
         result.update(status="INTEGRITY_VERIFIED_UNVERIFIED_SOURCE", integrity_verified=True,
                       reason=None, message="文件完整性校验通过；来源仍未核验。",
                       checked_file_count=count, checked_bytes=size)
+        if expected_sha256 is not None:
+            result["archive_sha256_matched"] = True
     return result
 
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--input", required=True, help="Existing research ZIP; read only")
+    parser.add_argument("--expected-sha256", help="SHA-256 of the entire ZIP from the original run summary")
     args = parser.parse_args(argv)
-    result = verify_research_package(args.input)
+    result = verify_research_package(args.input, expected_sha256=args.expected_sha256)
     print(json.dumps(result, ensure_ascii=False, sort_keys=True))
     return 0 if result["integrity_verified"] else 2
 
