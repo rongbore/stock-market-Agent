@@ -1,6 +1,8 @@
 # stock-market-Agent
 股票辅脑
 
+查看行情明细时，解压快捷研究包并打开 `index.html`。如果有成功生成的研究，可以下载 `market-data.csv`，在 Excel 中按股票和日期筛选日线。
+
 网页直接运行：[GitHub Actions 快捷研究](docs/quick-research-actions.md)，填写股票代码即可采集、生成并校验研究 ZIP，无需本地安装 Python。
 
 最少配置运行：[快捷研究命令](docs/quick-market-research.md)，显式允许联网后获取供应商日历、行情和研究 ZIP；全部来源仍标未核验。

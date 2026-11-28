@@ -74,12 +74,14 @@ def _collection_details(entry, collected):
     return '<td class="collection-data">' + details + '</td><td>' + reason + '</td>'
 
 
-def _index(batch, *, collection=None, calendar_source=None):
+def _index(batch, *, collection=None, calendar_source=None, market_data=False):
     rows = []
     context = collection is not None
     collected = {item["symbol"]: item for item in collection.get("items", [])} if context else {}
     extra_header = '<th>采集数据（未核验）</th><th>原因与日期检查</th>' if context else ''
     source_panel = _source_panel(collection, calendar_source) if context else ''
+    csv_link = ('<p><a href="market-data.csv">下载日线 CSV（Excel UTF-8，未复权，未核验）</a>；'
+                '仅包含已生成研究项，价格单位为人民币/股，成交量单位为股。</p>') if market_data else ''
     context_css = '.collection-data{overflow-wrap:anywhere;font-size:14px;min-width:180px}' if context else ''
     for entry in batch["results"]:
         symbol = entry["symbol"]  # Already validated by the raw batch contract.
@@ -102,7 +104,7 @@ def _index(batch, *, collection=None, calendar_source=None):
             f'<p>总任务：{batch["item_count"]}；已生成：{batch["generated_count"]}；'
             f'日期待核查：{batch["calendar_blocked_count"]}；失败：{batch["failed_count"]}。</p>'
             '<p>批次状态：<code>' + escape(BATCH_LABELS[batch["status"]]) + '</code></p>'
-            + source_panel + '<p><a href="summary.md">中文汇总</a> · <a href="batch-result.json">完整结果</a> · '
+            + source_panel + csv_link + '<p><a href="summary.md">中文汇总</a> · <a href="batch-result.json">完整结果</a> · '
             '<a href="manifest.json">文件校验清单</a></p><div class="scroll"><table>'
             '<thead><tr><th>股票</th><th>状态</th>' + extra_header + '<th>材料</th></tr></thead><tbody>' + ''.join(rows) +
             '</tbody></table></div><p>本包仅供离线复核；文件哈希不能证明来源真实性。失败项不提供研究页面。</p></main></html>')
