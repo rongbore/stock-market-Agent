@@ -10,6 +10,12 @@ on:
       - 'scripts/provenance.py'
       - 'scripts/evidence_bundle.py'
       - 'scripts/financial_claim_evidence.py'
+      - 'scripts/quick_research_action.py'
+      - 'scripts/quick_market_research.py'
+      - 'scripts/collect_batch_research.py'
+      - 'scripts/batch_research_package.py'
+      - 'scripts/verify_research_package.py'
+      - 'examples/backtest/SYNTHETIC_sma_oos_config.json'
       - 'tests/**'
   push:
     branches: [main]
@@ -21,6 +27,12 @@ on:
       - 'scripts/provenance.py'
       - 'scripts/evidence_bundle.py'
       - 'scripts/financial_claim_evidence.py'
+      - 'scripts/quick_research_action.py'
+      - 'scripts/quick_market_research.py'
+      - 'scripts/collect_batch_research.py'
+      - 'scripts/batch_research_package.py'
+      - 'scripts/verify_research_package.py'
+      - 'examples/backtest/SYNTHETIC_sma_oos_config.json'
       - 'tests/**'
 
 # Cancel obsolete runs for the same PR when a new commit arrives.
@@ -75,6 +87,8 @@ jobs:
           assert evidence["historical_point_in_time_verified"] is False
           assert "OFFLINE SYNTHETIC TEST ONLY" in (root / "complete_report.html").read_text(encoding="utf-8")
           PY
+      - name: Verify quick research report, CSV and diagnostics offline
+        run: python -m unittest -v tests.test_quick_research_action.QuickResearchActionTests.test_partial_run_builds_downloadable_report_and_csv_offline
       - name: Upload synthetic artifact
         uses: actions/upload-artifact@v4
         with:

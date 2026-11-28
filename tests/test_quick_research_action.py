@@ -1,4 +1,5 @@
 import contextlib
+import csv
 from io import BytesIO, StringIO
 import json
 import os
@@ -47,6 +48,54 @@ class QuickResearchActionTests(unittest.TestCase):
             Path(argv[argv.index('--output') + 1]).write_bytes(data)
             return exit_code
         return build
+
+    def test_partial_run_builds_downloadable_report_and_csv_offline(self):
+        # Exercise the real Actions entry point and ZIP builder. Only replace
+        # the two data providers with deterministic fixtures.
+        successful = '000776.SZ'
+        blocked = '000001.SZ'
+        snapshot = job(successful)['config']['snapshot']
+        sessions = [row['date'] for row in snapshot['records']]
+
+        def fetch_prices(symbol, *args, **kwargs):
+            data = job(symbol)['config']['snapshot']
+            if symbol == blocked:
+                del data['records'][1]
+            return data
+
+        environment = dict(VALID_ENV, RESEARCH_SYMBOLS=f'{successful},{blocked}',
+                           GITHUB_STEP_SUMMARY=str(self.summary), GITHUB_OUTPUT=str(self.action_output))
+        with (
+            patch.dict(os.environ, environment, clear=True),
+            patch('scripts.quick_research_action.OUTPUT_DIRECTORY', self.directory),
+            patch('scripts.quick_market_research.fetch_sina_calendar',
+                  return_value=(sessions, {'interface': 'SYNTHETIC_calendar',
+                                           'full_date_list_sha256': 'a' * 64})) as calendar,
+            patch('scripts.collect_batch_research.fetch_a_share_daily', side_effect=fetch_prices) as prices,
+            contextlib.redirect_stdout(StringIO()),
+        ):
+            self.assertEqual(main(), 2)
+
+        calendar.assert_called_once()
+        self.assertEqual([call.args[0] for call in prices.call_args_list], [blocked, successful])
+        self.assertEqual(self.action_output.read_text(), 'artifacts_ready=true\n')
+        verification = json.loads((self.directory / 'verification.json').read_text())
+        self.assertTrue(verification['integrity_verified'])
+        self.assertFalse(verification['source_content_verified'])
+        result = json.loads((self.directory / 'action-result.json').read_text())
+        self.assertEqual(result['generated_count'], 1)
+        self.assertEqual(result['calendar_blocked_count'], 1)
+        self.assertEqual(result['rerun_request']['symbols'], [blocked])
+        self.assertTrue(result['rerun_request']['calendar_review_required'])
+        with ZipFile(self.directory / 'research.zip') as archive:
+            page = archive.read('index.html').decode('utf-8')
+            self.assertIn(f'href="items/{successful}/dashboard.html"', page)
+            self.assertIn(f'items/{successful}/dashboard.html', archive.namelist())
+            self.assertNotIn(f'items/{blocked}/dashboard.html', archive.namelist())
+            self.assertIn('href="market-data.csv"', page)
+            rows = list(csv.DictReader(StringIO(archive.read('market-data.csv').decode('utf-8-sig'))))
+            self.assertEqual([(row['symbol'], row['date']) for row in rows],
+                             [(successful, date) for date in sessions])
 
     def test_valid_env_explicit_safe_argv_and_success_artifacts(self):
         code, output, quick = self.run_action(self.builder(self.success_pair), {'RESEARCH_SYMBOLS': '000776.SZ，600519.SS'})
