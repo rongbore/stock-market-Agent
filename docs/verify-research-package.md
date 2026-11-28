@@ -6,6 +6,14 @@
 python -m scripts.verify_research_package --input research.zip
 ```
 
+如果掌握原 GitHub Actions 运行摘要中的整包 SHA-256，可以同时核对压缩包本身。将下面的 `<64 位 SHA-256>` 替换为原运行摘要中的值。
+
+```bash
+python -m scripts.verify_research_package --input research.zip --expected-sha256 "<64 位 SHA-256>"
+```
+
+整包哈希与包内清单都通过时，结果增加 `archive_sha256_matched: true`。哈希不同返回 `archive_hash_mismatch`，格式错误返回 `invalid_expected_sha256`。
+
 命令只读输入，不联网、不解压、不写文件、不执行 HTML。标准输出为单个 JSON 对象，含中文 `message`、固定机器原因码 `reason`、`integrity_verified`、已检查文件数和字节数。完整性通过返回退出码 0；损坏、无效或超过限额返回 2。参数用法错误由 argparse 返回 2。
 
 Python 调用方式：
