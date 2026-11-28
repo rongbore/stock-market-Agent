@@ -4,6 +4,7 @@ from io import BytesIO, StringIO
 import json
 import os
 from pathlib import Path
+import shutil
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -96,6 +97,10 @@ class QuickResearchActionTests(unittest.TestCase):
             rows = list(csv.DictReader(StringIO(archive.read('market-data.csv').decode('utf-8-sig'))))
             self.assertEqual([(row['symbol'], row['date']) for row in rows],
                              [(successful, date) for date in sessions])
+
+        # CI can keep this validated fixture for the artifact round-trip check.
+        if destination := os.environ.get('SYNTHETIC_QUICK_RESEARCH_ARTIFACT_DIR'):
+            shutil.copytree(self.directory, destination)
 
     def test_valid_env_explicit_safe_argv_and_success_artifacts(self):
         code, output, quick = self.run_action(self.builder(self.success_pair), {'RESEARCH_SYMBOLS': '000776.SZ，600519.SS'})

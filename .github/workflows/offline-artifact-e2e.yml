@@ -88,7 +88,28 @@ jobs:
           assert "OFFLINE SYNTHETIC TEST ONLY" in (root / "complete_report.html").read_text(encoding="utf-8")
           PY
       - name: Verify quick research report, CSV and diagnostics offline
+        env:
+          SYNTHETIC_QUICK_RESEARCH_ARTIFACT_DIR: ${{ runner.temp }}/synthetic-quick-research
         run: python -m unittest -v tests.test_quick_research_action.QuickResearchActionTests.test_partial_run_builds_downloadable_report_and_csv_offline
+      - name: Upload synthetic quick research files
+        uses: actions/upload-artifact@v4
+        with:
+          name: synthetic-quick-research-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/synthetic-quick-research/research.zip
+            ${{ runner.temp }}/synthetic-quick-research/verification.json
+            ${{ runner.temp }}/synthetic-quick-research/action-result.json
+          if-no-files-found: error
+          retention-days: 1
+      - name: Download synthetic quick research files
+        uses: actions/download-artifact@v4
+        with:
+          name: synthetic-quick-research-${{ github.run_id }}
+          path: ${{ runner.temp }}/downloaded-quick-research
+      - name: Verify downloaded research files and ZIP
+        run: |
+          diff -qr "$RUNNER_TEMP/synthetic-quick-research" "$RUNNER_TEMP/downloaded-quick-research"
+          python -m scripts.verify_research_package --input "$RUNNER_TEMP/downloaded-quick-research/research.zip"
       - name: Upload synthetic artifact
         uses: actions/upload-artifact@v4
         with:
