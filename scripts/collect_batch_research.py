@@ -1,9 +1,10 @@
 """Explicit opt-in single-upstream AKShare collection to an offline batch ZIP."""
 import argparse
+import csv
 from datetime import datetime, timezone
 import hashlib
 import json
-from io import BytesIO
+from io import BytesIO, StringIO
 import os
 from pathlib import Path
 import tempfile
@@ -49,13 +50,36 @@ def validate_collection_request(request, *, now=None):
     return request
 
 
+def _market_data_csv(batch, datasets):
+    """Export only successful research items from the already normalized bars."""
+    symbols = sorted(entry["symbol"] for entry in batch["results"]
+                     if entry["status"] == "RESEARCH_GENERATED_UNVERIFIED")
+    if not symbols:
+        return None
+    stream = StringIO(newline="")
+    writer = csv.writer(stream)
+    writer.writerow(["symbol", "date", "open", "high", "low", "close", "volume",
+                     "price_unit", "volume_unit", "adjustment", "source", "upstream", "interface",
+                     "retrieved_at", "source_content_verified", "historical_point_in_time_verified",
+                     "exchange_calendar_verified", "independent_source_verified"])
+    for symbol in symbols:
+        dataset = datasets[symbol]
+        provenance = dataset["provenance"]
+        for bar in dataset["bars"]:
+            writer.writerow([symbol, bar["date"], bar["open"], bar["high"], bar["low"], bar["close"], bar["volume"],
+                             dataset["price_unit"], dataset["volume_unit"], dataset["adjustment"],
+                             provenance["source"], provenance["upstream"], provenance["interface"],
+                             provenance["retrieved_at"], "false", "false", "false", "false"])
+    return stream.getvalue().encode("utf-8-sig")
+
+
 def build_collected_batch_package(request, *, allow_network=False, fetcher=None, now=None):
     """Fetch each selected symbol once, isolate failures and recompute raw research."""
     if allow_network is not True:
         raise ValueError("explicit network opt-in required")
     validate_collection_request(request, now=now)
     selected = fetcher or (fetch_a_share_daily if request["upstream"] == "eastmoney" else fetch_sina_daily)
-    collected, jobs, snapshots = [], [], {}
+    collected, jobs, snapshots, datasets = [], [], {}, {}
     for item in sorted(request["items"], key=lambda item: item["symbol"]):
         symbol = item["symbol"]
         entry = {"symbol": symbol, "status": "FAILED_COLLECTION", "reason": "collection_failed",
@@ -78,6 +102,7 @@ def build_collected_batch_package(request, *, allow_network=False, fetcher=None,
                     raise ValueError("provider identity/window mismatch")
                 dataset = build_backtest_dataset(fetched, evidence_as_of=cutoff, expected_adjustment="unadjusted")
                 snapshot = fetched
+                datasets[symbol] = dataset
                 snapshots["collected/" + symbol + ".snapshot.json"] = _canonical_json_bytes(snapshot) + b"\n"
                 entry.update(status="COLLECTED_UNVERIFIED", reason=None, snapshot_sha256=_sha(snapshot),
                              retrieved_at=dataset["provenance"]["retrieved_at"],
@@ -101,7 +126,10 @@ def build_collected_batch_package(request, *, allow_network=False, fetcher=None,
     with ZipFile(BytesIO(base_bytes)) as archive:
         files = {name: archive.read(name) for name in archive.namelist() if name != "manifest.json"}
     batch = json.loads(files["batch-result.json"])
-    files["index.html"] = _index(batch, collection=metadata).encode("utf-8")
+    market_data = _market_data_csv(batch, datasets)
+    if market_data is not None:
+        files["market-data.csv"] = market_data
+    files["index.html"] = _index(batch, collection=metadata, market_data=market_data is not None).encode("utf-8")
     files.update(snapshots)
     files["collection.json"] = _canonical_json_bytes(metadata) + b"\n"
     manifest = {**manifest, "collection_request_sha256": _sha(request),

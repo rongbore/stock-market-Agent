@@ -51,7 +51,8 @@ def build_quick_research_package(symbols, upstream, *, start_date=None, end_date
                                        "No suspension, official publication or historical availability certification."]}
     files["index.html"] = _index(json.loads(files["batch-result.json"]),
                                  collection=json.loads(files["collection.json"]),
-                                 calendar_source=calendar_record).encode("utf-8")
+                                 calendar_source=calendar_record,
+                                 market_data="market-data.csv" in files).encode("utf-8")
     files["calendar-source.json"] = _canonical_json_bytes(calendar_record) + b"\n"
     manifest = {**manifest, "calendar_source_file": "calendar-source.json",
                 "files": [{"path": name, "size_bytes": len(data), "sha256": hashlib.sha256(data).hexdigest()}
