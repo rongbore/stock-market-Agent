@@ -1,5 +1,6 @@
 import contextlib
 import csv
+import hashlib
 from io import BytesIO, StringIO
 import json
 import os
@@ -84,6 +85,11 @@ class QuickResearchActionTests(unittest.TestCase):
         self.assertTrue(verification['integrity_verified'])
         self.assertFalse(verification['source_content_verified'])
         result = json.loads((self.directory / 'action-result.json').read_text())
+        package = (self.directory / 'research.zip').read_bytes()
+        sha256 = hashlib.sha256(package).hexdigest()
+        self.assertEqual(result['package'], {'filename': 'research.zip',
+                                             'size_bytes': len(package), 'sha256': sha256})
+        self.assertIn(sha256, self.summary.read_text())
         self.assertEqual(result['generated_count'], 1)
         self.assertEqual(result['calendar_blocked_count'], 1)
         self.assertEqual(result['rerun_request']['symbols'], [blocked])
@@ -197,6 +203,7 @@ class QuickResearchActionTests(unittest.TestCase):
         code, output, _ = self.run_action(self.builder(b'not a zip'))
         self.assertEqual(code, 2)
         self.assertFalse((self.directory / 'research.zip').exists())
+        self.assertNotIn('package', json.loads((self.directory / 'action-result.json').read_text()))
         self.assertIn('完整性校验失败', output)
         self.assertEqual(json.loads((self.directory / 'action-result.json').read_text())['request'],
                          {'symbols': ['000776.SZ'], 'upstream': 'eastmoney',
